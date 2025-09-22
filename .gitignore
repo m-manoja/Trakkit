@@ -4,10 +4,13 @@
 venv/
 env/
 ENV/
-.env
 .venv
 env.bak/
 venv.bak/
+
+# Local environment variables
+!.env
+backend/.env
 
 # Node.js
 node_modules/
