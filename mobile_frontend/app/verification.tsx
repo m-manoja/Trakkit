@@ -12,7 +12,7 @@ export default function VerificationScreen() {
 
   const handleVerify = async () => {
     try {
-      const response = await fetch(`http://YOUR_LOCAL_IP:5000/api/auth/verify-otp`, {
+      const response = await fetch(`http://10.80.172.38:5000/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phoneNumber, token: code }),

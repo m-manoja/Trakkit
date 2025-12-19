@@ -12,29 +12,48 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleSendOTP = async () => {
-    if (!inputValue) return Alert.alert("Error", "Enter phone number");
-    
-    setLoading(true);
-    const fullPhone = `${selectedCountry?.callingCode}${inputValue.replace(/\s/g, '')}`;
+  // 1. Basic validation
+  if (!inputValue || !selectedCountry) {
+    Alert.alert("Error", "Please select a country and enter your phone number");
+    return;
+  }
 
-    try {
-      const response = await fetch(`http://YOUR_LOCAL_IP:5000/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone }),
+  setLoading(true);
+
+  // 2. The Correct E.164 Format Logic
+  // - Adds the '+' prefix
+  // - Adds the calling code (e.g., 94)
+  // - Removes all spaces from the user's input
+  const callingCode = selectedCountry?.callingCode || '';
+  const cleanNumber = inputValue.replace(/\D/g, '');
+  const fullPhone = `+${callingCode}${cleanNumber}`;
+
+  console.log("🚀 Sending formatted phone number:", fullPhone);
+
+  try {
+    const response = await fetch(`http://10.80.172.38:5000/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: fullPhone }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      // Pass the formatted phone number to the next screen
+      router.push({ 
+        pathname: "/verification", 
+        params: { phoneNumber: fullPhone } 
       });
-
-      if (response.ok) {
-        router.push({ pathname: "/verification", params: { phoneNumber: fullPhone } });
-      } else {
-        Alert.alert("Error", "Failed to send OTP");
-      }
-    } catch (e) {
-      Alert.alert("Network Error", "Is your backend running?");
-    } finally {
-      setLoading(false);
+    } else {
+      Alert.alert("Failed", result.error || "Could not send OTP");
     }
-  };
+  } catch (error) {
+    Alert.alert("Connection Error", "Check if your backend is running at 10.80.172.38:5000");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
