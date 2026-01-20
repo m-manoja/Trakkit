@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import PhoneInput from 'react-native-international-phone-number';
 import { COLORS } from '../src/theme/colors';
 import { PrimaryButton } from '../src/components/Button';
+import { sendOTP } from '../src/api/auth';
 
 export default function LoginScreen() {
   const [inputValue, setInputValue] = useState('');
@@ -31,25 +32,15 @@ export default function LoginScreen() {
   console.log("🚀 Sending formatted phone number:", fullPhone);
 
   try {
-    const response = await fetch(`http://10.80.172.38:5000/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: fullPhone }),
+    await sendOTP(fullPhone);
+    // Pass the formatted phone number to the next screen
+    router.push({ 
+      pathname: "/verification", 
+      params: { phoneNumber: fullPhone } 
     });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      // Pass the formatted phone number to the next screen
-      router.push({ 
-        pathname: "/verification", 
-        params: { phoneNumber: fullPhone } 
-      });
-    } else {
-      Alert.alert("Failed", result.error || "Could not send OTP");
-    }
   } catch (error) {
-    Alert.alert("Connection Error", "Check if your backend is running at 10.80.172.38:5000");
+    const message = error instanceof Error ? error.message : "Connection failed";
+    Alert.alert("Connection Error", message);
   } finally {
     setLoading(false);
   }

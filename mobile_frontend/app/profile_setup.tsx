@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { COLORS } from '../src/theme/colors';
 import { CustomInput } from '../src/components/Input';
 import { PrimaryButton } from '../src/components/Button';
-import { supabase } from '../src/api/supabase';
 import { useAuth } from '../src/context/AuthContext';
+import { updateProfile } from '../src/api/users';
 
 export default function ProfileSetupScreen() {
   const { user } = useAuth(); // Gets the logged-in user ID
@@ -25,21 +25,21 @@ export default function ProfileSetupScreen() {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert("Not signed in", "Please sign in again.");
+      router.replace("/");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Updates the public.users table from your ER Diagram
-      const { error } = await supabase
-        .from('users')
-        .update({
-          first_name: form.firstName,
-          last_name: form.lastName,
-          email: form.email,
-          date_of_birth: form.dob,
-          profile_completed: true 
-        })
-        .eq('id', user?.id);
-
-      if (error) throw error;
+      await updateProfile({
+        userId: user.id,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        dob: form.dob,
+      });
 
       // Final step of the flow!
       router.replace("/dashboard"); 
