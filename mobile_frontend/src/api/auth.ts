@@ -1,16 +1,38 @@
 // src/api/auth.ts
-import { supabase } from "./supabase";
+import { API_BASE_URL } from "./config";
 
-// Send OTP to phone number
+type VerifyResponse = {
+  user?: { id: string; phone?: string | null };
+};
+
 export async function sendOTP(phone: string) {
-  const { error } = await supabase.auth.signInWithOtp({ phone });
-  if (error) throw error;
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result?.error || "Could not send OTP");
+  }
+
   return true;
 }
 
-// Verify OTP
 export async function verifyOTP(phone: string, token: string) {
-  const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: "sms" });
-  if (error) throw error;
-  return data.user;
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, token }),
+  });
+
+  const result = (await response.json().catch(() => ({}))) as VerifyResponse;
+
+  if (!response.ok) {
+    throw new Error("Invalid OTP");
+  }
+
+  return result.user || null;
 }
