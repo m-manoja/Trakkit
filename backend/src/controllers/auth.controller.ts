@@ -1,61 +1,71 @@
 import type { Request, Response } from "express";
-import { AuthServiceError, requestOtp, verifyOtp as verifyOtpService } from "../services/auth.service.js";
-import { supabase } from "../config/supabaseClient.js"; // Import your DB client
+import { requestOtp, verifyOtp as verifyOtpService } from "../services/auth.service.js";
+import { supabase } from "../config/supabaseClient.js";
 
-function handleAuthError(res: Response, err: unknown) {
-  if (err instanceof AuthServiceError) {
-    return res.status(err.status).json({ error: err.message });
+// Helper function to standardize phone numbers
+const sanitizePhone = (phone: string): string => {
+  // 1. Remove everything except numbers (strips the +)
+  let cleaned = phone.replace(/\D/g, ''); 
+
+  // 2. If it's a 10-digit Sri Lankan number starting with 0, remove it
+  if (cleaned.length === 10 && cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
   }
-  return res.status(500).json({ error: "Internal server error" });
-}
+
+  // 3. If it has the country code 94, remove that too
+  if (cleaned.startsWith('94') && cleaned.length > 9) {
+    cleaned = cleaned.substring(2);
+  }
+
+  return cleaned; // Always returns the 9-digit '756834823'
+};
 
 export async function login(req: Request, res: Response) {
-  const { phone } = req.body;
+  let { phone } = req.body;
+
   if (!phone || typeof phone !== "string") {
     return res.status(400).json({ error: "Phone is required" });
   }
 
+  // Standardize the number before processing
+  const cleanPhone = sanitizePhone(phone);
+
   try {
-    await requestOtp(phone);
+    await requestOtp(cleanPhone);
     return res.json({ message: "OTP sent" });
   } catch (err) {
-    return handleAuthError(res, err);
+    return res.status(500).json({ error: "Failed to send OTP" });
   }
 }
 
 export async function verifyOtp(req: Request, res: Response) {
-  const { phone, token } = req.body;
+  let { phone, token } = req.body;
 
-  if (!phone || typeof phone !== "string" || !token || typeof token !== "string") {
+  if (!phone || !token) {
     return res.status(400).json({ error: "Phone and token are required" });
   }
 
-  try {
-    // 1. Verify the OTP through your service
-    const authData = await verifyOtpService(phone, token);
+  // Standardize the number so it matches the DB record
+  const cleanPhone = sanitizePhone(phone);
 
-    // 2. Query your PostgreSQL 'users' table to check the profile status
-    const { data: userProfile, error: dbError } = await supabase
+  try {
+    const authData = await verifyOtpService(cleanPhone, token);
+    
+    // Check user in DB using the standardized number
+    const { data: userProfile } = await supabase
       .from('users')
       .select('id, profile_completed')
-      .eq('phone', phone)
+      .eq('phone', cleanPhone)
       .single();
 
-    if (dbError || !userProfile) {
-      return res.status(404).json({ error: "User profile not found in database" });
-    }
+    const nextScreen = userProfile?.profile_completed ? "/(tabs)" : "/profile_setup";
 
-    // 3. Decide the next screen based on the profile_completed flag
-    const nextScreen = userProfile.profile_completed ? "/dashboard" : "/profile_setup";
-
-    // 4. Return the user, the ID, and the instruction for navigation
     return res.json({ 
       user: authData, 
-      userId: userProfile.id,
-      nextScreen: nextScreen 
+      userId: userProfile?.id,
+      nextScreen 
     });
-    
   } catch (err) {
-    return handleAuthError(res, err);
+    return res.status(500).json({ error: "Verification failed" });
   }
 }

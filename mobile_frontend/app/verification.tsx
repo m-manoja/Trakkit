@@ -13,7 +13,7 @@ export default function VerificationScreen() {
   const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
   const router = useRouter();
   const { setUser } = useAuth();
-  const phone = typeof phoneNumber === "string" ? phoneNumber : "";
+  const phone = typeof phoneNumber === "string" ? phoneNumber.trim() : "";
 
   const handleVerify = async () => {
     setLoading(true);
@@ -23,21 +23,27 @@ export default function VerificationScreen() {
         return;
       }
 
-      // 1. Call your API (which now returns nextScreen and userId)
+      // 1. Call API to verify OTP
       const response = await verifyOTP(phone, code);
 
-      // 2. Extract the new data from your updated auth.controller.ts
-      const { user, userId, nextScreen } = response;
+      // 2. Extract user data and the backend's suggested next screen
+      const { userId, nextScreen } = response;
 
-      // 3. Update your Auth Context
+      // 3. Update Auth Context so the app knows who is logged in
       if (userId) {
         setUser({ id: userId, phone: phone });
       }
 
-      // 4. SMART NAVIGATION: Go where the backend tells us
-      // We pass the userId as a parameter so Profile Setup can use it
+      // 4. SMART NAVIGATION: Adjust path for the (tabs) group structure
+      let targetPath = nextScreen;
+
+      // If backend says "/dashboard", we must use "/(tabs)" to show the Navbar
+      if (targetPath === "/dashboard" || targetPath === "/index") {
+        targetPath = "/(tabs)";
+      }
+
       router.replace({
-        pathname: nextScreen as any,
+        pathname: (targetPath || "/(tabs)") as any,
         params: { userId: userId }
       });
 
@@ -72,8 +78,27 @@ export default function VerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', padding: 20 },
-  card: { backgroundColor: '#FFF', borderRadius: 20, padding: 24, elevation: 4 },
-  title: { fontSize: 24, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 20 }
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.background, // Using your #E7D3D3
+    justifyContent: 'center', 
+    padding: 20 
+  },
+  card: { 
+    backgroundColor: COLORS.surface, // Using your #FFFFFF
+    borderRadius: 20, 
+    padding: 24, 
+    elevation: 4 
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: COLORS.textPrimary, // Using your #2D2D2D
+    marginBottom: 8 
+  },
+  subtitle: { 
+    fontSize: 14, 
+    color: COLORS.textSecondary, // Using your #555555
+    marginBottom: 20 
+  }
 });

@@ -42,7 +42,7 @@ export default function ProfileSetupScreen() {
       });
 
       // Final step of the flow!
-      router.replace("/dashboard"); 
+      router.replace("/(tabs)"); 
     } catch (error: any) {
       Alert.alert("Error", error.message);
     } finally {

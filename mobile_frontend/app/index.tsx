@@ -12,6 +12,27 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const handleLogin = async () => {
+  // 1. Standardize immediately
+  let cleanedPhone = inputValue.replace(/\D/g, ''); 
+  if (cleanedPhone.startsWith('0')) {
+    cleanedPhone = cleanedPhone.substring(1);
+  }
+
+  try {
+    await login(cleanedPhone); // Send the 9-digit version to backend
+    
+    // 2. Pass the 9-digit version to the next screen
+    router.push({
+      pathname: "/verification",
+      params: { phoneNumber: cleanedPhone } 
+    });
+  } catch (e) {
+    Alert.alert("Error", "Failed to send OTP");
+  }
+};
+
+
   const handleSendOTP = async () => {
   // 1. Basic validation
   if (!inputValue || !selectedCountry) {
@@ -77,3 +98,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#FFF', borderRadius: 20, padding: 24, elevation: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 20 }
 });
+function login(cleanedPhone: any) {
+  throw new Error('Function not implemented.');
+}
+
