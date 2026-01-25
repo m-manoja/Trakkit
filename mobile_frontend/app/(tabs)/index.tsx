@@ -1,47 +1,141 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Ensure this is imported
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../src/theme/colors';
+import { useAuth } from '../../src/context/AuthContext';
 
-export default function DashboardScreen() {
+const { width } = Dimensions.get('window');
+
+export default function DashboardHome() {
+  const { user } = useAuth();
+
   return (
-    <ScrollView style={styles.container}>
-      <Text style={[styles.greeting, { color: COLORS.textPrimary }]}>Ayubowan! 👋</Text>
-      
-      <Text style={[styles.sectionTitle, { color: COLORS.textSecondary }]}>Quick Actions</Text>
-      
-      <View style={styles.actionGrid}>
-        <ActionBtn icon="card" label="Add Subscription" />
-        <ActionBtn icon="shield-checkmark" label="Add Warranty" />
-        <ActionBtn icon="calendar" label="Add Reminder" />
-        <ActionBtn icon="list" label="Add Todo List" />
+    // edges={['top']} removes the bottom safe area padding
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header Section */}
+      <View style={[styles.header, { backgroundColor: COLORS.primary }]}>
+        <View>
+          <Text style={styles.logoText}>Trakkit</Text>
+          <Text style={styles.greetingText}>Hello, {(user as any)?.name || 'User'}!</Text>
+        </View>
+        <View style={styles.headerIcons}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="diamond-outline" size={24} color="#5DADE2" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="person-circle-outline" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </ScrollView>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* Stats Grid */}
+        <View style={styles.gridContainer}>
+          <StatCard title="Active Subs" value="03" icon="card-text" color={COLORS.primary} />
+          <StatCard title="Monthly Spend" value="Rs. 1580" icon="chart-line" color={COLORS.primary} />
+          <StatCard title="Warranties" value="02" icon="shield-check" color={COLORS.primary} />
+          <StatCard title="Due Soon" value="01" icon="alert-circle" color={COLORS.primary} />
+        </View>
+
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionGrid}>
+          <CompactAction label="Add Subscription" icon="add-circle" />
+          <CompactAction label="Add Warranty" icon="shield-checkmark" />
+          <CompactAction label="Add Reminder" icon="notifications" />
+          <CompactAction label="Add To-Do" icon="list" />
+        </View>
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderHeader}>
+            <Text style={styles.cardHeaderTitle}>Upcoming Reminders</Text>
+            <TouchableOpacity><Text style={styles.viewMore}>See All</Text></TouchableOpacity>
+          </View>
+          <ReminderItem date="01/06" title="Spotify Family" />
+          <ReminderItem date="01/20" title="Client Meeting" />
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-function ActionBtn({ icon, label }: { icon: any, label: string }) {
-  return (
-    <TouchableOpacity style={[styles.actionCard, { backgroundColor: COLORS.surface, borderColor: COLORS.primary }]}>
-      <Ionicons name={icon} size={24} color={COLORS.primary} />
-      <Text style={[styles.actionLabel, { color: COLORS.textPrimary }]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
+// Sub-components
+const StatCard = ({ title, value, icon, color }: any) => (
+  <View style={styles.statCard}>
+    <MaterialCommunityIcons name={icon} size={24} color={color} />
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statTitle}>{title}</Text>
+  </View>
+);
+
+const CompactAction = ({ label, icon }: any) => (
+  <TouchableOpacity style={styles.compactBtn}>
+    <Ionicons name={icon} size={20} color={COLORS.primary} />
+    <Text style={styles.compactLabel}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const ReminderItem = ({ date, title }: any) => (
+  <View style={styles.reminderRow}>
+    <Text style={styles.dateText}>{date}</Text>
+    <Text style={styles.reminderName}>{title}</Text>
+    <Ionicons name="chevron-forward" size={16} color="#999" />
+  </View>
+);
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, padding: 20, paddingTop: 60 },
-  greeting: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginVertical: 15 },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  actionCard: { 
-    width: '48%', 
-    padding: 18, 
-    borderRadius: 15, 
-    alignItems: 'center', 
-    marginBottom: 15,
-    borderStyle: 'dashed',
-    borderWidth: 1,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20, 
+    paddingVertical: 15,
+    borderBottomLeftRadius: 1,
+    borderBottomRightRadius: 1,
+    elevation: 4,
   },
-  actionLabel: { marginTop: 8, fontSize: 13, fontWeight: '500' }
+  logoText: { fontSize: 24, fontWeight: 'bold', color: 'white' },
+  greetingText: { fontSize: 13, color: '#FFD1DC', marginTop: -2 },
+  headerIcons: { flexDirection: 'row' },
+  iconButton: { marginLeft: 15 },
+  scrollContent: { padding: 20, paddingBottom: 80 }, // Added padding to avoid overlapping with absolute Nav Bar
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
+  statCard: { 
+    backgroundColor: '#FFF', 
+    width: (width - 55) / 2, 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 15,
+    elevation: 2
+  },
+  statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 5, color: COLORS.textPrimary },
+  statTitle: { fontSize: 11, color: COLORS.textSecondary },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 15, textAlign: 'center' },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25, gap: 10 },
+  compactBtn: {
+    backgroundColor: '#FFF',
+    width: (width - 55) / 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    elevation: 1
+  },
+  compactLabel: { marginLeft: 10, fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
+  reminderCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, elevation: 2 },
+  reminderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+  cardHeaderTitle: { fontWeight: 'bold', fontSize: 16 },
+  viewMore: { color: COLORS.primary, fontSize: 12, fontWeight: 'bold' },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F9F9F9' },
+  dateText: { width: 50, fontSize: 12, fontWeight: 'bold', color: COLORS.primary },
+  reminderName: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
 });

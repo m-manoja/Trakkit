@@ -1,13 +1,22 @@
 import express from "express";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
+import subscriptionRoutes from "./routes/subscription"; //
 import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());            // allow frontend to call backend
-app.use(express.json());    // parse JSON requests
+// Configure CORS to allow requests from your mobile app
+app.use(cors({
+  origin: ['http://localhost:19006', 'http://10.43.147.38:19006', 'exp://10.43.147.38:19000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Logger middleware to track incoming requests from your phone
 app.use((req, res, next) => {
   const startMs = Date.now();
   res.on("finish", () => {
@@ -19,16 +28,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Auth routes
+// Routes
 app.use("/api/auth", authRoutes);
-// User routes
 app.use("/api/users", userRoutes);
+app.use("/api/subscriptions", subscriptionRoutes); // This must match your frontend axios call
 
-// Health check route
 app.get("/", (req, res) => {
   res.send("🚀 API is working!");
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Use '0.0.0.0' to ensure the server is discoverable by your mobile device
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://10.43.147.38:${PORT}`);
 });

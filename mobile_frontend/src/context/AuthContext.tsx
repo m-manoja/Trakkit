@@ -1,25 +1,67 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type User = { id: string; phone: string } | null;
+// 1. Blueprint for the User Object
+export type User = {
+  id: string;
+  phone: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  token: string;
+} | null;
 
+// 2. Blueprint for the Context State
 type AuthContextType = {
   user: User;
-  setUser: (user: User) => void;
+  setUser: (user: User) => Promise<void>; // Added Promise<void> because it's async
   signOut: () => Promise<void>;
+  loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>(null);
+  const [user, setUserState] = useState<User>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user from storage on app start
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem('@auth_user');
+        if (savedUser) {
+          setUserState(JSON.parse(savedUser));
+        }
+      } catch (e) {
+        console.error("Failed to load user from storage:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUser();
+  }, []);
+
+  // 3. The logic that saves the login to the phone's disk
+  const setUser = async (newUser: User) => {
+    setUserState(newUser);
+    try {
+      if (newUser) {
+        await AsyncStorage.setItem('@auth_user', JSON.stringify(newUser));
+      } else {
+        await AsyncStorage.removeItem('@auth_user');
+      }
+    } catch (e) {
+      console.error("Failed to save user to storage:", e);
+    }
+  };
 
   async function signOut() {
-    setUser(null);
+    await setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, signOut }}>
+    <AuthContext.Provider value={{ user, setUser, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   );

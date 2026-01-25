@@ -9,7 +9,7 @@ export default function TabLayout() {
       tabBarActiveTintColor: COLORS.primary, // Using your #B9375D
       tabBarInactiveTintColor: COLORS.textSecondary, // Using your #555555
       tabBarStyle: { 
-        height: Platform.OS === 'ios' ? 88 : 70, 
+        height: Platform.OS === 'ios' ? 88 : 50, 
         paddingBottom: Platform.OS === 'ios' ? 30 : 10,
         backgroundColor: COLORS.surface, // Using your #FFFFFF
       },

@@ -33,3 +33,13 @@ export async function updateUserProfile(input: UpdateProfileInput) {
 
   return data; // Return the updated user object to the controller
 }
+export async function getUserProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('firstName, lastName, email')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}

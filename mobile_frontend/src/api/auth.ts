@@ -5,6 +5,7 @@ import { API_BASE_URL } from "./config";
 type VerifyResponse = {
   user?: { id: string; phone?: string | null };
   userId?: string;
+  token?: string;
   nextScreen?: string;
 };
 
