@@ -6,12 +6,12 @@ import { COLORS } from '../../src/theme/colors';
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{
-      tabBarActiveTintColor: COLORS.primary, // Using your #B9375D
-      tabBarInactiveTintColor: COLORS.textSecondary, // Using your #555555
+      tabBarActiveTintColor: COLORS.primary, 
+      tabBarInactiveTintColor: COLORS.textSecondary, 
       tabBarStyle: { 
         height: Platform.OS === 'ios' ? 88 : 50, 
         paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-        backgroundColor: COLORS.surface, // Using your #FFFFFF
+        backgroundColor: COLORS.surface, 
       },
       headerShown: false,
     }}>

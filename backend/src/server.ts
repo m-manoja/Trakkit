@@ -3,6 +3,7 @@ import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import subscriptionRoutes from "./routes/subscription"; //
 import cors from "cors";
+import warrantyRoutes from './routes/warranty.route';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,7 +32,8 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/subscriptions", subscriptionRoutes); // This must match your frontend axios call
+app.use("/api/subscriptions", subscriptionRoutes); 
+app.use('/api/warranties', warrantyRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 API is working!");

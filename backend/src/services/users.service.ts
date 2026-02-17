@@ -19,19 +19,19 @@ export async function updateUserProfile(input: UpdateProfileInput) {
       last_name: lastName,
       email: email,
       date_of_birth: dob,
-      profile_completed: true, // This marks the user as 'Returning' for next time
-      updated_at: new Date().toISOString(), // Good practice to update the timestamp
+      profile_completed: true, 
+      updated_at: new Date().toISOString(), 
     })
     .eq("id", userId)
-    .select() // Returns the updated record to confirm success
+    .select() 
     .single();
 
   if (error) {
-    console.error("❌ PostgreSQL Update Error:", error.message);
+    console.error("PostgreSQL Update Error:", error.message);
     throw new Error(error.message);
   }
 
-  return data; // Return the updated user object to the controller
+  return data; 
 }
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase

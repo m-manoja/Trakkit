@@ -14,7 +14,6 @@ export const createSubscription = async (userId: string, data: any) => {
     .from('subscriptions')
     .insert([
       {
-        // 1. CHANGE: Match your new database column name "userId"
         userId: userId, 
         service_name,
         amount: parseFloat(amount),
@@ -22,7 +21,7 @@ export const createSubscription = async (userId: string, data: any) => {
         category,
         start_date,
         description,
-        status: 'Active' // As you requested, default to Active
+        status: 'Active' 
       }
     ])
     .select();
@@ -39,7 +38,7 @@ export const getSubscriptionsByUserId = async (userId: string) => {
   const { data, error } = await supabase
     .from('subscriptions')
     .select('*')
-    .eq('userId', userId) // Matches your new database column name
+    .eq('userId', userId) 
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -60,7 +59,7 @@ export const updateSubscription = async (id: string, userId: string, updateData:
       status: updateData.status
     })
     .eq('id', id)
-    .eq('userId', userId) // Security: Ensure the user owns this record
+    .eq('userId', userId) 
     .select();
 
   if (error) throw error;
@@ -73,7 +72,7 @@ export const deleteSubscription = async (id: string, userId: string) => {
     .from('subscriptions')
     .delete()
     .eq('id', id)
-    .eq('userId', userId); // Security: Ensure the user owns this record
+    .eq('userId', userId); 
 
   if (error) throw error;
   return true;

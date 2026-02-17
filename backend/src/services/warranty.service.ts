@@ -1,0 +1,88 @@
+import { supabase } from '../config/supabaseClient';
+
+export const createWarranty = async (userId: string, data: any) => {
+    const { data: result, error } = await supabase
+        .from('warranties')
+        .insert([{
+            userId: userId, 
+            product_name: data.product_name,
+            purchase_place: data.purchase_place,
+            warranty_period: data.warranty_period,
+            category: data.category,
+            purchase_date: data.purchase_date,
+            expiry_date: data.expiry_date,
+            description: data.description,
+            document_url: data.document_url, // URL from Supabase Storage
+            status: 'Active'
+        }])
+        .select();
+
+    if (error) throw error;
+    return result;
+};
+
+export const updateWarranty = async (id: string, userId: string, data: any) => {
+    const { data: result, error } = await supabase
+        .from('warranties')
+        .update({
+            product_name: data.product_name,
+            purchase_place: data.purchase_place,
+            warranty_period: data.warranty_period,
+            category: data.category,
+            purchase_date: data.purchase_date,
+            expiry_date: data.expiry_date,
+            description: data.description,
+            document_url: data.document_url,
+            status: data.status
+        })
+        .eq('id', id)
+        .eq('userId', userId) 
+        .select();
+
+    if (error) throw error;
+    return result;
+};
+
+export const deleteWarranty = async (id: string, userId: string) => {
+    const { error } = await supabase
+        .from('warranties')
+        .delete()
+        .eq('id', id)
+        .eq('userId', userId); 
+
+    if (error) throw error;
+    return true;
+};
+
+export const getWarrantiesByUserId = async (userId: string) => {
+    const { data, error } = await supabase
+        .from('warranties')
+        .select('*')
+        .eq('userId', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Supabase Query Error:", error.message);
+        throw new Error(error.message);
+    }
+    return data;
+};
+
+export const getWarrantyById = async (id: string, userId: string) => {
+    const { data, error } = await supabase
+        .from('warranties')
+        .select('*')
+        .eq('id', id)
+        .eq('userId', userId) 
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') {
+            // No rows returned - warranty not found
+            return null;
+        }
+        throw error;
+    }
+    return data;
+};
+

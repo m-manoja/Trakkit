@@ -178,7 +178,7 @@ export default function SubscriptionInitial() {
         </View>
 
         <View style={styles.cardContent}>
-          <View style={styles.infoRow}><Text style={styles.infoLabel}>Amount</Text><Text style={styles.infoValue}>$ {item.amount} / {item.billing_cycle}</Text></View>
+          <View style={styles.infoRow}><Text style={styles.infoLabel}>Amount</Text><Text style={styles.infoValue}>Rs. {item.amount} / {item.billing_cycle}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Start Date</Text><Text style={styles.infoValue}>{new Date(item.start_date).toLocaleDateString()}</Text></View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Status</Text>
