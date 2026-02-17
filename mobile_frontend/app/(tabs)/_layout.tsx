@@ -3,21 +3,36 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../src/theme/colors';
 
+// Taller height to accommodate potential safe area issues and floating button context
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 70;
+
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{
       tabBarActiveTintColor: COLORS.primary,
       tabBarInactiveTintColor: COLORS.textSecondary,
       tabBarStyle: {
-        position: 'absolute',
+        position: 'absolute', // Ensures stable layout across re-logins
         bottom: 0,
         left: 0,
         right: 0,
-        height: Platform.OS === 'ios' ? 88 : 60,
-        paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+        height: TAB_BAR_HEIGHT,
+        paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+        paddingTop: 8,
         backgroundColor: COLORS.surface,
         borderTopWidth: 0,
+        // Shadows & Elevation
         elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        zIndex: 50,
+      },
+      tabBarLabelStyle: {
+        fontSize: 11,
+        fontWeight: '600',
+        marginBottom: Platform.OS === 'android' ? 5 : 0
       },
       headerShown: false,
     }}>
@@ -33,7 +48,7 @@ export default function TabLayout() {
 
       {/* THE CIRCULAR HOME BUTTON */}
       <Tabs.Screen name="index" options={{
-        title: 'Home',
+        title: '',
         tabBarIcon: ({ focused }) => (
           <View style={[
             styles.homeButton,
@@ -59,16 +74,20 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   homeButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    marginBottom: Platform.OS === 'ios' ? 20 : 35,
-    elevation: 4,
+    // Float the button above the tab bar
+    top: -22,
+    // Higher elevation to ensure it draws on top of the tab bar on Android
+    elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    zIndex: 100, // For iOS stacking
   }
 });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, StatusBar, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../src/theme/colors';
@@ -8,7 +9,8 @@ import { useAuth } from '../../src/context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export default function DashboardHome() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
 
   return (
     // edges={['top']} removes the bottom safe area padding
@@ -28,7 +30,22 @@ export default function DashboardHome() {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => {
+            console.log("Logout pressed");
+            Alert.alert("Logout", "Are you sure you want to logout?", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Logout", style: "destructive", onPress: async () => {
+                  try {
+                    await signOut();
+                    router.replace("/");
+                  } catch (e) {
+                    console.error("Logout failed:", e);
+                  }
+                }
+              }
+            ]);
+          }}>
             <Ionicons name="person-circle-outline" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -106,8 +123,8 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 24, fontWeight: 'bold', color: 'white' },
   greetingText: { fontSize: 13, color: '#FFD1DC', marginTop: -2 },
   headerIcons: { flexDirection: 'row' },
-  iconButton: { marginLeft: 15 },
-  scrollContent: { padding: 20, paddingBottom: 80 }, // Added padding to avoid overlapping with absolute Nav Bar
+  iconButton: { marginLeft: 10, padding: 8 },
+  scrollContent: { padding: 20, paddingBottom: 120 }, // Added padding to avoid overlapping with absolute Nav Bar
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
   statCard: {
     backgroundColor: '#FFF',

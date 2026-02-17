@@ -4,7 +4,7 @@ import {
   StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import axios from 'axios';
@@ -264,8 +264,17 @@ export default function WarrantyScreen() {
         data={warranties}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <WarrantyCard item={item} />}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchWarranties(); }} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContent}>
+            <MaterialCommunityIcons name="shield-search" size={100} color="#D1D1D1" />
+            <Text style={styles.emptyTitle}>No Warranties Found</Text>
+            <TouchableOpacity style={styles.mainActionBtn} onPress={() => setIsFormVisible(true)}>
+              <Text style={styles.mainActionText}>+ Add First Warranty</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <Modal visible={isFormVisible} animationType="slide" transparent={true}>
@@ -432,5 +441,9 @@ const styles = StyleSheet.create({
   submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
   pickerContainer: { backgroundColor: 'white', width: '80%', borderRadius: 10, padding: 10 },
-  pickerItem: { paddingVertical: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEE' }
+  pickerItem: { paddingVertical: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginVertical: 15 },
+  mainActionBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, width: '80%', alignItems: 'center' },
+  mainActionText: { color: 'white', fontWeight: 'bold' },
 });

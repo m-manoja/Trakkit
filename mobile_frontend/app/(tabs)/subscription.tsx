@@ -231,7 +231,7 @@ export default function SubscriptionInitial() {
           data={subscriptions}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => <SubscriptionCard item={item} />}
-          contentContainerStyle={{ paddingBottom: 100 }} // Prevents overlapping with Nav bar
+          contentContainerStyle={{ paddingBottom: 120 }} // Prevents overlapping with Nav bar
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchSubscriptions(); }} />}
           ListEmptyComponent={
             <View style={styles.emptyContent}>
