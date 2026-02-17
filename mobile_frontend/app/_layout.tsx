@@ -12,7 +12,7 @@ export default function RootLayout() {
         }}
       >
         {/* Do NOT use initialRouteName here */}
-        <Stack.Screen name="index" /> 
+        <Stack.Screen name="index" />
         <Stack.Screen name="verification" />
         <Stack.Screen name="profile_setup" />
         <Stack.Screen name="(tabs)" />

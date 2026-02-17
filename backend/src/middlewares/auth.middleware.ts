@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const authHeader = req.header('Authorization');
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ message: 'No token, authorization denied' });
         }
@@ -28,8 +28,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
         // Verify and attach
         const decoded = jwt.verify(token, config.jwt.secret as string);
-        req.user = decoded; 
-        
+        req.user = decoded;
+
         next();
     } catch (err) {
         console.error('Auth middleware error:', err);

@@ -1,27 +1,27 @@
 import { supabase } from '../config/supabaseClient';
 
 export const createSubscription = async (userId: string, data: any) => {
-  const { 
-    service_name, 
-    amount, 
-    billing_cycle, 
-    category, 
-    start_date, 
-    description 
+  const {
+    service_name,
+    amount,
+    billing_cycle,
+    category,
+    start_date,
+    description
   } = data;
 
   const { data: result, error } = await supabase
     .from('subscriptions')
     .insert([
       {
-        userId: userId, 
+        userId: userId,
         service_name,
         amount: parseFloat(amount),
         billing_cycle,
         category,
         start_date,
         description,
-        status: 'Active' 
+        status: 'Active'
       }
     ])
     .select();
@@ -30,7 +30,7 @@ export const createSubscription = async (userId: string, data: any) => {
     console.error("Supabase Insert Error:", error.message);
     throw new Error(error.message);
   }
-  
+
   return result;
 };
 
@@ -38,7 +38,7 @@ export const getSubscriptionsByUserId = async (userId: string) => {
   const { data, error } = await supabase
     .from('subscriptions')
     .select('*')
-    .eq('userId', userId) 
+    .eq('userId', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -59,7 +59,7 @@ export const updateSubscription = async (id: string, userId: string, updateData:
       status: updateData.status
     })
     .eq('id', id)
-    .eq('userId', userId) 
+    .eq('userId', userId)
     .select();
 
   if (error) throw error;
@@ -72,7 +72,7 @@ export const deleteSubscription = async (id: string, userId: string) => {
     .from('subscriptions')
     .delete()
     .eq('id', id)
-    .eq('userId', userId); 
+    .eq('userId', userId);
 
   if (error) throw error;
   return true;

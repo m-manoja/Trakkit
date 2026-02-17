@@ -4,7 +4,7 @@ export const createWarranty = async (userId: string, data: any) => {
     const { data: result, error } = await supabase
         .from('warranties')
         .insert([{
-            userId: userId, 
+            userId: userId,
             product_name: data.product_name,
             purchase_place: data.purchase_place,
             warranty_period: data.warranty_period,
@@ -12,7 +12,7 @@ export const createWarranty = async (userId: string, data: any) => {
             purchase_date: data.purchase_date,
             expiry_date: data.expiry_date,
             description: data.description,
-            document_url: data.document_url, // URL from Supabase Storage
+            document_url: data.document_url,
             status: 'Active'
         }])
         .select();
@@ -36,7 +36,7 @@ export const updateWarranty = async (id: string, userId: string, data: any) => {
             status: data.status
         })
         .eq('id', id)
-        .eq('userId', userId) 
+        .eq('userId', userId)
         .select();
 
     if (error) throw error;
@@ -48,7 +48,7 @@ export const deleteWarranty = async (id: string, userId: string) => {
         .from('warranties')
         .delete()
         .eq('id', id)
-        .eq('userId', userId); 
+        .eq('userId', userId);
 
     if (error) throw error;
     return true;
@@ -73,7 +73,7 @@ export const getWarrantyById = async (id: string, userId: string) => {
         .from('warranties')
         .select('*')
         .eq('id', id)
-        .eq('userId', userId) 
+        .eq('userId', userId)
         .single();
 
     if (error) {

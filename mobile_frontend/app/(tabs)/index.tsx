@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Ensure this is imported
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
@@ -35,7 +35,7 @@ export default function DashboardHome() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Stats Grid */}
         <View style={styles.gridContainer}>
           <StatCard title="Active Subs" value="03" icon="card-text" color={COLORS.primary} />
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20, 
+    paddingTop: 20,
     paddingVertical: 15,
     borderBottomLeftRadius: 1,
     borderBottomRightRadius: 1,
@@ -109,11 +109,11 @@ const styles = StyleSheet.create({
   iconButton: { marginLeft: 15 },
   scrollContent: { padding: 20, paddingBottom: 80 }, // Added padding to avoid overlapping with absolute Nav Bar
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
-  statCard: { 
-    backgroundColor: '#FFF', 
-    width: (width - 55) / 2, 
-    padding: 15, 
-    borderRadius: 12, 
+  statCard: {
+    backgroundColor: '#FFF',
+    width: (width - 55) / 2,
+    padding: 15,
+    borderRadius: 12,
     marginBottom: 15,
     elevation: 2
   },

@@ -13,59 +13,59 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-  // 1. Standardize immediately
-  let cleanedPhone = inputValue.replace(/\D/g, ''); 
-  if (cleanedPhone.startsWith('0')) {
-    cleanedPhone = cleanedPhone.substring(1);
-  }
+    // 1. Standardize immediately
+    let cleanedPhone = inputValue.replace(/\D/g, '');
+    if (cleanedPhone.startsWith('0')) {
+      cleanedPhone = cleanedPhone.substring(1);
+    }
 
-  try {
-    await login(cleanedPhone); // Send the 9-digit version to backend
-    
-    // 2. Pass the 9-digit version to the next screen
-    router.push({
-      pathname: "/verification",
-      params: { phoneNumber: cleanedPhone } 
-    });
-  } catch (e) {
-    Alert.alert("Error", "Failed to send OTP");
-  }
-};
+    try {
+      await login(cleanedPhone); // Send the 9-digit version to backend
+
+      // 2. Pass the 9-digit version to the next screen
+      router.push({
+        pathname: "/verification",
+        params: { phoneNumber: cleanedPhone }
+      });
+    } catch (e) {
+      Alert.alert("Error", "Failed to send OTP");
+    }
+  };
 
 
   const handleSendOTP = async () => {
-  // 1. Basic validation
-  if (!inputValue || !selectedCountry) {
-    Alert.alert("Error", "Please select a country and enter your phone number");
-    return;
-  }
+    // 1. Basic validation
+    if (!inputValue || !selectedCountry) {
+      Alert.alert("Error", "Please select a country and enter your phone number");
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  // 2. The Correct E.164 Format Logic
-  // - Adds the '+' prefix
-  // - Adds the calling code (e.g., 94)
-  // - Removes all spaces from the user's input
-  const callingCode = selectedCountry?.callingCode || '';
-  const cleanNumber = inputValue.replace(/\D/g, '');
-  const fullPhone = `+${callingCode}${cleanNumber}`;
+    // 2. The Correct E.164 Format Logic
+    // - Adds the '+' prefix
+    // - Adds the calling code (e.g., 94)
+    // - Removes all spaces from the user's input
+    const callingCode = selectedCountry?.callingCode || '';
+    const cleanNumber = inputValue.replace(/\D/g, '');
+    const fullPhone = `+${callingCode}${cleanNumber}`;
 
-  console.log("🚀 Sending formatted phone number:", fullPhone);
+    console.log("🚀 Sending formatted phone number:", fullPhone);
 
-  try {
-    await sendOTP(fullPhone);
-    // Pass the formatted phone number to the next screen
-    router.push({ 
-      pathname: "/verification", 
-      params: { phoneNumber: fullPhone } 
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Connection failed";
-    Alert.alert("Connection Error", message);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      await sendOTP(fullPhone);
+      // Pass the formatted phone number to the next screen
+      router.push({
+        pathname: "/verification",
+        params: { phoneNumber: fullPhone }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection failed";
+      Alert.alert("Connection Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,6 +81,22 @@ export default function LoginScreen() {
           selectedCountry={selectedCountry}
           onChangeSelectedCountry={setSelectedCountry}
           defaultCountry="CU"
+          placeholder="Phone Number"
+          phoneInputPlaceholderTextColor="#999"
+          phoneInputStyles={{
+            container: {
+              borderWidth: 1,
+              borderColor: '#E0E0E0',
+              borderRadius: 12,
+              backgroundColor: '#FFF',
+            },
+            input: {
+              fontSize: 15,
+            },
+            callingCode: {
+              fontSize: 15,
+            },
+          }}
         />
         <View style={{ marginTop: 20 }}>
           <PrimaryButton title="Send Code" onPress={handleSendOTP} loading={loading} />

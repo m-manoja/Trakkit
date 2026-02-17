@@ -9,11 +9,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import { API_BASE_URL } from '../../src/api/config';
 
 export default function SubscriptionInitial() {
   const { user, loading: authLoading } = useAuth();
   const token = user?.token;
-  const API_BASE_URL = 'http://10.43.147.38:5000';
 
   // --- DATA STATES ---
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -65,9 +65,9 @@ export default function SubscriptionInitial() {
       `Are you sure you want to delete ${name}?`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive", 
+        {
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await axios.delete(`${API_BASE_URL}/api/subscriptions/${id}`, {
@@ -226,7 +226,7 @@ export default function SubscriptionInitial() {
       </View>
 
       {/* Main Content Area */}
-      <View style={{ flex: 1 }}> 
+      <View style={{ flex: 1 }}>
         <FlatList
           data={subscriptions}
           keyExtractor={(item) => item.id.toString()}

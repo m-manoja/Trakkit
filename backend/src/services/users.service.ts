@@ -19,11 +19,11 @@ export async function updateUserProfile(input: UpdateProfileInput) {
       last_name: lastName,
       email: email,
       date_of_birth: dob,
-      profile_completed: true, 
-      updated_at: new Date().toISOString(), 
+      profile_completed: true,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", userId)
-    .select() 
+    .select()
     .single();
 
   if (error) {
@@ -31,7 +31,7 @@ export async function updateUserProfile(input: UpdateProfileInput) {
     throw new Error(error.message);
   }
 
-  return data; 
+  return data;
 }
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase

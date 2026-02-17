@@ -10,11 +10,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import { API_BASE_URL } from '../../src/api/config';
 
 export default function WarrantyScreen() {
   const { user, loading: authLoading } = useAuth();
   const token = user?.token;
-  const API_BASE_URL = 'http://10.43.147.38:5000';
 
   const [warranties, setWarranties] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);

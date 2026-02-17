@@ -11,7 +11,7 @@ export default function ProfileSetupScreen() {
   const { user } = useAuth(); // Gets the logged-in user ID
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -42,7 +42,7 @@ export default function ProfileSetupScreen() {
       });
 
       // Final step of the flow!
-      router.replace("/(tabs)"); 
+      router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Error", error.message);
     } finally {
@@ -51,7 +51,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
@@ -60,35 +60,35 @@ export default function ProfileSetupScreen() {
           <Text style={styles.title}>Complete Your Profile</Text>
           <Text style={styles.subtitle}>Provide your details to start tracking with Trakkit.</Text>
 
-          <CustomInput 
-            label="First Name" 
+          <CustomInput
+            label="First Name"
             placeholder="John"
             value={form.firstName}
-            onChangeText={(t) => setForm({...form, firstName: t})}
+            onChangeText={(t) => setForm({ ...form, firstName: t })}
           />
-          <CustomInput 
-            label="Last Name" 
+          <CustomInput
+            label="Last Name"
             placeholder="Doe"
             value={form.lastName}
-            onChangeText={(t) => setForm({...form, lastName: t})}
+            onChangeText={(t) => setForm({ ...form, lastName: t })}
           />
-          <CustomInput 
-            label="Email Address" 
+          <CustomInput
+            label="Email Address"
             placeholder="john.doe@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             value={form.email}
-            onChangeText={(t) => setForm({...form, email: t})}
+            onChangeText={(t) => setForm({ ...form, email: t })}
           />
-          <CustomInput 
-            label="Date of Birth" 
+          <CustomInput
+            label="Date of Birth"
             placeholder="YYYY-MM-DD"
             value={form.dob}
-            onChangeText={(t) => setForm({...form, dob: t})}
+            onChangeText={(t) => setForm({ ...form, dob: t })}
           />
 
-          <PrimaryButton 
-            title="Complete Profile" 
+          <PrimaryButton
+            title="Complete Profile"
             onPress={handleCompleteProfile}
             loading={loading}
           />
