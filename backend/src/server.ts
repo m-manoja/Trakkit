@@ -1,9 +1,9 @@
 import express from "express";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
-import subscriptionRoutes from "./routes/subscription"; //
+import subscriptionRoutes from "./routes/subscription";
 import cors from "cors";
-import warrantyRoutes from './routes/warranty.route';
+import warrantyRoutes from './routes/warranty';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,14 +32,14 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/subscriptions", subscriptionRoutes); 
+app.use("/api/subscriptions", subscriptionRoutes);
 app.use('/api/warranties', warrantyRoutes);
 
 app.get("/", (req, res) => {
-  res.send("🚀 API is working!");
+  res.send(" API is working!");
 });
 
 // Use '0.0.0.0' to ensure the server is discoverable by your mobile device
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://10.43.147.38:${PORT}`);
+  console.log(`Server running on http://10.43.147.38:${PORT}`);
 });

@@ -2,12 +2,12 @@ import type { Request, Response } from "express";
 import { requestOtp, verifyOtp as verifyOtpService } from "../services/auth.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
-import { config } from '../config/index.js';
+import config from '../config.js';
 
 // Helper function to standardize phone numbers
 const sanitizePhone = (phone: string): string => {
   // 1. Remove everything except numbers (strips the +)
-  let cleaned = phone.replace(/\D/g, ''); 
+  let cleaned = phone.replace(/\D/g, '');
 
   // 2. If it's a 10-digit Sri Lankan number starting with 0, remove it
   if (cleaned.length === 10 && cleaned.startsWith('0')) {
@@ -53,7 +53,7 @@ export async function verifyOtp(req: Request, res: Response) {
 
   try {
     const authData = await verifyOtpService(cleanPhone, token);
-    
+
     // Check user in DB using the standardized number
     const { data: userProfile, error } = await supabase
       .from('users')
@@ -68,17 +68,17 @@ export async function verifyOtp(req: Request, res: Response) {
 
     // Generate JWT token
     const jwtToken = jwt.sign(
-      { 
-        id: userProfile.id, 
-        phone: userProfile.phone 
+      {
+        id: userProfile.id,
+        phone: userProfile.phone
       },
-      config.JWT_SECRET,
+      config.jwt.secret,
       { expiresIn: '30d' } // Token expires in 30 days
     );
 
     const nextScreen = userProfile.profile_completed ? "/(tabs)" : "/profile_setup";
 
-    return res.json({ 
+    return res.json({
       user: {
         id: userProfile.id,
         phone: userProfile.phone,
@@ -87,7 +87,7 @@ export async function verifyOtp(req: Request, res: Response) {
         profileCompleted: userProfile.profile_completed
       },
       token: jwtToken, // Send the token to the client
-      nextScreen 
+      nextScreen
     });
   } catch (err) {
     console.error('OTP verification error:', err);
