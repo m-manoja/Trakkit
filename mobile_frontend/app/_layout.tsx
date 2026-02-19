@@ -15,7 +15,14 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="verification" />
         <Stack.Screen name="profile_setup" />
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            gestureEnabled: false, // iOS swipe back disabled
+            headerBackVisible: false, // Hide header back button if shown
+          }}
+        />
       </Stack>
     </AuthProvider>
   );

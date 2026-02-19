@@ -9,17 +9,25 @@ const sanitizePhone = (phone: string): string => {
   // 1. Remove everything except numbers (strips the +)
   let cleaned = phone.replace(/\D/g, '');
 
-  // 2. If it's a 10-digit Sri Lankan number starting with 0, remove it
+  // 2. Handle Sri Lanka (94) specifically to merge 077... and 77... strings
+  // Scenario A: Frontend sends +94077... -> 94077... (Length 12 for SL)
+  // We want to remove that leading zero after the country code.
+  if (cleaned.startsWith('94') && cleaned.length === 12 && cleaned[2] === '0') {
+    return '94' + cleaned.substring(3);
+  }
+
+  // Scenario B: Generic Local Input (Fallback)
+  // 077... -> 9477...
   if (cleaned.length === 10 && cleaned.startsWith('0')) {
-    cleaned = cleaned.substring(1);
+    return '94' + cleaned.substring(1);
   }
 
-  // 3. If it has the country code 94, remove that too
-  if (cleaned.startsWith('94') && cleaned.length > 9) {
-    cleaned = cleaned.substring(2);
+  // 77... -> 9477...
+  if (cleaned.length === 9) {
+    return '94' + cleaned;
   }
 
-  return cleaned; // Always returns the 9-digit '756834823'
+  return cleaned;
 };
 
 export async function login(req: Request, res: Response) {
@@ -57,7 +65,7 @@ export async function verifyOtp(req: Request, res: Response) {
     // Check user in DB using the standardized number
     const { data: userProfile, error } = await supabase
       .from('users')
-      .select('id, phone, first_name, last_name, profile_completed')
+      .select('id, phone, first_name, last_name, email, profile_completed, created_at')
       .eq('phone', cleanPhone)
       .single();
 
@@ -84,6 +92,8 @@ export async function verifyOtp(req: Request, res: Response) {
         phone: userProfile.phone,
         firstName: userProfile.first_name,
         lastName: userProfile.last_name,
+        email: userProfile.email,
+        createdAt: userProfile.created_at,
         profileCompleted: userProfile.profile_completed
       },
       token: jwtToken, // Send the token to the client

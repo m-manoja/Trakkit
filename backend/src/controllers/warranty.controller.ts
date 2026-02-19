@@ -63,7 +63,7 @@ export const editWarranty = async (req: Request, res: Response) => {
 
         const userId = (req as any).user.id || (req as any).user.userId;
 
-        // Fetch existing warranty to get current document_url for "Keep Both" logic
+        // Fetch existing warranty
         const existingWarranty = await warrantyService.getWarrantyById(id, userId);
         if (!existingWarranty) return res.status(404).json({ success: false, message: 'Warranty not found' });
 
@@ -80,7 +80,7 @@ export const editWarranty = async (req: Request, res: Response) => {
             }
         }
 
-        // HANDLE FILE UPLOAD (Replace vs Keep Both)
+        // HANDLE FILE UPLOAD 
         if (req.file) {
             const fileName = `${userId}/${Date.now()}_${req.file.originalname}`;
             const { error: uploadError } = await supabase.storage
@@ -92,7 +92,7 @@ export const editWarranty = async (req: Request, res: Response) => {
             const { data: urlData } = supabase.storage.from('warranty-documents').getPublicUrl(fileName);
             const newFileUrl = urlData.publicUrl;
 
-            // Check fileAction from frontend ('replace' or 'keep')
+            // Check fileAction from frontend 
             const { fileAction } = req.body;
 
             if (fileAction === 'keep' && existingWarranty.document_url) {

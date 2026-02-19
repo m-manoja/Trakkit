@@ -31,20 +31,7 @@ export default function DashboardHome() {
             <Ionicons name="notifications-outline" size={24} color="white" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => {
-            console.log("Logout pressed");
-            Alert.alert("Logout", "Are you sure you want to logout?", [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Logout", style: "destructive", onPress: async () => {
-                  try {
-                    await signOut();
-                    router.replace("/");
-                  } catch (e) {
-                    console.error("Logout failed:", e);
-                  }
-                }
-              }
-            ]);
+            router.push("/profile");
           }}>
             <Ionicons name="person-circle-outline" size={24} color="white" />
           </TouchableOpacity>

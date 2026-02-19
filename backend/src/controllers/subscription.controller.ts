@@ -3,7 +3,7 @@ import * as subscriptionService from '../services/subscription.service';
 
 export const addSubscription = async (req: Request, res: Response) => {
     try {
-        // Look for ID in multiple common JWT locations (id or userId)
+        // Look for ID in multiple common JWT locations
         const user = (req as any).user;
         const userId = user?.id || user?.userId;
 
@@ -28,10 +28,8 @@ export const addSubscription = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * NEW: Fetch all subscriptions for a specific user
- * This fixes the 404 error your frontend is currently getting.
- */
+
+ // Fetch all subscriptions for a specific user
 export const getUserSubscriptions = async (req: Request, res: Response) => {
     try {
         const { userId } = req.params; // Extracts ID from the URL /api/subscriptions/user/:userId

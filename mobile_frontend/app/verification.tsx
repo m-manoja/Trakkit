@@ -1,17 +1,51 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../src/theme/colors';
 import { CustomInput } from '../src/components/Input';
 import { PrimaryButton } from '../src/components/Button';
-import { verifyOTP } from '../src/api/auth';
+import { verifyOTP, sendOTP } from '../src/api/auth';
 import { useAuth } from '../src/context/AuthContext';
 
 export default function VerificationScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Timer state
+  const [timer, setTimer] = useState(30);
+  const [canResend, setCanResend] = useState(false);
+
   const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
   const router = useRouter();
+
+  // Timer Effect
+  useEffect(() => {
+    let interval: any;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const handleResend = async () => {
+    if (!canResend) return;
+
+    setLoading(true);
+    try {
+      await sendOTP(phone);
+      Alert.alert("Success", "Code sent!");
+      setTimer(30);
+      setCanResend(false);
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to resend code");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get setUser from AuthContext
   const { setUser } = useAuth();
@@ -53,6 +87,8 @@ export default function VerificationScreen() {
           token: token,
           firstName: firstName,
           lastName: lastName,
+          email: backendUser?.email || '',
+          createdAt: backendUser?.createdAt || '',
           name: `${firstName} ${lastName}`.trim()
         } as any);
 
@@ -101,6 +137,19 @@ export default function VerificationScreen() {
             onPress={handleVerify}
             loading={loading}
           />
+
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={!canResend || loading}
+            style={styles.resendContainer}
+          >
+            <Text style={[
+              styles.resendText,
+              { color: canResend ? COLORS.primary : '#999' }
+            ]}>
+              {canResend ? "Resend Code" : `Resend code in ${timer}s`}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -134,5 +183,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginBottom: 20
+  },
+  resendContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    padding: 10
+  },
+  resendText: {
+    fontSize: 14,
+    fontWeight: '600'
   }
 });

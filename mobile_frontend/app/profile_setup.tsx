@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../src/theme/colors';
 import { CustomInput } from '../src/components/Input';
@@ -18,6 +19,9 @@ export default function ProfileSetupScreen() {
     email: '',
     dob: ''
   });
+
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleCompleteProfile = async () => {
     if (!form.firstName || !form.lastName || !form.email) {
@@ -80,12 +84,42 @@ export default function ProfileSetupScreen() {
             value={form.email}
             onChangeText={(t) => setForm({ ...form, email: t })}
           />
-          <CustomInput
-            label="Date of Birth"
-            placeholder="YYYY-MM-DD"
-            value={form.dob}
-            onChangeText={(t) => setForm({ ...form, dob: t })}
-          />
+
+          <Text style={styles.label}>Date of Birth</Text>
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={{ color: form.dob ? COLORS.textPrimary : '#999' }}>
+              {form.dob || "YYYY-MM-DD"}
+            </Text>
+          </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="spinner" // Spinner makes it easier to select Year/Month for DOB
+              onChange={(event, selectedDate) => {
+                // On Android, the dialog closes automatically on selection/cancel
+                // On iOS, we might want to keep it or handle it differently, 
+                // but here we keep the same logic: close on Android, user can manually close on iOS if we added a "Done" button, 
+                // but currently for iOS it stays open. 
+                // Actually, for consistency let's toggle it off on selection for Android
+
+                if (Platform.OS === 'android') {
+                  setShowDatePicker(false);
+                }
+
+                if (selectedDate) {
+                  setDate(selectedDate);
+                  const formattedDate = selectedDate.toISOString().split('T')[0];
+                  setForm({ ...form, dob: formattedDate });
+                }
+              }}
+              maximumDate={new Date()}
+            />
+          )}
 
           <PrimaryButton
             title="Complete Profile"
@@ -127,5 +161,20 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
+  },
+  label: {
+    marginBottom: 8,
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+    marginLeft: 4
+  },
+  dateInput: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
   }
 });
