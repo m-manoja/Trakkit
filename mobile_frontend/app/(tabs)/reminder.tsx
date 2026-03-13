@@ -10,6 +10,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import Header from '../../src/components/Header';
 
 export default function RemindersScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -84,9 +85,6 @@ export default function RemindersScreen() {
         description: description.trim(),
         userId: user?.id
       };
-
-      console.log('Saving reminder with payload:', payload);
-      console.log('Form type:', type, 'repeat_cycle:', repeat_cycle, 'final repeat_cycle:', payload.repeat_cycle);
 
       if (editId) {
         await axios.put(`${API_BASE_URL}/api/reminders/${editId}`, payload, {
@@ -170,9 +168,6 @@ export default function RemindersScreen() {
       return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear()}`;
     };
 
-    console.log('Card item:', item);
-    console.log('repeat_cycle value:', item.repeat_cycle, 'type:', item.type);
-
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -221,16 +216,7 @@ export default function RemindersScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* HEADER */}
-      <View style={[styles.header, { backgroundColor: COLORS.primary }]}>
-        <View style={styles.headerTop}>
-          <View><Text style={styles.logoText}>Trakkit</Text><Text style={styles.greetingText}>Hello, {user?.firstName || 'User'}!</Text></View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="diamond" size={22} color="#70d8ff" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="notifications-outline" size={24} color="white" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="person-circle-outline" size={24} color="white" /></TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <Header />
 
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
@@ -367,12 +353,6 @@ export default function RemindersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9F4F4' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { paddingHorizontal: 20, paddingVertical: 15 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  iconButton: { marginLeft: 15 },
-  logoText: { fontSize: 22, fontWeight: 'bold', color: 'white' },
-  greetingText: { fontSize: 12, color: '#FFD1DC' },
   subHeader: { paddingHorizontal: 20, marginTop: 15, marginBottom: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   screenTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.primary },

@@ -5,6 +5,7 @@ import subscriptionRoutes from "./routes/subscription";
 import cors from "cors";
 import warrantyRoutes from './routes/warranty';
 import reminderRoutes from './routes/reminder';
+import todoRoutes from './routes/todo';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +41,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use('/api/warranties', warrantyRoutes);
 app.use('/api/reminders', reminderRoutes);
+app.use('/api/todos', todoRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is working!");

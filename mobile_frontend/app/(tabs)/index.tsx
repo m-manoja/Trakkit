@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import Header from '../../src/components/Header';
 
 const { width } = Dimensions.get('window');
 
@@ -17,26 +18,8 @@ export default function DashboardHome() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header Section */}
-      <View style={[styles.header, { backgroundColor: COLORS.primary }]}>
-        <View>
-          <Text style={styles.logoText}>Trakkit</Text>
-          <Text style={styles.greetingText}>Hello, {(user as any)?.name || 'User'}!</Text>
-        </View>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="diamond-outline" size={24} color="#5DADE2" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => {
-            router.push("/profile");
-          }}>
-            <Ionicons name="person-circle-outline" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Header */}
+      <Header />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
@@ -96,21 +79,6 @@ const ReminderItem = ({ date, title }: any) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingVertical: 15,
-    borderBottomLeftRadius: 1,
-    borderBottomRightRadius: 1,
-    elevation: 4,
-  },
-  logoText: { fontSize: 24, fontWeight: 'bold', color: 'white' },
-  greetingText: { fontSize: 13, color: '#FFD1DC', marginTop: -2 },
-  headerIcons: { flexDirection: 'row' },
-  iconButton: { marginLeft: 10, padding: 8 },
   scrollContent: { padding: 20, paddingBottom: 120 }, // Added padding to avoid overlapping with absolute Nav Bar
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
   statCard: {

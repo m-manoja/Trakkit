@@ -76,6 +76,7 @@ export async function verifyOtp(phone: string, token: string) {
 
   otpStore.delete(phone);
 
+  // Check if user exists in public.users table
   const { data, error } = await supabase
     .from("users")
     .select("id, phone")
@@ -89,6 +90,8 @@ export async function verifyOtp(phone: string, token: string) {
     return data[0];
   }
 
+  // For now, create user with randomUUID as fallback
+  // TODO: Implement proper auth user sync in the future
   const newUser = { id: randomUUID(), phone };
   const { error: insertError } = await supabase.from("users").insert(newUser);
 

@@ -11,6 +11,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import Header from '../../src/components/Header';
 
 export default function WarrantyScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -243,16 +244,7 @@ export default function WarrantyScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
-      <View style={[styles.header, { backgroundColor: COLORS.primary }]}>
-        <View style={styles.headerTop}>
-          <View><Text style={styles.logoText}>Trakkit</Text><Text style={styles.greetingText}>Hello, {user?.firstName || 'User'}!</Text></View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="diamond" size={22} color="#70d8ff" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="notifications-outline" size={24} color="white" /></TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}><Ionicons name="person-circle-outline" size={24} color="white" /></TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <Header />
 
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
@@ -399,12 +391,6 @@ const FormInput = ({ label, placeholder, value, onChangeText, multiline, numberO
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9F4F4' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { paddingHorizontal: 20, paddingVertical: 15, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' },
-  iconButton: { marginLeft: 15 },
-  logoText: { fontSize: 22, fontWeight: 'bold', color: 'white' },
-  greetingText: { fontSize: 12, color: '#FFD1DC' },
   subHeader: { paddingHorizontal: 20, marginTop: 15, marginBottom: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   screenTitle: { fontSize: 22, fontWeight: 'bold' },
