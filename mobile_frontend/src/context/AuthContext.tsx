@@ -14,7 +14,7 @@ export type User = {
 // 2. Blueprint for the Context State
 type AuthContextType = {
   user: User;
-  setUser: (user: User) => Promise<void>; // Added Promise<void> because it's async
+  setUser: (user: User) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
 };

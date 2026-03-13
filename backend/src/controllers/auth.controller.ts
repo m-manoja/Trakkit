@@ -10,7 +10,7 @@ const sanitizePhone = (phone: string): string => {
   let cleaned = phone.replace(/\D/g, '');
 
   // 2. Handle Sri Lanka (94) specifically to merge 077... and 77... strings
-  // Scenario A: Frontend sends +94077... -> 94077... (Length 12 for SL)
+ 
   // We want to remove that leading zero after the country code.
   if (cleaned.startsWith('94') && cleaned.length === 12 && cleaned[2] === '0') {
     return '94' + cleaned.substring(3);

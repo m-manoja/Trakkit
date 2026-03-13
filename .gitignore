@@ -48,3 +48,7 @@ venv.bak/
 # Local development
 *.sqlite3
 *.db
+
+# Database migrations
+migrations/
+

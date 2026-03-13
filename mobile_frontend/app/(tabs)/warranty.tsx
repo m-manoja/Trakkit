@@ -18,6 +18,7 @@ export default function WarrantyScreen() {
 
   const [warranties, setWarranties] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -258,10 +259,19 @@ export default function WarrantyScreen() {
           <Text style={[styles.screenTitle, { color: COLORS.textPrimary }]}>Warranty</Text>
           <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}><Ionicons name="add-circle" size={42} color={COLORS.primary} /></TouchableOpacity>
         </View>
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
+          <TextInput
+            placeholder="Search Warranties"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       <FlatList
-        data={warranties}
+        data={warranties.filter(w => w.product_name.toLowerCase().includes(searchQuery.toLowerCase()))}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <WarrantyCard item={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -395,9 +405,11 @@ const styles = StyleSheet.create({
   iconButton: { marginLeft: 15 },
   logoText: { fontSize: 22, fontWeight: 'bold', color: 'white' },
   greetingText: { fontSize: 12, color: '#FFD1DC' },
-  subHeader: { paddingHorizontal: 20, marginTop: 15 },
+  subHeader: { paddingHorizontal: 20, marginTop: 15, marginBottom: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   screenTitle: { fontSize: 22, fontWeight: 'bold' },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 10, marginTop: 15, height: 45, borderWidth: 1, borderColor: '#DDD' },
+  searchInput: { flex: 1, marginLeft: 10 },
   card: { backgroundColor: 'white', borderRadius: 15, padding: 16, marginHorizontal: 20, marginBottom: 15, elevation: 3 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   cardTitle: { fontSize: 18, fontWeight: 'bold' },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../src/theme/colors';
 import { CustomInput } from '../src/components/Input';
@@ -167,11 +167,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4
+    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+      }
+    })
   },
   title: {
     fontSize: 24,

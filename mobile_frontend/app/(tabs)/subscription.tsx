@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl
+  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ export default function SubscriptionInitial() {
   // --- DATA STATES ---
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // --- UI STATES ---
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -223,12 +224,21 @@ export default function SubscriptionInitial() {
             <Ionicons name="add-circle" size={42} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
+          <TextInput
+            placeholder="Search Subscriptions"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       {/* Main Content Area */}
       <View style={{ flex: 1 }}>
         <FlatList
-          data={subscriptions}
+          data={subscriptions.filter(s => s.service_name.toLowerCase().includes(searchQuery.toLowerCase()))}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => <SubscriptionCard item={item} />}
           contentContainerStyle={{ paddingBottom: 120 }} // Prevents overlapping with Nav bar
@@ -321,10 +331,18 @@ const styles = StyleSheet.create({
   iconButton: { marginLeft: 15 },
   logoText: { fontSize: 22, fontWeight: 'bold', color: 'white' },
   greetingText: { fontSize: 12, color: '#FFD1DC' },
-  subHeader: { paddingHorizontal: 20, marginTop: 15 },
+  subHeader: { paddingHorizontal: 20, marginTop: 15, marginBottom: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   screenTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  card: { backgroundColor: 'white', borderRadius: 15, padding: 16, marginHorizontal: 20, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 10, marginTop: 15, height: 45, borderWidth: 1, borderColor: '#DDD' },
+  searchInput: { flex: 1, marginLeft: 10 },
+  card: {
+    backgroundColor: 'white', borderRadius: 15, padding: 16, marginHorizontal: 20, marginBottom: 15, elevation: 3, ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+      }
+    })
+  },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A' },
   catBadge: { backgroundColor: '#FADBD8', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, marginTop: 4, alignSelf: 'flex-start' },

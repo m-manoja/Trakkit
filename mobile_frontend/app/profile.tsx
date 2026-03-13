@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/theme/colors';
 import { useAuth } from '../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PrimaryButton } from '../src/components/Button';
 
 export default function ProfileScreen() {
     const { user, signOut } = useAuth();
@@ -119,10 +118,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 24,
         elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        ...Platform.select({
+            web: {
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }
+        }),
     },
     avatarContainer: {
         marginBottom: 16,
