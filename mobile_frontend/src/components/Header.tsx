@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { COLORS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +15,8 @@ interface HeaderProps {
 export default function Header({ title, showBackButton = false, showAddButton = false, onAddPress }: HeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const isProfilePage = pathname === "/(tabs)/profile" || pathname === "/(tabs)/profile_setup";
 
   return (
     <View style={styles.header}>
@@ -32,8 +34,12 @@ export default function Header({ title, showBackButton = false, showAddButton = 
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/profile")}>
-            <Ionicons name="person-circle-outline" size={24} color="white" />
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/(tabs)/profile")}>
+            <Ionicons
+              name="person-circle-outline"
+              size={24}
+              color={isProfilePage ? COLORS.primary : "white"}
+            />
           </TouchableOpacity>
         </View>
       </View>

@@ -69,6 +69,18 @@ export default function TabLayout() {
         title: 'To Do',
         tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={24} color={color} />,
       }} />
+
+      <Tabs.Screen name="profile" options={{
+        title: 'Profile',
+        tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
+        href: null, // Hide from tab bar but accessible via navigation
+      }} />
+
+      <Tabs.Screen name="profile_setup" options={{
+        title: 'Edit Profile',
+        tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={24} color={color} />,
+        href: null, // Hide from tab bar but accessible via navigation
+      }} />
     </Tabs>
   );
 }

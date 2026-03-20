@@ -36,7 +36,7 @@ export async function updateUserProfile(input: UpdateProfileInput) {
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase
     .from('users')
-    .select('firstName, lastName, email')
+    .select('first_name, last_name, email, date_of_birth')
     .eq('id', userId)
     .single();
 
