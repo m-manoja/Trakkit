@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabaseClient';
-import { scheduleManualReminder, removeScheduledReminders } from './notificationQueue.service.js';
+import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence } from './notificationQueue.service.js';
 
 export const createReminder = async (reminderData: any) => {
     const { data, error } = await supabase
@@ -17,7 +17,8 @@ export const createReminder = async (reminderData: any) => {
                 data[0].title, 
                 data[0].reminder_date,
                 data[0].remind_time,
-                data[0].reminder_schedule
+                data[0].reminder_schedule,
+                data[0].repeat_cycle
             );
         } catch(e) { console.error("Failed to schedule reminder:", e); }
     }
@@ -32,7 +33,16 @@ export const getRemindersByUserId = async (userId: string) => {
         .order('reminder_date', { ascending: true });
 
     if (error) throw error;
-    return data;
+
+    const augmentedData = data.map(item => {
+        if (item.repeat_cycle) {
+            item.reminder_date = getNextOccurrence(item.reminder_date, item.repeat_cycle).toISOString();
+        }
+        return item;
+    });
+
+    augmentedData.sort((a, b) => new Date(a.reminder_date).getTime() - new Date(b.reminder_date).getTime());
+    return augmentedData;
 };
 
 export const updateReminder = async (id: string, reminderData: any) => {
@@ -52,7 +62,8 @@ export const updateReminder = async (id: string, reminderData: any) => {
                 data[0].title, 
                 data[0].reminder_date,
                 data[0].remind_time,
-                data[0].reminder_schedule
+                data[0].reminder_schedule,
+                data[0].repeat_cycle
             );
         } catch(e) { console.error("Failed to restructure reminder:", e); }
     }

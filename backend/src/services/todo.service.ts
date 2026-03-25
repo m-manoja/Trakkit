@@ -77,20 +77,34 @@ export const toggleCompletion = async (id: string) => {
     // 1. Fetch current state
     const { data: current, error: fetchError } = await supabase
         .from('todos')
-        .select('is_completed')
+        .select('*')
         .eq('id', id)
         .single();
 
     if (fetchError) throw fetchError;
 
+    const newIsCompleted = !current.is_completed;
+
     // 2. Flip the boolean
     const { data, error } = await supabase
         .from('todos')
-        .update({ is_completed: !current.is_completed })
+        .update({ is_completed: newIsCompleted })
         .eq('id', id)
         .select();
 
     if (error) throw error;
+
+    // 3. Handle Queue logic
+    if (newIsCompleted) {
+        await removeScheduledReminders(id);
+    } else {
+        if (current.has_reminder && current.reminder_date) {
+            try {
+                await scheduleTodoReminder(current.user_id, current.id, current.task_name, current.reminder_date, current.reminder_schedule);
+            } catch (e) { console.error("Failed to reschedule todo reminder:", e); }
+        }
+    }
+
     return data[0];
 };
 

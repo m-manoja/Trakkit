@@ -3,7 +3,7 @@ import { supabase } from '../config/supabaseClient';
 /**
  * Helper to calculate the next occurrence of a date based on a cycle.
  */
-function getNextOccurrence(startDateStr: string, cycle: string): Date {
+export function getNextOccurrence(startDateStr: string, cycle: string): Date {
   const start = new Date(startDateStr);
   const now = new Date();
 
@@ -11,13 +11,17 @@ function getNextOccurrence(startDateStr: string, cycle: string): Date {
   if (start > now) return start;
 
   const next = new Date(start);
+  const normalizedCycle = cycle.toLowerCase();
+  
   while (next <= now) {
-    if (cycle.toLowerCase() === 'weekly') {
+    if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
       next.setDate(next.getDate() + 7);
-    } else if (cycle.toLowerCase() === 'monthly') {
+    } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
       next.setMonth(next.getMonth() + 1);
-    } else if (cycle.toLowerCase() === 'yearly') {
+    } else if (normalizedCycle === 'yearly' || normalizedCycle === 'every year') {
       next.setFullYear(next.getFullYear() + 1);
+    } else if (normalizedCycle === 'daily' || normalizedCycle === 'everyday') {
+      next.setDate(next.getDate() + 1);
     } else {
       // Default fallback if unknown cycle
       next.setMonth(next.getMonth() + 1);
@@ -35,10 +39,11 @@ function calculateReminderDates(targetDate: Date, scheduleStr: string, cycle?: s
   
   let daysArray = scheduleStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d));
 
-  if (cycle?.toLowerCase() === 'weekly') {
+  const normalizedCycle = cycle?.toLowerCase();
+  if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
     // For weekly, only allow reminders < 7 days
     daysArray = daysArray.filter(d => d < 7);
-  } else if (cycle?.toLowerCase() === 'monthly') {
+  } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
     // For monthly, only allow reminders < 28 days
     daysArray = daysArray.filter(d => d < 28);
   }
@@ -175,16 +180,17 @@ export const scheduleManualReminder = async (
   title: string,
   reminderDateStr: string,
   remindTime: string,
-  reminderSchedule?: string
+  reminderSchedule?: string,
+  repeatCycle?: string | null
 ) => {
-  const exactDate = new Date(reminderDateStr);
+  const exactDate = repeatCycle ? getNextOccurrence(reminderDateStr, repeatCycle) : new Date(reminderDateStr);
   let dates: Date[] = [];
 
   if (remindTime === 'On the day') {
     dates.push(exactDate);
   } else {
     const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-    const beforeDates = calculateReminderDates(exactDate, finalSchedule); // calculates days before
+    const beforeDates = calculateReminderDates(exactDate, finalSchedule, repeatCycle || undefined); // calculates days before
     dates.push(...beforeDates);
     
     if (remindTime === 'On and before') {
