@@ -7,9 +7,11 @@ export type User = {
   phone: string;
   firstName?: string;
   lastName?: string;
+  email?: string;
   name?: string;
   token: string;
 } | null;
+
 
 // 2. Blueprint for the Context State
 type AuthContextType = {

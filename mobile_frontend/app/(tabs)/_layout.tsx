@@ -1,12 +1,16 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../src/theme/colors';
 
 // Taller height to accommodate potential safe area issues and floating button context
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 70;
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 68 : 70;
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 20 : 10);
+
   return (
     <Tabs screenOptions={{
       tabBarActiveTintColor: COLORS.primary,
@@ -16,8 +20,8 @@ export default function TabLayout() {
         bottom: 0,
         left: 0,
         right: 0,
-        height: TAB_BAR_HEIGHT,
-        paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+        height: TAB_BAR_HEIGHT + bottomPadding,
+        paddingBottom: bottomPadding,
         paddingTop: 8,
         backgroundColor: COLORS.surface,
         borderTopWidth: 0,
@@ -79,7 +83,13 @@ export default function TabLayout() {
       <Tabs.Screen name="profile_setup" options={{
         title: 'Edit Profile',
         tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={24} color={color} />,
-        href: null, // Hide from tab bar but accessible via navigation
+        href: null,
+      }} />
+
+      <Tabs.Screen name="change_phone" options={{
+        title: 'Change Phone',
+        tabBarIcon: ({ color }) => <Ionicons name="phone-portrait-outline" size={24} color={color} />,
+        href: null,
       }} />
     </Tabs>
   );

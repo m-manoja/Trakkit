@@ -36,10 +36,10 @@ export async function updateUserProfile(input: UpdateProfileInput) {
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase
     .from('users')
-    .select('first_name, last_name, email, date_of_birth')
+    .select('first_name, last_name, email, date_of_birth, profile_picture')
     .eq('id', userId)
     .single();
 
   if (error) throw new Error(error.message);
   return data;
-}
+}

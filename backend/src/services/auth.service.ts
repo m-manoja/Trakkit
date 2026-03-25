@@ -91,7 +91,6 @@ export async function verifyOtp(phone: string, token: string) {
   }
 
   // For now, create user with randomUUID as fallback
-  // TODO: Implement proper auth user sync in the future
   const newUser = { id: randomUUID(), phone };
   const { error: insertError } = await supabase.from("users").insert(newUser);
 
@@ -100,4 +99,26 @@ export async function verifyOtp(phone: string, token: string) {
   }
 
   return newUser;
+}
+
+/**
+ * Verifies an OTP code only — does NOT look up or create any user.
+ * Used for phone number change flow where the new number is not a user yet.
+ */
+export async function verifyOtpOnly(phone: string, token: string): Promise<void> {
+  const entry = otpStore.get(phone);
+  if (!entry) {
+    throw new AuthServiceError("OTP expired or not found", 401);
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(phone);
+    throw new AuthServiceError("OTP expired", 401);
+  }
+
+  if (entry.code !== token) {
+    throw new AuthServiceError("Invalid OTP", 401);
+  }
+
+  otpStore.delete(phone);
 }

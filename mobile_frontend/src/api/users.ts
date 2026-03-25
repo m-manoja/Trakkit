@@ -8,10 +8,15 @@ type ProfilePayload = {
   dob?: string;
 };
 
-export async function getProfile(userId: string) {
+export async function getProfile(userId: string, token?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/users/profile?userId=${userId}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
 
   const result = await response.json().catch(() => ({}));
@@ -22,6 +27,7 @@ export async function getProfile(userId: string) {
 
   return result;
 }
+
 
 export async function updateProfile(payload: ProfilePayload) {
   const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
@@ -38,3 +44,69 @@ export async function updateProfile(payload: ProfilePayload) {
 
   return true;
 }
+
+export async function initiatePhoneChange(newPhone: string, token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/change-phone/initiate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ newPhone }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result?.error || "Failed to send OTP");
+  }
+
+  return result;
+}
+
+export async function verifyPhoneChange(newPhone: string, otp: string, token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/change-phone/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ newPhone, otp }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result?.error || "Verification failed");
+  }
+
+  return result; // { user, token }
+}
+
+export async function uploadProfileImage(imageUri: string, mimeType: string, token: string) {
+  const formData = new FormData();
+  formData.append('image', {
+    uri: imageUri,
+    type: mimeType,
+    name: `profile.${mimeType.split('/')[1] || 'jpg'}`,
+  } as any);
+
+  const response = await fetch(`${API_BASE_URL}/api/users/profile-image`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      // Do NOT set Content-Type here — let fetch set multipart boundary automatically
+    },
+    body: formData,
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result?.error || "Image upload failed");
+  }
+
+  return result; // { profileImageUrl }
+}
+
+
