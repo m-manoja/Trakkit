@@ -61,7 +61,7 @@ export default function SubscriptionInitial() {
 
   useEffect(() => {
     fetchSubscriptions();
-    
+
     // Fetch global notification settings for the default reminder schedule
     if (token) {
       getNotificationSettings(token).then(res => {
@@ -90,6 +90,30 @@ export default function SubscriptionInitial() {
               fetchSubscriptions();
             } catch (error) {
               Alert.alert("Error", "Failed to delete subscription.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // --- API: RENEW ---
+  const handleRenew = (id: string, name: string) => {
+    Alert.alert(
+      "Renew Subscription",
+      `Would you like to renew ${name}? This will mark it as paid and advance the date to the next cycle.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Renew",
+          onPress: async () => {
+            try {
+              await axios.put(`${API_BASE_URL}/api/subscriptions/${id}/renew`, {}, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              fetchSubscriptions();
+            } catch (error) {
+              Alert.alert("Error", "Failed to renew.");
             }
           }
         }
@@ -195,7 +219,7 @@ export default function SubscriptionInitial() {
 
         <View style={styles.cardContent}>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Amount</Text><Text style={styles.infoValue}>Rs. {item.amount} / {item.billing_cycle}</Text></View>
-          <View style={styles.infoRow}><Text style={styles.infoLabel}>Start Date</Text><Text style={styles.infoValue}>{new Date(item.start_date).toLocaleDateString()}</Text></View>
+          <View style={styles.infoRow}><Text style={styles.infoLabel}>Next Billing</Text><Text style={styles.infoValue}>{new Date(item.next_billing_date || item.start_date).toLocaleDateString()}</Text></View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Status</Text>
             <View style={[styles.statusBox, { backgroundColor: status.bg }]}>
@@ -204,8 +228,14 @@ export default function SubscriptionInitial() {
           </View>
         </View>
 
-        <TouchableOpacity style={[styles.renewBtn, item.status === 'Overdue' && styles.renewBtnOverdue]}>
-          <Text style={[styles.renewText, item.status === 'Overdue' && { color: 'white' }]}>Renew</Text>
+        <TouchableOpacity
+          style={[styles.renewBtn, item.status !== 'Active' && styles.renewBtnOverdue]}
+          onPress={() => handleRenew(item.id, item.service_name)}
+          disabled={item.status === 'Active'}
+        >
+          <Text style={[styles.renewText, item.status !== 'Active' && { color: 'white' }]}>
+            {item.status === 'Active' ? 'Renew' : 'Renew Now'}
+          </Text>
         </TouchableOpacity>
       </View>
     );

@@ -103,6 +103,8 @@ export const scheduleSubscriptionReminders = async (
   const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
   const nextBillingDate = getNextOccurrence(startDate, billingCycle);
   const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle);
+  
+  if (nextBillingDate > new Date()) reminderDates.push(nextBillingDate);
 
   const queueItems = reminderDates.map(date => ({
     user_id: userId,
@@ -152,7 +154,9 @@ export const scheduleWarrantyReminders = async (
 ) => {
   const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
   const expiryDate = new Date(expiryDateStr);
-  const reminderDates = calculateReminderDates(expiryDate, finalSchedule); // Warranties don't have recurring cycles
+  const reminderDates = calculateReminderDates(expiryDate, finalSchedule);
+  
+  if (expiryDate > new Date()) reminderDates.push(expiryDate);
 
   const queueItems = reminderDates.map(date => ({
     user_id: userId,

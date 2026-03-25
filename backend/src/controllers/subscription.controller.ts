@@ -104,3 +104,24 @@ export const removeSubscription = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const renewUserSubscription = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.id || (req as any).user.userId;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: "Subscription ID is required" });
+        }
+
+        const renewed = await subscriptionService.renewSubscription(id, userId);
+
+        res.status(200).json({
+            success: true,
+            message: "Subscription renewed successfully",
+            data: renewed
+        });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
