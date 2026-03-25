@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient';
+import { scheduleTodoReminder, removeScheduledReminders } from './notificationQueue.service.js';
 
 export const createTodo = async (todoData: any) => {
     console.log('createTodo called with:', todoData);
@@ -22,7 +23,8 @@ export const createTodo = async (todoData: any) => {
                 user_id: userId,
                 task_name,
                 has_reminder,
-                reminder_date: has_reminder ? reminder_date : null
+                reminder_date: has_reminder ? reminder_date : null,
+                reminder_schedule: todoData.reminder_schedule
             }])
             .select();
 
@@ -38,7 +40,16 @@ export const createTodo = async (todoData: any) => {
             throw new Error('No data returned from database');
         }
 
-        return data[0];
+        const todo = data[0];
+        if (todo.has_reminder && todo.reminder_date) {
+            try {
+                await scheduleTodoReminder(userId, todo.id, todo.task_name, todo.reminder_date, todo.reminder_schedule);
+            } catch (e) {
+                console.error("Failed to schedule todo reminder:", e);
+            }
+        }
+
+        return todo;
     } catch (err) {
         console.error('Error in createTodo:', err);
         throw err;
@@ -91,11 +102,23 @@ export const updateTodo = async (id: string, updateData: any) => {
         .select();
 
     if (error) throw error;
-    return data[0];
+    
+    const updated = data[0];
+    if (updated) {
+        if (updated.has_reminder && updated.reminder_date && !updated.is_completed) {
+            try {
+                await scheduleTodoReminder(updated.user_id, updated.id, updated.task_name, updated.reminder_date, updated.reminder_schedule);
+            } catch (e) { console.error("Failed to update todo schedule", e); }
+        } else {
+            await removeScheduledReminders(id);
+        }
+    }
+    return updated;
 };
 
 export const deleteTodo = async (id: string) => {
     const { error } = await supabase.from('todos').delete().eq('id', id);
     if (error) throw error;
+    await removeScheduledReminders(id);
     return true;
 };

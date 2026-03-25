@@ -11,6 +11,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
 
 export default function WarrantyScreen() {
@@ -41,8 +42,10 @@ export default function WarrantyScreen() {
     selectedFile: null as any,
     existingUrl: null as string | null,
     existingFileName: '',
-    fileAction: 'replace' as 'replace' | 'keep'
+    fileAction: 'replace' as 'replace' | 'keep',
+    reminder_schedule: ''
   });
+  const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
   // --- AUTO-CALCULATE EXPIRY PREVIEW ---
   useEffect(() => {
@@ -83,10 +86,21 @@ export default function WarrantyScreen() {
     }
   }, [token, user?.id]);
 
-  useEffect(() => { fetchWarranties(); }, [fetchWarranties]);
+  useEffect(() => { 
+    fetchWarranties();
+    
+    // Fetch global notification settings for the default reminder schedule
+    if (token) {
+      getNotificationSettings(token).then(res => {
+        if (res.data?.reminder_schedule) {
+          setDefaultReminderSchedule(res.data.reminder_schedule);
+        }
+      }).catch(err => console.log('Failed to fetch default settings:', err));
+    }
+  }, [fetchWarranties, token]);
 
   const handleSave = async () => {
-    const { product_name, purchase_place, warranty_period, category, purchase_date, description, selectedFile, fileAction } = formData;
+    const { product_name, purchase_place, warranty_period, category, purchase_date, description, selectedFile, fileAction, reminder_schedule } = formData;
 
     if (!product_name || !purchase_place || !category) {
       Alert.alert("Required Fields", "Please fill in all mandatory fields (*)");
@@ -101,6 +115,7 @@ export default function WarrantyScreen() {
     data.append('category', category);
     data.append('purchase_date', purchase_date.toISOString().split('T')[0]);
     data.append('description', description || '');
+    data.append('reminder_schedule', reminder_schedule.trim() || defaultReminderSchedule);
     data.append('fileAction', fileAction);
 
     if (selectedFile) {
@@ -148,7 +163,8 @@ export default function WarrantyScreen() {
       selectedFile: null,
       existingUrl: item.document_url,
       existingFileName: fileName,
-      fileAction: 'replace'
+      fileAction: 'replace',
+      reminder_schedule: item.reminder_schedule || defaultReminderSchedule
     });
     setIsFormVisible(true);
   };
@@ -184,7 +200,7 @@ export default function WarrantyScreen() {
       product_name: '', purchase_place: '', warranty_period: '12',
       category: '', purchase_date: new Date(), expiry_date: '',
       description: '', selectedFile: null, existingUrl: null,
-      existingFileName: '', fileAction: 'replace'
+      existingFileName: '', fileAction: 'replace', reminder_schedule: defaultReminderSchedule
     });
   };
 
@@ -331,7 +347,7 @@ export default function WarrantyScreen() {
                   )}
                 </View>
 
-                {formData.selectedFile && formData.existingUrl && (
+              {formData.selectedFile && formData.existingUrl && (
                   <View style={styles.choiceContainer}>
                     <Text style={styles.choiceTitle}>Document exists. Choose action:</Text>
                     <View style={styles.choiceRow}>
@@ -346,6 +362,8 @@ export default function WarrantyScreen() {
                 )}
               </View>
 
+              <FormInput label="Remind me (days before)" placeholder="e.g. 30,14,7" value={formData.reminder_schedule} onChangeText={(t: string) => setFormData({ ...formData, reminder_schedule: t })} />
+              
               <FormInput label="Description (Optional)" placeholder="Add notes..." value={formData.description} onChangeText={(t: string) => setFormData({ ...formData, description: t })} multiline={true} numberOfLines={3} />
 
               <View style={styles.modalActions}>

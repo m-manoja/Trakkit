@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient';
+import { scheduleSubscriptionReminders, removeScheduledReminders } from './notificationQueue.service.js';
 
 export const createSubscription = async (userId: string, data: any) => {
   const {
@@ -21,7 +22,8 @@ export const createSubscription = async (userId: string, data: any) => {
         category,
         start_date,
         description,
-        status: 'Active'
+        status: 'Active',
+        reminder_schedule: data.reminder_schedule || null
       }
     ])
     .select();
@@ -29,6 +31,19 @@ export const createSubscription = async (userId: string, data: any) => {
   if (error) {
     console.error("Supabase Insert Error:", error.message);
     throw new Error(error.message);
+  }
+
+  if (result && result.length > 0) {
+    try {
+      await scheduleSubscriptionReminders(
+        userId, 
+        result[0].id, 
+        service_name, 
+        start_date, 
+        billing_cycle, 
+        data.reminder_schedule
+      );
+    } catch(e) { console.error("Failed to schedule reminders:", e); }
   }
 
   return result;
@@ -56,13 +71,27 @@ export const updateSubscription = async (id: string, userId: string, updateData:
       category: updateData.category,
       start_date: updateData.start_date,
       description: updateData.description,
-      status: updateData.status
+      status: updateData.status,
+      reminder_schedule: updateData.reminder_schedule || null
     })
     .eq('id', id)
     .eq('userId', userId)
     .select();
 
   if (error) throw error;
+  if (data && data.length > 0) {
+    try {
+      await scheduleSubscriptionReminders(
+        userId, 
+        id, 
+        updateData.service_name, 
+        updateData.start_date, 
+        updateData.billing_cycle, 
+        updateData.reminder_schedule
+      );
+    } catch (e) { console.error("Failed to update schedule:", e); }
+  }
+
   return data;
 };
 
@@ -75,5 +104,9 @@ export const deleteSubscription = async (id: string, userId: string) => {
     .eq('userId', userId);
 
   if (error) throw error;
+  if (!error) {
+    await removeScheduledReminders(id);
+  }
+
   return true;
 };

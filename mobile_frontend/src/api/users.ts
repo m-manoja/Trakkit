@@ -109,4 +109,29 @@ export async function uploadProfileImage(imageUri: string, mimeType: string, tok
   return result; // { profileImageUrl }
 }
 
+export async function getNotificationSettings(token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/notification-settings`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to fetch notification settings");
+  return result;
+}
 
+export async function updateNotificationSettings(payload: { email_notification: boolean, sms_notification: boolean, push_notification: boolean, reminder_schedule: string }, token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/notification-settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to update notification settings");
+  return result;
+}

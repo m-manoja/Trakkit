@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient';
+import { scheduleWarrantyReminders, removeScheduledReminders } from './notificationQueue.service.js';
 
 export const createWarranty = async (userId: string, data: any) => {
     const { data: result, error } = await supabase
@@ -13,11 +14,24 @@ export const createWarranty = async (userId: string, data: any) => {
             expiry_date: data.expiry_date,
             description: data.description,
             document_url: data.document_url,
-            status: 'Active'
+            status: 'Active',
+            reminder_schedule: data.reminder_schedule || null
         }])
         .select();
 
     if (error) throw error;
+
+    if (result && result.length > 0) {
+        try {
+            await scheduleWarrantyReminders(
+                userId,
+                result[0].id,
+                data.product_name,
+                data.expiry_date,
+                data.reminder_schedule
+            );
+        } catch (e) { console.error("Failed to schedule warranty reminders", e); }
+    }
     return result;
 };
 
@@ -33,13 +47,26 @@ export const updateWarranty = async (id: string, userId: string, data: any) => {
             expiry_date: data.expiry_date,
             description: data.description,
             document_url: data.document_url,
-            status: data.status
+            status: data.status,
+            reminder_schedule: data.reminder_schedule || null
         })
         .eq('id', id)
         .eq('userId', userId)
         .select();
 
     if (error) throw error;
+
+    if (result && result.length > 0) {
+        try {
+            await scheduleWarrantyReminders(
+                userId,
+                id,
+                data.product_name,
+                data.expiry_date,
+                data.reminder_schedule
+            );
+        } catch (e) { console.error("Failed to update warranty reminder schedule", e); }
+    }
     return result;
 };
 
@@ -51,6 +78,7 @@ export const deleteWarranty = async (id: string, userId: string) => {
         .eq('userId', userId);
 
     if (error) throw error;
+    await removeScheduledReminders(id);
     return true;
 };
 

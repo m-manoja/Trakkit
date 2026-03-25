@@ -7,6 +7,7 @@ import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getProfile } from '../../src/api/users';
+import NotificationSettingsModal from '../../src/components/NotificationSettingsModal';
 
 
 const { width } = Dimensions.get('window');
@@ -26,6 +27,7 @@ export default function ProfileScreen() {
     const { user, signOut } = useAuth();
     const router = useRouter();
     const [profileImage, setProfileImage] = useState<string | null>((user as any)?.profileImage || null);
+    const [settingsModalVisible, setSettingsModalVisible] = useState(false);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -94,7 +96,7 @@ export default function ProfileScreen() {
             icon: 'notifications-outline',
             label: 'Notifications',
             subtitle: 'Manage alert preferences',
-            onPress: () => Alert.alert('Notifications', 'Coming soon!'),
+            onPress: () => setSettingsModalVisible(true),
             color: '#FF9500',
             bgColor: '#FF950018',
         },
@@ -211,6 +213,11 @@ export default function ProfileScreen() {
                 {/* Version */}
                 <Text style={styles.version}>Trakkit v1.0.0</Text>
             </ScrollView>
+
+            <NotificationSettingsModal 
+                visible={settingsModalVisible} 
+                onClose={() => setSettingsModalVisible(false)} 
+            />
         </SafeAreaView>
     );
 }

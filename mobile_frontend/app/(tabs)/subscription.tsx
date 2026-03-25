@@ -10,6 +10,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
 
 export default function SubscriptionInitial() {
@@ -38,8 +39,10 @@ export default function SubscriptionInitial() {
     billing_cycle: '',
     category: '',
     start_date: new Date(),
-    description: ''
+    description: '',
+    reminder_schedule: ''
   });
+  const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
   // --- API: FETCH ---
   const fetchSubscriptions = useCallback(async () => {
@@ -58,7 +61,16 @@ export default function SubscriptionInitial() {
 
   useEffect(() => {
     fetchSubscriptions();
-  }, [fetchSubscriptions]);
+    
+    // Fetch global notification settings for the default reminder schedule
+    if (token) {
+      getNotificationSettings(token).then(res => {
+        if (res.data?.reminder_schedule) {
+          setDefaultReminderSchedule(res.data.reminder_schedule);
+        }
+      }).catch(err => console.log('Failed to fetch default settings:', err));
+    }
+  }, [fetchSubscriptions, token]);
 
   // --- API: DELETE ---
   const handleDelete = (id: string, name: string) => {
@@ -94,14 +106,15 @@ export default function SubscriptionInitial() {
       billing_cycle: item.billing_cycle,
       category: item.category,
       start_date: new Date(item.start_date),
-      description: item.description || ''
+      description: item.description || '',
+      reminder_schedule: item.reminder_schedule || defaultReminderSchedule
     });
     setIsFormVisible(true);
   };
 
   // --- API: SAVE ---
   const handleSave = async () => {
-    const { service_name, amount, billing_cycle, category, start_date, description } = formData;
+    const { service_name, amount, billing_cycle, category, start_date, description, reminder_schedule } = formData;
 
     if (!service_name.trim() || !amount || !billing_cycle || !category) {
       Alert.alert("Required Fields", "Please fill in all mandatory fields (*)");
@@ -117,6 +130,7 @@ export default function SubscriptionInitial() {
         category,
         start_date: start_date.toISOString().split('T')[0],
         description: description.trim(),
+        reminder_schedule: reminder_schedule.trim() || defaultReminderSchedule,
         userId: user?.id
       };
 
@@ -144,7 +158,7 @@ export default function SubscriptionInitial() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ service_name: '', amount: '', billing_cycle: '', category: '', start_date: new Date(), description: '' });
+    setFormData({ service_name: '', amount: '', billing_cycle: '', category: '', start_date: new Date(), description: '', reminder_schedule: defaultReminderSchedule });
   };
 
   const openPicker = (title: string, options: string[], field: string) => {
@@ -276,6 +290,7 @@ export default function SubscriptionInitial() {
                 <Ionicons name="calendar-outline" size={18} color="#666" />
               </TouchableOpacity>
               {showDatePicker && <DateTimePicker value={formData.start_date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, start_date: d }); }} />}
+              <FormInput label="Remind me (days before)" placeholder="e.g. 7,3,1" value={formData.reminder_schedule} onChangeText={(t: string) => setFormData({ ...formData, reminder_schedule: t })} />
               <FormInput label="Description" placeholder="Add a note..." value={formData.description} onChangeText={(t: string) => setFormData({ ...formData, description: t })} multiline={true} numberOfLines={3} />
               <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={isActionLoading}>
                 {isActionLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitBtnText}>{editId ? "Update" : "Save"}</Text>}

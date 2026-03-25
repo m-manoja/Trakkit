@@ -10,6 +10,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
 
 export default function RemindersScreen() {
@@ -37,14 +38,17 @@ export default function RemindersScreen() {
     repeat_cycle: string | null;
     remind_time: string;
     description: string;
+    reminder_schedule: string;
   }>({
     title: '',
     type: '',
     reminder_date: new Date(),
     repeat_cycle: null, // No default - user must choose
     remind_time: 'On the day',  // Default from screenshot
-    description: ''
+    description: '',
+    reminder_schedule: ''
   });
+  const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
   const reminderTypes = ['one time', 'repeat'];
 
@@ -63,11 +67,22 @@ export default function RemindersScreen() {
     }
   }, [token, user?.id]);
 
-  useEffect(() => { fetchReminders(); }, [fetchReminders]);
+  useEffect(() => { 
+    fetchReminders();
+    
+    // Fetch global notification settings for the default reminder schedule
+    if (token) {
+      getNotificationSettings(token).then(res => {
+        if (res.data?.reminder_schedule) {
+          setDefaultReminderSchedule(res.data.reminder_schedule);
+        }
+      }).catch(err => console.log('Failed to fetch default settings:', err));
+    }
+  }, [fetchReminders, token]);
 
   // --- API: SAVE (CREATE & UPDATE) ---
   const handleSave = async () => {
-    const { title, type, reminder_date, repeat_cycle, remind_time, description } = formData;
+    const { title, type, reminder_date, repeat_cycle, remind_time, description, reminder_schedule } = formData;
 
     if (!title.trim() || !type) {
       Alert.alert("Required Fields", "Please enter a Name and Type (*)");
@@ -82,6 +97,7 @@ export default function RemindersScreen() {
         reminder_date: reminder_date.toISOString(),
         repeat_cycle: type === 'repeat' ? repeat_cycle : null,
         remind_time,
+        reminder_schedule: (remind_time === 'Before the day' || remind_time === 'On and before') ? (reminder_schedule.trim() || defaultReminderSchedule) : null,
         description: description.trim(),
         userId: user?.id
       };
@@ -132,14 +148,15 @@ export default function RemindersScreen() {
       reminder_date: new Date(item.reminder_date),
       repeat_cycle: item.repeat_cycle,
       remind_time: item.remind_time,
-      description: item.description || ''
+      description: item.description || '',
+      reminder_schedule: item.reminder_schedule || defaultReminderSchedule
     });
     setIsFormVisible(true);
   };
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ title: '', type: '', reminder_date: new Date(), repeat_cycle: null, remind_time: 'On the day', description: '' });
+    setFormData({ title: '', type: '', reminder_date: new Date(), repeat_cycle: null, remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
   };
 
   const openPicker = (title: string, options: string[], field: string) => {
@@ -301,6 +318,15 @@ export default function RemindersScreen() {
               <RadioButton label="On the day" value="On the day" field="remind_time" />
               <RadioButton label="Before the day" value="Before the day" field="remind_time" />
               <RadioButton label="On and before" value="On and before" field="remind_time" />
+
+              {(formData.remind_time === 'Before the day' || formData.remind_time === 'On and before') && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.inputLabel}>Remind me (days before)</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput placeholder="e.g. 7,3,1" value={formData.reminder_schedule} onChangeText={(t) => setFormData({ ...formData, reminder_schedule: t })} style={{ flex: 1, color: '#333' }} />
+                  </View>
+                </View>
+              )}
 
               <Text style={styles.inputLabel}>Description (Optional)</Text>
               <View style={[styles.inputWrapper, { height: 80, alignItems: 'flex-start', paddingTop: 10 }]}>

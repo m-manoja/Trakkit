@@ -10,6 +10,7 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
+import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
 
 export default function TodoScreen() {
@@ -28,7 +29,9 @@ export default function TodoScreen() {
     task_name: '',
     has_reminder: false,
     reminder_date: new Date(),
+    reminder_schedule: ''
   });
+  const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
   // --- API: FETCH ---
   const fetchTodos = useCallback(async () => {
@@ -45,7 +48,18 @@ export default function TodoScreen() {
     }
   }, [token, user?.id]);
 
-  useEffect(() => { fetchTodos(); }, [fetchTodos]);
+  useEffect(() => { 
+    fetchTodos();
+    
+    // Fetch global notification settings for the default reminder schedule
+    if (token) {
+      getNotificationSettings(token).then(res => {
+        if (res.data?.reminder_schedule) {
+          setDefaultReminderSchedule(res.data.reminder_schedule);
+        }
+      }).catch(err => console.log('Failed to fetch default settings:', err));
+    }
+  }, [fetchTodos, token]);
 
   // --- API: SAVE ---
   const handleSave = async () => {
@@ -59,7 +73,8 @@ export default function TodoScreen() {
       const payload = {
         ...formData,
         userId: user?.id,
-        reminder_date: formData.has_reminder ? formData.reminder_date.toISOString() : null
+        reminder_date: formData.has_reminder ? formData.reminder_date.toISOString() : null,
+        reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null
       };
 
       await axios.post(`${API_BASE_URL}/api/todos/add`, payload, {
@@ -67,7 +82,7 @@ export default function TodoScreen() {
       });
 
       setIsFormVisible(false);
-      setFormData({ task_name: '', has_reminder: false, reminder_date: new Date() });
+      setFormData({ task_name: '', has_reminder: false, reminder_date: new Date(), reminder_schedule: defaultReminderSchedule });
       fetchTodos();
     } catch (error) {
       Alert.alert("Error", "Failed to add task");
@@ -197,6 +212,15 @@ export default function TodoScreen() {
               <Text>{formData.reminder_date.toLocaleDateString()}</Text>
               <Ionicons name="calendar-outline" size={20} color="#666" />
             </TouchableOpacity>
+
+            {formData.has_reminder && (
+              <View style={{ marginTop: 15 }}>
+                <Text style={styles.inputLabel}>Remind me (days before)</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput placeholder="e.g. 7,3,1" value={formData.reminder_schedule} onChangeText={(t) => setFormData({ ...formData, reminder_schedule: t })} style={{ flex: 1, color: '#333' }} />
+                </View>
+              </View>
+            )}
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsFormVisible(false)}>
