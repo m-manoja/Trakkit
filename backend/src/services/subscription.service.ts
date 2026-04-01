@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabaseClient';
-import { scheduleSubscriptionReminders, removeScheduledReminders, getNextOccurrence } from './notificationQueue.service.js';
+import { scheduleSubscriptionReminders, scheduleSubscriptionRemindersForDate, removeScheduledReminders, getInitialSubscriptionDueDate, advanceOneCycle, toLocalDateStr } from './notificationQueue.service.js';
 
 export const createSubscription = async (userId: string, data: any) => {
   const {
@@ -11,6 +11,8 @@ export const createSubscription = async (userId: string, data: any) => {
     description
   } = data;
 
+  const next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(start_date, billing_cycle));
+
   const { data: result, error } = await supabase
     .from('subscriptions')
     .insert([
@@ -21,6 +23,7 @@ export const createSubscription = async (userId: string, data: any) => {
         billing_cycle,
         category,
         start_date,
+        next_billing_date,
         description,
         status: 'Active',
         reminder_schedule: data.reminder_schedule || null
@@ -59,8 +62,14 @@ export const getSubscriptionsByUserId = async (userId: string) => {
   if (error) throw error;
 
   const augmentedData = data.map(item => {
-    const nextDate = getNextOccurrence(item.start_date, item.billing_cycle);
-    item.next_billing_date = nextDate.toISOString();
+    // If next_billing_date is missing (e.g., from old items), calculate it dynamically
+    let nextDateStr = item.next_billing_date;
+    if (!nextDateStr) {
+      nextDateStr = toLocalDateStr(getInitialSubscriptionDueDate(item.start_date, item.billing_cycle));
+      item.next_billing_date = nextDateStr;
+    }
+    
+    const nextDate = new Date(nextDateStr);
        
     const now = new Date();
     now.setHours(0,0,0,0);
@@ -68,7 +77,7 @@ export const getSubscriptionsByUserId = async (userId: string) => {
     dateComp.setHours(0,0,0,0);
     
     const diffTime = dateComp.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
        
     if (diffDays < 0) {
       item.status = 'Overdue';
@@ -86,6 +95,20 @@ export const getSubscriptionsByUserId = async (userId: string) => {
 
 // Update an existing subscription
 export const updateSubscription = async (id: string, userId: string, updateData: any) => {
+  const { data: current, error: fetchErr } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('id', id)
+    .eq('userId', userId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+
+  let next_billing_date = current.next_billing_date;
+  if (!next_billing_date || updateData.start_date !== current.start_date || updateData.billing_cycle !== current.billing_cycle) {
+    next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(updateData.start_date, updateData.billing_cycle));
+  }
+
   const { data, error } = await supabase
     .from('subscriptions')
     .update({
@@ -94,6 +117,7 @@ export const updateSubscription = async (id: string, userId: string, updateData:
       billing_cycle: updateData.billing_cycle,
       category: updateData.category,
       start_date: updateData.start_date,
+      next_billing_date: next_billing_date,
       description: updateData.description,
       status: updateData.status,
       reminder_schedule: updateData.reminder_schedule || null
@@ -105,11 +129,11 @@ export const updateSubscription = async (id: string, userId: string, updateData:
   if (error) throw error;
   if (data && data.length > 0) {
     try {
-      await scheduleSubscriptionReminders(
+      await scheduleSubscriptionRemindersForDate(
         userId, 
         id, 
         updateData.service_name, 
-        updateData.start_date, 
+        new Date(next_billing_date), 
         updateData.billing_cycle, 
         updateData.reminder_schedule
       );
@@ -135,7 +159,7 @@ export const deleteSubscription = async (id: string, userId: string) => {
   return true;
 };
 
-// Renew a subscription by advancing the start date
+// Renew a subscription by advancing the next_billing_date by one full billing cycle
 export const renewSubscription = async (id: string, userId: string) => {
   const { data: current, error: fetchErr } = await supabase
     .from('subscriptions')
@@ -146,11 +170,19 @@ export const renewSubscription = async (id: string, userId: string) => {
     
   if (fetchErr) throw fetchErr;
 
-  const nextDate = getNextOccurrence(current.start_date, current.billing_cycle);
+  let currentNextBillingDateStr = current.next_billing_date;
+  if (!currentNextBillingDateStr) {
+    currentNextBillingDateStr = toLocalDateStr(getInitialSubscriptionDueDate(current.start_date, current.billing_cycle));
+  }
+  const currentNextBillingDate = new Date(currentNextBillingDateStr);
+
+  // The next_billing_date is advanced by one full cycle. The original start_date is preserved.
+  const newNextBillingDate = advanceOneCycle(currentNextBillingDate, current.billing_cycle);
+  const newNextDateStr = toLocalDateStr(newNextBillingDate);
   
   const { data, error } = await supabase
     .from('subscriptions')
-    .update({ start_date: nextDate.toISOString().split('T')[0], status: 'Active' })
+    .update({ next_billing_date: newNextDateStr, status: 'Active' })
     .eq('id', id)
     .select();
     
@@ -158,12 +190,13 @@ export const renewSubscription = async (id: string, userId: string) => {
   
   if (data && data.length > 0) {
     try {
-      await scheduleSubscriptionReminders(
-        userId, 
-        id, 
-        data[0].service_name, 
-        data[0].start_date, 
-        data[0].billing_cycle, 
+      // Schedule reminders for the NEW next_billing_date
+      await scheduleSubscriptionRemindersForDate(
+        userId,
+        id,
+        data[0].service_name,
+        newNextBillingDate,
+        data[0].billing_cycle,
         data[0].reminder_schedule
       );
     } catch(e) { console.error("Failed to reschedule renewed subscription:", e); }
