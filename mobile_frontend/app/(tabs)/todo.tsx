@@ -29,7 +29,7 @@ export default function TodoScreen() {
     task_name: '',
     has_reminder: false,
     reminder_date: new Date(),
-    reminder_schedule: ''
+    reminder_schedule: '7,3,1'  // will be updated once global settings load
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
@@ -55,7 +55,13 @@ export default function TodoScreen() {
     if (token) {
       getNotificationSettings(token).then(res => {
         if (res.data?.reminder_schedule) {
-          setDefaultReminderSchedule(res.data.reminder_schedule);
+          const globalSchedule = res.data.reminder_schedule;
+          setDefaultReminderSchedule(globalSchedule);
+          // Also update the form so the field is pre-populated correctly
+          setFormData(prev => ({
+            ...prev,
+            reminder_schedule: prev.reminder_schedule === '7,3,1' ? globalSchedule : prev.reminder_schedule
+          }));
         }
       }).catch(err => console.log('Failed to fetch default settings:', err));
     }
@@ -217,8 +223,17 @@ export default function TodoScreen() {
               <View style={{ marginTop: 15 }}>
                 <Text style={styles.inputLabel}>Remind me (days before)</Text>
                 <View style={styles.inputWrapper}>
-                  <TextInput placeholder="e.g. 7,3,1" value={formData.reminder_schedule} onChangeText={(t) => setFormData({ ...formData, reminder_schedule: t })} style={{ flex: 1, color: '#333' }} />
+                  <TextInput
+                    placeholder={`Default: ${defaultReminderSchedule}`}
+                    value={formData.reminder_schedule}
+                    onChangeText={(t) => setFormData({ ...formData, reminder_schedule: t })}
+                    style={{ flex: 1, color: '#333' }}
+                    keyboardType="default"
+                  />
                 </View>
+                <Text style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                  Enter comma-separated days (e.g. 7,3,1). Leave blank to use default.
+                </Text>
               </View>
             )}
 

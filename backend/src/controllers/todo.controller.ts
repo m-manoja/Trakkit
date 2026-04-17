@@ -9,7 +9,8 @@ export const addTodo = async (req: AuthRequest, res: Response) => {
         console.log('Request body:', req.body);
         console.log('User from token:', req.user);
 
-        const { task_name, has_reminder, reminder_date } = req.body;
+        // ✅ FIX: also destructure reminder_schedule — was missing before
+        const { task_name, has_reminder, reminder_date, reminder_schedule } = req.body;
         const userId = req.user?.id;
 
         if (!userId) {
@@ -24,7 +25,9 @@ export const addTodo = async (req: AuthRequest, res: Response) => {
             userId,
             task_name,
             has_reminder: has_reminder || false,
-            reminder_date: has_reminder ? reminder_date : null
+            reminder_date: has_reminder ? reminder_date : null,
+            // ✅ FIX: pass reminder_schedule through so the service stores it and uses it for scheduling
+            reminder_schedule: has_reminder ? (reminder_schedule || null) : null,
         };
 
         console.log('Creating todo with data:', todoData);

@@ -56,7 +56,17 @@ export async function requestOtp(phone: string) {
   const code = generateOtp();
   otpStore.set(phone, { code, expiresAt: Date.now() + OTP_TTL_MS });
 
-  await sendOtpSms(phone, code);
+  try {
+    await sendOtpSms(phone, code);
+  } catch (err: any) {
+    // In development, if SMS provider is unreachable (e.g. DNS failure / no internet),
+    // fall back to logging the OTP so the app stays usable.
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`⚠️  SMS delivery failed (${err.message}). Using fallback — OTP for ${phone}: ${code}`);
+      return; // allow login to continue
+    }
+    throw err; // in production, propagate the error
+  }
 }
 
 export async function verifyOtp(phone: string, token: string) {

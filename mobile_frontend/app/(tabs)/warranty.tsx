@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Linking
+  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Linking, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
@@ -204,6 +207,93 @@ export default function WarrantyScreen() {
     });
   };
 
+  const handleDownload = async (url: string) => {
+    if (!url) return;
+    
+    const firstUrl = url.split(',')[0].trim();
+    
+    try {
+      setIsActionLoading(true);
+      const filename = firstUrl.split('/').pop()?.split('?')[0] || 'warranty_document.pdf';
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      
+      const downloadRes = await FileSystem.downloadAsync(firstUrl, fileUri);
+      
+      if (downloadRes.status === 200) {
+        if (Platform.OS === 'android') {
+          // Check if we already have a saved directory URI
+          let directoryUri = await AsyncStorage.getItem('download_directory_uri');
+          
+          // Verify if we still have access to this directory
+          if (directoryUri) {
+            const isAccessible = await FileSystem.StorageAccessFramework.getUriPermissionsAsync(directoryUri);
+            if (isAccessible !== 'granted') {
+              directoryUri = null;
+            }
+          }
+
+          // If no directory saved or not accessible, ask the user (Only once!)
+          if (!directoryUri) {
+            const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+            if (permissions.granted) {
+              directoryUri = permissions.directoryUri;
+              await AsyncStorage.setItem('download_directory_uri', directoryUri);
+            } else {
+              setIsActionLoading(false);
+              return;
+            }
+          }
+
+          if (directoryUri) {
+            const base64 = await FileSystem.readAsStringAsync(downloadRes.uri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            
+            const mimeType = filename.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+            
+            try {
+              const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                directoryUri,
+                filename,
+                mimeType
+              );
+              
+              await FileSystem.writeAsStringAsync(newFileUri, base64, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+              
+              Alert.alert("Success", "Warranty document saved successfully to your chosen folder!");
+            } catch (e) {
+              // If write fails, maybe the uri is stale, reset it
+              await AsyncStorage.removeItem('download_directory_uri');
+              Alert.alert("Error", "Could not save file. Please try again and re-select the folder.");
+            }
+          }
+        } else {
+          // On iOS, use sharing (Standard way to Save to Files)
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(downloadRes.uri);
+          } else {
+            Alert.alert("Success", "File downloaded successfully.");
+          }
+        }
+      } else {
+        Alert.alert("Error", "Failed to download file from server.");
+      }
+    } catch (error) {
+      console.error("Download Error:", error);
+      Alert.alert("Error", "An unexpected error occurred during download.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleView = (url: string) => {
+    if (!url) return;
+    const firstUrl = url.split(',')[0].trim();
+    Linking.openURL(firstUrl);
+  };
+
   const openPicker = (title: string, options: string[], field: string) => {
     setPickerData({ title, options, field });
     setPickerVisible(true);
@@ -230,11 +320,11 @@ export default function WarrantyScreen() {
           <Text style={styles.infoLabel}>Warranty Document</Text>
           {item.document_url ? (
             <View style={styles.docActions}>
-              <TouchableOpacity style={styles.docIconBtn} onPress={() => Linking.openURL(item.document_url)}>
+              <TouchableOpacity style={styles.docIconBtn} onPress={() => handleView(item.document_url)}>
                 <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
                 <Text style={styles.docLinkText}>View</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.docIconBtn, { marginLeft: 8 }]} onPress={() => Linking.openURL(item.document_url)}>
+              <TouchableOpacity style={[styles.docIconBtn, { marginLeft: 8 }]} onPress={() => handleDownload(item.document_url)}>
                 <Ionicons name="download-outline" size={16} color={COLORS.primary} />
                 <Text style={styles.docLinkText}>Download</Text>
               </TouchableOpacity>
@@ -341,7 +431,7 @@ export default function WarrantyScreen() {
                     </Text>
                   </TouchableOpacity>
                   {formData.existingUrl && !formData.selectedFile && (
-                    <TouchableOpacity style={styles.viewFileBtn} onPress={() => Linking.openURL(formData.existingUrl!)}>
+                    <TouchableOpacity style={styles.viewFileBtn} onPress={() => handleView(formData.existingUrl!)}>
                       <Ionicons name="eye-outline" size={20} color={COLORS.primary} />
                     </TouchableOpacity>
                   )}

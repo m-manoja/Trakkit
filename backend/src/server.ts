@@ -7,6 +7,7 @@ import warrantyRoutes from './routes/warranty';
 import reminderRoutes from './routes/reminder';
 import todoRoutes from './routes/todo';
 import settingsRoutes from './routes/settings';
+import notificationsRoutes from './routes/notifications';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,6 +45,7 @@ app.use('/api/warranties', warrantyRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/users', settingsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is working!");

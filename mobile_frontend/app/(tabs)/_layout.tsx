@@ -91,6 +91,12 @@ export default function TabLayout() {
         tabBarIcon: ({ color }) => <Ionicons name="phone-portrait-outline" size={24} color={color} />,
         href: null,
       }} />
+
+      <Tabs.Screen name="notifications" options={{
+        title: 'Notifications',
+        tabBarIcon: ({ color }) => <Ionicons name="notifications-outline" size={24} color={color} />,
+        href: null, // Hidden from tab bar; accessed via Header bell icon
+      }} />
     </Tabs>
   );
 }
