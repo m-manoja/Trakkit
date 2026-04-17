@@ -16,6 +16,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
+import PremiumModal from '../../src/components/PremiumModal';
 
 export default function WarrantyScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -30,6 +31,7 @@ export default function WarrantyScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
   const [editId, setEditId] = useState<string | null>(null);
+  const [premiumVisible, setPremiumVisible] = useState(false);
 
   const categories = ['Electronics', 'Appliances', 'Furniture', 'Vehicles', 'Other'];
   const durations = ['6', '12', '18', '24', '36', '48', '60'];
@@ -146,7 +148,17 @@ export default function WarrantyScreen() {
       resetForm();
       fetchWarranties();
     } catch (error: any) {
-      Alert.alert("Error", "Failed to save. Ensure backend is running.");
+      // Check if backend rejected due to freemium document limit
+      const errorCode = error?.response?.data?.error_code;
+      const currentCount = error?.response?.data?.current_count;
+
+      if (error?.response?.status === 403 && errorCode === 'DOCUMENT_LIMIT_REACHED') {
+        setIsFormVisible(false);
+        // Small delay so the form closes before the premium modal opens
+        setTimeout(() => setPremiumVisible(true), 300);
+      } else {
+        Alert.alert("Error", "Failed to save. Ensure backend is running.");
+      }
     } finally {
       setIsActionLoading(false);
     }
@@ -479,6 +491,9 @@ export default function WarrantyScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Premium upgrade gate — shown when freemium doc limit is hit */}
+      <PremiumModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </SafeAreaView>
   );
 }

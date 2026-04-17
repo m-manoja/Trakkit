@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { COLORS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import PremiumModal from './PremiumModal';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -188,6 +189,7 @@ export default function Header({ title, showBackButton = false, showAddButton = 
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [panelVisible, setPanelVisible] = useState(false);
+  const [premiumVisible, setPremiumVisible] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<AppNotification | null>(null);
@@ -270,7 +272,7 @@ export default function Header({ title, showBackButton = false, showAddButton = 
           <Text style={styles.greetingText}>Hello, {user?.firstName || 'User'}!</Text>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setPremiumVisible(true)}>
             <Ionicons name="diamond" size={22} color="#70d8ff" />
           </TouchableOpacity>
 
@@ -321,6 +323,12 @@ export default function Header({ title, showBackButton = false, showAddButton = 
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Premium Upgrade Modal */}
+      <PremiumModal
+        visible={premiumVisible}
+        onClose={() => setPremiumVisible(false)}
+      />
     </View>
   );
 }

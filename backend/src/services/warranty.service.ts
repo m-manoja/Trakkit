@@ -114,3 +114,13 @@ export const getWarrantyById = async (id: string, userId: string) => {
     return data;
 };
 
+export const countDocumentsByUserId = async (userId: string): Promise<number> => {
+    const { count, error } = await supabase
+        .from('warranties')
+        .select('*', { count: 'exact', head: true })
+        .eq('userId', userId)
+        .not('document_url', 'is', null);
+
+    if (error) throw error;
+    return count || 0;
+};

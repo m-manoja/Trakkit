@@ -14,6 +14,20 @@ export const addWarranty = async (req: Request, res: Response) => {
         let document_url = null;
 
         if (req.file) {
+            // ─── FREEMIUM LIMIT CHECK ────────────────────────────────────────
+            // Freemium users may only have 15 warranties with documents attached.
+            const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
+            if (currentDocCount >= 15) {
+                return res.status(403).json({
+                    success: false,
+                    error_code: 'DOCUMENT_LIMIT_REACHED',
+                    message: 'Free plan allows up to 15 warranty documents. Upgrade to Premium for unlimited uploads.',
+                    current_count: currentDocCount,
+                    limit: 15,
+                });
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             const fileName = `${userId}/${Date.now()}_${req.file.originalname}`;
             const { error: uploadError } = await supabase.storage
                 .from('warranty-documents')
@@ -82,6 +96,21 @@ export const editWarranty = async (req: Request, res: Response) => {
 
         // HANDLE FILE UPLOAD 
         if (req.file) {
+            // ─── FREEMIUM LIMIT CHECK (only when adding a NEW file to a warranty that has none) ─
+            if (!existingWarranty.document_url) {
+                const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
+                if (currentDocCount >= 15) {
+                    return res.status(403).json({
+                        success: false,
+                        error_code: 'DOCUMENT_LIMIT_REACHED',
+                        message: 'Free plan allows up to 15 warranty documents. Upgrade to Premium for unlimited uploads.',
+                        current_count: currentDocCount,
+                        limit: 15,
+                    });
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             const fileName = `${userId}/${Date.now()}_${req.file.originalname}`;
             const { error: uploadError } = await supabase.storage
                 .from('warranty-documents')
