@@ -236,11 +236,14 @@ export default function WarrantyScreen() {
           // Check if we already have a saved directory URI
           let directoryUri = await AsyncStorage.getItem('download_directory_uri');
           
-          // Verify if we still have access to this directory
+          // Verify if we still have access to this directory by probing it
           if (directoryUri) {
-            const isAccessible = await FileSystem.StorageAccessFramework.getUriPermissionsAsync(directoryUri);
-            if (isAccessible !== 'granted') {
+            try {
+              await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
+            } catch {
+              // Permission was revoked or URI is stale — reset so we ask again
               directoryUri = null;
+              await AsyncStorage.removeItem('download_directory_uri');
             }
           }
 
