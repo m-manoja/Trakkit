@@ -394,7 +394,7 @@ export default function WarrantyScreen() {
             <MaterialCommunityIcons name="shield-search" size={100} color="#D1D1D1" />
             <Text style={styles.emptyTitle}>No Warranties Found</Text>
             <TouchableOpacity style={styles.mainActionBtn} onPress={() => setIsFormVisible(true)}>
-              <Text style={styles.mainActionText}>+ Add First Warranty</Text>
+              <Text style={styles.mainActionText}>+ Add Your First Warranty</Text>
             </TouchableOpacity>
           </View>
         }
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   pickerContainer: { backgroundColor: 'white', width: '80%', borderRadius: 10, padding: 10 },
   pickerItem: { paddingVertical: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEE' },
   emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginVertical: 15 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginTop: 15, marginBottom: 25 },
   mainActionBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, width: '80%', alignItems: 'center' },
   mainActionText: { color: 'white', fontWeight: 'bold' },
 });

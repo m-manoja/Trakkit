@@ -61,7 +61,7 @@ export default function ProfileScreen() {
                     onPress: async () => {
                         try {
                             await signOut();
-                            router.replace("/");
+                            // AuthGuard will handle routing to login automatically
                         } catch (e) {
                             Alert.alert("Error", "Failed to sign out");
                         }

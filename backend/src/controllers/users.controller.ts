@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { updateUserProfile, getUserProfile } from "../services/users.service.js";
-import { requestOtp, verifyOtp as verifyOtpService, verifyOtpOnly } from "../services/auth.service.js";
+import { requestOtp, verifyOtp as verifyOtpService, verifyOtpOnly, setBackupPassword, dismissBackupPrompt, loginWithEmail } from "../services/auth.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
@@ -175,3 +175,70 @@ export async function uploadProfileImage(req: Request, res: Response) {
     return res.status(500).json({ error: message });
   }
 }
+
+// Set backup email + password (called from the in-app nudge)
+export async function setBackupPasswordHandler(req: Request, res: Response) {
+  const userId = (req as any).user?.id;
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  try {
+    await setBackupPassword(userId, email, password);
+    return res.json({ message: 'Backup login set up successfully' });
+  } catch (err: any) {
+    return res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+// Dismiss the prompt without setting credentials
+export async function dismissBackupPromptHandler(req: Request, res: Response) {
+  const userId = (req as any).user?.id;
+  try {
+    await dismissBackupPrompt(userId);
+    return res.json({ message: 'Prompt dismissed' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// Email + password login endpoint
+export async function emailLogin(req: Request, res: Response) {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const user = await loginWithEmail(email, password);
+
+    const token = jwt.sign(
+      { id: user.id, phone: user.phone },
+      config.jwt.secret,
+      { expiresIn: '30d' }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        backupEmail: user.backup_email,
+        backupPromptShown: user.backup_prompt_shown,
+      },
+      nextScreen: '/(tabs)',
+    });
+  } catch (err: any) {
+    return res.status(err.status || 500).json({ error: err.message });
+  }
+}
+

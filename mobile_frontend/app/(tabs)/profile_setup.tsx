@@ -6,13 +6,13 @@ import {
 import { Image } from 'expo-image';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/theme/colors';
 import { CustomInput } from '../../src/components/Input';
 import { PrimaryButton } from '../../src/components/Button';
 import { useAuth } from '../../src/context/AuthContext';
-import { updateProfile, getProfile, uploadProfileImage } from '../../src/api/users';
+import { updateProfile, getProfile, uploadProfileImage, setBackupPassword } from '../../src/api/users';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -20,12 +20,15 @@ const { width } = Dimensions.get('window');
 export default function ProfileSetupScreen() {
   const { user, setUser } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams<{ isFirstSetup?: string }>();
 
   const [form, setForm] = useState({
     firstName: (user as any)?.firstName || '',
     lastName: (user as any)?.lastName || '',
     email: (user as any)?.email || '',
     dob: '',
+    password: '',
+    confirmPassword: '',
   });
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -34,6 +37,10 @@ export default function ProfileSetupScreen() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [profileImage, setProfileImage] = useState<string | null>((user as any)?.profileImage || null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // If isFirstSetup is passed as true, it's NOT editing. Otherwise, it is editing.
+  const [isEditing, setIsEditing] = useState(params.isFirstSetup !== 'true');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fetch profile from server and pre-populate form with latest data
   useEffect(() => {
@@ -47,11 +54,14 @@ export default function ProfileSetupScreen() {
         const profileData = await getProfile(user.id, user.token);
         if (profileData?.success && profileData?.data) {
           const d = profileData.data;
+
           setForm({
             firstName: d.first_name || (user as any)?.firstName || '',
             lastName: d.last_name || (user as any)?.lastName || '',
             email: d.email || (user as any)?.email || '',
             dob: d.date_of_birth || '',
+            password: '',
+            confirmPassword: '',
           });
           if (d.date_of_birth) setDate(new Date(d.date_of_birth));
           if (d.profile_picture) setProfileImage(d.profile_picture);
@@ -76,6 +86,18 @@ export default function ProfileSetupScreen() {
     } else if (!/\S+@\S+\.\S+/.test(form.email)) {
       newErrors.email = 'Enter a valid email address';
     }
+
+    if (!isEditing) {
+      if (!form.password) {
+        newErrors.password = 'Password is required';
+      } else if (form.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
+      }
+      if (form.password !== form.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -97,6 +119,11 @@ export default function ProfileSetupScreen() {
         email: form.email.trim(),
         dob: form.dob,
       });
+
+      // Also set the backup password using the registered email
+      if (form.password) {
+        await setBackupPassword(form.email.trim(), form.password, user.token);
+      }
 
       // Update the local auth context so profile page immediately reflects new name
       await setUser({
@@ -267,7 +294,7 @@ export default function ProfileSetupScreen() {
               </View>
 
               <CustomInput
-                label="Email Address"
+                label={!isEditing ? "Email Address (Recovery Email)" : "Email Address"}
                 placeholder="your@email.com"
                 value={form.email}
                 onChangeText={(v) => onChange('email', v)}
@@ -275,6 +302,40 @@ export default function ProfileSetupScreen() {
                 autoCapitalize="none"
               />
               {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+
+              {!isEditing && (
+                <>
+                  <CustomInput
+                    label="Account Recovery Password"
+                    placeholder="Min. 8 characters"
+                    value={form.password}
+                    onChangeText={(v) => onChange('password', v)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    rightAccessory={
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+                        <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={COLORS.textSecondary} />
+                      </TouchableOpacity>
+                    }
+                  />
+                  {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+
+                  <CustomInput
+                    label="Confirm Recovery Password"
+                    placeholder="Re-enter password"
+                    value={form.confirmPassword}
+                    onChangeText={(v) => onChange('confirmPassword', v)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    rightAccessory={
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+                        <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={COLORS.textSecondary} />
+                      </TouchableOpacity>
+                    }
+                  />
+                  {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
+                </>
+              )}
 
               {/* Phone — read-only with change option */}
               <Text style={styles.fieldLabel}>Phone Number</Text>
@@ -307,7 +368,7 @@ export default function ProfileSetupScreen() {
           <DateTimePicker
             value={date}
             mode="date"
-            display="default"
+            display="spinner"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {

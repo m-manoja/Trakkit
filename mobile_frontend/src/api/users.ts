@@ -135,3 +135,40 @@ export async function updateNotificationSettings(payload: { email_notification: 
   if (!response.ok) throw new Error(result?.error || "Failed to update notification settings");
   return result;
 }
+
+// ─── BACKUP LOGIN ──────────────────────────────────────────────────────────────
+
+export async function emailLogin(email: string, password: string) {
+  const response = await fetch(`${API_BASE_URL}/api/auth/email-login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Login failed");
+  return result; // { token, user, nextScreen }
+}
+
+export async function setBackupPassword(email: string, password: string, token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/backup-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to set backup password");
+  return result;
+}
+
+export async function dismissBackupPrompt(token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/backup-password/dismiss`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to dismiss prompt");
+  return result;
+}

@@ -6,10 +6,13 @@ import { CustomInput } from '../src/components/Input';
 import { PrimaryButton } from '../src/components/Button';
 import { verifyOTP, sendOTP } from '../src/api/auth';
 import { useAuth } from '../src/context/AuthContext';
+import BackupPasswordPrompt from '../src/components/BackupPasswordPrompt';
 
 export default function VerificationScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
 
   // Timer state
   const [timer, setTimer] = useState(30);
@@ -98,14 +101,22 @@ export default function VerificationScreen() {
         throw new Error("Authentication failed: Missing User ID or Token from server response");
       }
 
-      // 4. SMART NAVIGATION
-      let targetPath = (response as any).nextScreen;
+      // 4. Show backup prompt or navigate
+      const backupPromptShown = (response as any).user?.backupPromptShown ?? true;
+      const target = (() => {
+        let t = (response as any).nextScreen;
+        if (!t || t === '/dashboard' || t === '/index' || t === '/(tabs)') return '/(tabs)';
+        if (t === '/profile_setup') return '/(tabs)/profile_setup?isFirstSetup=true';
+        return t;
+      })();
 
-      if (!targetPath || targetPath === "/dashboard" || targetPath === "/index") {
-        targetPath = "/(tabs)";
+      if (!backupPromptShown) {
+        // Show nudge first; navigate after they finish
+        setPendingRoute(target);
+        setShowBackupPrompt(true);
+      } else {
+        router.replace(target as any);
       }
-
-      router.replace(targetPath as any);
 
     } catch (e: any) {
       console.error("Verification Error:", e);
@@ -117,42 +128,53 @@ export default function VerificationScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Verify Phone</Text>
-        <Text style={styles.subtitle}>Sent to {phone || "your phone"}</Text>
+    <>
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Verify Phone</Text>
+          <Text style={styles.subtitle}>Sent to {phone || "your phone"}</Text>
 
-        <CustomInput
-          label="Verification Code"
-          placeholder="Enter 6-digit code"
-          value={code}
-          onChangeText={setCode}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-
-        <View style={{ marginTop: 10 }}>
-          <PrimaryButton
-            title="Verify & Continue"
-            onPress={handleVerify}
-            loading={loading}
+          <CustomInput
+            label="Verification Code"
+            placeholder="Enter 6-digit code"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            maxLength={6}
           />
 
-          <TouchableOpacity
-            onPress={handleResend}
-            disabled={!canResend || loading}
-            style={styles.resendContainer}
-          >
-            <Text style={[
-              styles.resendText,
-              { color: canResend ? COLORS.primary : '#999' }
-            ]}>
-              {canResend ? "Resend Code" : `Resend code in ${timer}s`}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 10 }}>
+            <PrimaryButton
+              title="Verify & Continue"
+              onPress={handleVerify}
+              loading={loading}
+            />
+
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={!canResend || loading}
+              style={styles.resendContainer}
+            >
+              <Text style={[
+                styles.resendText,
+                { color: canResend ? COLORS.primary : '#999' }
+              ]}>
+                {canResend ? "Resend Code" : `Resend code in ${timer}s`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+
+      {/* One-time backup login nudge */}
+      <BackupPasswordPrompt
+        visible={showBackupPrompt}
+        onDone={() => {
+          setShowBackupPrompt(false);
+          if (pendingRoute) router.replace(pendingRoute as any);
+        }}
+      />
+    </>
   );
 }
 

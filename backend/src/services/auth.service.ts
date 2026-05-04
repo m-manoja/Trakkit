@@ -1,5 +1,8 @@
 import { randomUUID } from "crypto";
 import { supabase } from "../config/supabaseClient.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const bcrypt = require("bcryptjs") as typeof import("bcryptjs");
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const TEXTLK_API_URL = "https://app.text.lk/api/http/sms/send";
@@ -131,4 +134,73 @@ export async function verifyOtpOnly(phone: string, token: string): Promise<void>
   }
 
   otpStore.delete(phone);
+}
+
+// ─── EMAIL + PASSWORD BACKUP LOGIN ───────────────────────────────────────────
+
+/**
+ * Set (or update) a backup email + password for a user.
+ * Also marks backup_prompt_shown = true so the nudge won't show again.
+ */
+export async function setBackupPassword(userId: string, email: string, password: string) {
+  // Check email not already taken by another user
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id')
+    .eq('backup_email', email.toLowerCase())
+    .neq('id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    throw new AuthServiceError('This email is already linked to another account', 409);
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      backup_email: email.toLowerCase(),
+      password_hash: hash,
+      backup_prompt_shown: true,
+    })
+    .eq('id', userId);
+
+  if (error) throw new AuthServiceError(error.message, 500);
+}
+
+/**
+ * Dismiss the backup prompt without setting credentials.
+ */
+export async function dismissBackupPrompt(userId: string) {
+  const { error } = await supabase
+    .from('users')
+    .update({ backup_prompt_shown: true })
+    .eq('id', userId);
+
+  if (error) throw new AuthServiceError(error.message, 500);
+}
+
+/**
+ * Log in using backup email + password.
+ * Returns the full user row on success.
+ */
+export async function loginWithEmail(email: string, password: string) {
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown')
+    .eq('backup_email', email.toLowerCase())
+    .maybeSingle();
+
+  if (error) throw new AuthServiceError(error.message, 500);
+  if (!user || !user.password_hash) {
+    throw new AuthServiceError('No account found with that email, or backup login not set up', 401);
+  }
+
+  const match = await bcrypt.compare(password, user.password_hash);
+  if (!match) {
+    throw new AuthServiceError('Incorrect password', 401);
+  }
+
+  return user;
 }

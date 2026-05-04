@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, AppState,
-  Modal, FlatList, ActivityIndicator, Alert, ScrollView,
+  Modal, FlatList, ActivityIndicator, Alert, ScrollView, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
@@ -267,9 +267,12 @@ export default function Header({ title, showBackButton = false, showAddButton = 
   return (
     <View style={styles.header}>
       <View style={styles.headerTop}>
-        <View>
-          <Text style={styles.logoText}>Trakkit</Text>
-          <Text style={styles.greetingText}>Hello, {user?.firstName || 'User'}!</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Image source={require('../../assets/images/icon.png')} style={styles.headerLogo} />
+          <View>
+            <Text style={styles.logoText}>Trakkit</Text>
+            <Text style={styles.greetingText}>Hello, {user?.firstName || 'User'}!</Text>
+          </View>
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconButton} onPress={() => setPremiumVisible(true)}>
@@ -340,6 +343,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingVertical: 15, backgroundColor: COLORS.primary },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
+  headerLogo: { width: 44, height: 44, borderRadius: 22, marginRight: 10, backgroundColor: '#FFF' },
   iconButton: { marginLeft: 15, position: 'relative' },
   logoText: { fontSize: 22, fontWeight: 'bold', color: 'white' },
   greetingText: { fontSize: 12, color: 'white', marginTop: 4 },

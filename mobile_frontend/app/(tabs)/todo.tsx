@@ -168,13 +168,12 @@ export default function TodoScreen() {
         data={todos.filter(t => t.task_name.toLowerCase().includes(searchQuery.toLowerCase()))}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TodoItem item={item} />}
-        contentContainerStyle={todos.length > 0 ? styles.listContent : { flex: 1 }}
+        contentContainerStyle={[todos.length > 0 ? styles.listContent : {}, { paddingBottom: 120 }]}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={fetchTodos} />}
         ListEmptyComponent={
           <View style={styles.emptyContent}>
             <MaterialCommunityIcons name="format-list-bulleted" size={100} color="#D1D1D1" />
-            <Text style={styles.emptyTitle}>No Tasks found.</Text>
-            <Text style={styles.emptySub}>Get started by adding your first task</Text>
+            <Text style={styles.emptyTitle}>No Tasks Found</Text>
             <TouchableOpacity style={styles.mainActionBtn} onPress={() => setIsFormVisible(true)}>
               <Text style={styles.mainActionText}>+ Add Your First Task</Text>
             </TouchableOpacity>
@@ -274,10 +273,9 @@ const styles = StyleSheet.create({
   todoText: { flex: 1, marginLeft: 15, fontSize: 16, color: '#333' },
   todoTextDone: { textDecorationLine: 'line-through', color: '#AAA' },
   // Empty State
-  emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 15 },
-  emptySub: { fontSize: 14, color: '#666', marginTop: 8 },
-  mainActionBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, width: '80%', alignItems: 'center', marginTop: 25 },
+  emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginTop: 15, marginBottom: 25 },
+  mainActionBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, width: '80%', alignItems: 'center' },
   mainActionText: { color: 'white', fontWeight: 'bold' },
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },

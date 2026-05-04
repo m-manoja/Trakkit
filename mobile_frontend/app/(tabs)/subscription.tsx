@@ -281,7 +281,7 @@ export default function SubscriptionInitial() {
               <MaterialCommunityIcons name="card-search-outline" size={100} color="#D1D1D1" />
               <Text style={styles.emptyTitle}>No Subscriptions Found</Text>
               <TouchableOpacity style={styles.mainActionBtn} onPress={() => setIsFormVisible(true)}>
-                <Text style={styles.mainActionText}>+ Add First Subscription</Text>
+                <Text style={styles.mainActionText}>+ Add Your First Subscription</Text>
               </TouchableOpacity>
             </View>
           }
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   renewBtnOverdue: { backgroundColor: '#E74C3C', borderColor: '#E74C3C' },
   renewText: { fontWeight: 'bold', color: '#7F8C8D' },
   emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginVertical: 15 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginTop: 15, marginBottom: 25 },
   mainActionBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, width: '80%', alignItems: 'center' },
   mainActionText: { color: 'white', fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
