@@ -1,0 +1,169 @@
+/* ── OTPVerificationPage.module.css ── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(185, 55, 93, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideUp 0.4s ease;
+}
+
+.iconWrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(185, 55, 93, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.otpRow {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.otpBox {
+  width: 52px;
+  height: 60px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  caret-color: var(--primary);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  outline: none;
+}
+
+.otpBox:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(185, 55, 93, 0.15);
+  transform: scale(1.05);
+}
+
+.otpBox.filled {
+  border-color: var(--primary);
+  background: rgba(185, 55, 93, 0.04);
+}
+
+.error {
+  font-size: 0.83rem;
+  color: var(--error);
+  margin: 0;
+  text-align: center;
+}
+
+.verifyBtn {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.verifyBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.verifyBtn:not(:disabled):hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  transition: color 0.2s;
+}
+
+.resendBtn.resendActive {
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0;
+  margin-top: 0.5rem;
+  transition: color 0.2s;
+}
+
+.backBtn:hover {
+  color: var(--primary);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
