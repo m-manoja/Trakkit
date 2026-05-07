@@ -8,6 +8,7 @@ import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
 import RemindersPage from "./pages/reminders/RemindersPage";
+import TodosPage from "./pages/todos/TodosPage";
 
 export default function App() {
   return (
@@ -49,6 +50,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <RemindersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/todos"
+            element={
+              <ProtectedRoute>
+                <TodosPage />
               </ProtectedRoute>
             }
           />
