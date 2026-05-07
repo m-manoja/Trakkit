@@ -7,6 +7,7 @@ import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
+import RemindersPage from "./pages/reminders/RemindersPage";
 
 export default function App() {
   return (
@@ -40,6 +41,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SubscriptionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reminders"
+            element={
+              <ProtectedRoute>
+                <RemindersPage />
               </ProtectedRoute>
             }
           />

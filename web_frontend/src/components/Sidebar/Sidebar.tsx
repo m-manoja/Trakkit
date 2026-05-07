@@ -7,7 +7,8 @@ import {
   CheckSquare, 
   Settings, 
   LogOut,
-  Plus
+  Plus,
+  BellRing
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./Sidebar.module.css";
@@ -19,6 +20,7 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: ShieldCheck, label: "Warranties", path: "/warranties" },
     { icon: CreditCard, label: "Subscriptions", path: "/subscriptions" },
+    { icon: BellRing, label: "Reminders", path: "/reminders" },
     { icon: CheckSquare, label: "To-Dos", path: "/todos" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
   ];
