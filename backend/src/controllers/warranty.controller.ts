@@ -33,7 +33,8 @@ export const addWarranty = async (req: Request, res: Response) => {
                 .from('warranty-documents')
                 .upload(fileName, req.file.buffer, {
                     contentType: req.file.mimetype,
-                    upsert: true
+                    upsert: true,
+                    duplex: 'half'
                 });
 
             if (uploadError) throw uploadError;
@@ -114,7 +115,11 @@ export const editWarranty = async (req: Request, res: Response) => {
             const fileName = `${userId}/${Date.now()}_${req.file.originalname}`;
             const { error: uploadError } = await supabase.storage
                 .from('warranty-documents')
-                .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+                .upload(fileName, req.file.buffer, { 
+                    contentType: req.file.mimetype, 
+                    upsert: true,
+                    duplex: 'half' 
+                });
 
             if (uploadError) throw uploadError;
 

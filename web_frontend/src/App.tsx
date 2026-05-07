@@ -5,6 +5,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import EmailLoginPage from "./pages/auth/EmailLoginPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 
 export default function App() {
   return (
@@ -22,6 +23,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/warranties"
+            element={
+              <ProtectedRoute>
+                <WarrantiesPage />
               </ProtectedRoute>
             }
           />
