@@ -6,6 +6,7 @@ import EmailLoginPage from "./pages/auth/EmailLoginPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
+import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
 
 export default function App() {
   return (
@@ -31,6 +32,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <WarrantiesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions"
+            element={
+              <ProtectedRoute>
+                <SubscriptionsPage />
               </ProtectedRoute>
             }
           />

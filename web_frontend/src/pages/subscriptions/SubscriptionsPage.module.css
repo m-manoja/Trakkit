@@ -203,110 +203,6 @@
   min-height: 100px;
 }
 
-.fileUploadArea {
-  border: 2px dashed #D1D5DB;
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  background-color: rgba(249, 250, 251, 0.5);
-  transition: all 0.3s ease;
-}
-
-.fileUploadArea:hover {
-  border-color: #B9375D;
-  background-color: rgba(185, 55, 93, 0.05);
-  transform: scale(1.01);
-}
-
-.fileUploadArea p {
-  margin: 0.75rem 0 0;
-  color: #6B7280;
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
-.fileUploadActive {
-  border-color: #B9375D;
-  background-color: rgba(185, 55, 93, 0.05);
-}
-
-.fileInfo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(to right, #F9FAFB, #F3F4F6);
-  padding: 1rem;
-  border-radius: 10px;
-  border: 1px solid #E5E7EB;
-}
-
-.fileName {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.fileActions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.iconButton {
-  background: white;
-  border: 1px solid #E5E7EB;
-  color: #6B7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.4rem;
-  border-radius: 8px;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.iconButton:hover {
-  background-color: #F3F4F6;
-  color: #111827;
-  transform: translateY(-1px);
-}
-
-.removeFileBtn:hover {
-  color: #EF4444;
-  border-color: #EF4444;
-  background-color: #FEF2F2;
-}
-
-.fileActionChoice {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-
-.choiceBtn {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 10px;
-  background: white;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-  transition: all 0.3s ease;
-}
-
-.choiceBtnActive {
-  background: linear-gradient(135deg, #B9375D, #8a2542);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 10px rgba(185, 55, 93, 0.2);
-}
-
 .modalFooter {
   padding: 1.5rem 2rem;
   border-top: 1px solid rgba(229, 231, 235, 0.5);
@@ -360,14 +256,14 @@
   cursor: not-allowed;
 }
 
-/* Grid layout for warranties */
-.warrantiesGrid {
+/* Grid layout for subscriptions */
+.subscriptionsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1.5rem;
 }
 
-.warrantyCard {
+.subscriptionCard {
   background: white;
   border-radius: 16px;
   border: 1px solid #E5E7EB;
@@ -379,7 +275,7 @@
   overflow: hidden;
 }
 
-.warrantyCard::before {
+.subscriptionCard::before {
   content: '';
   position: absolute;
   top: 0;
@@ -391,13 +287,13 @@
   transition: opacity 0.3s ease;
 }
 
-.warrantyCard:hover {
+.subscriptionCard:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border-color: transparent;
 }
 
-.warrantyCard:hover::before {
+.subscriptionCard:hover::before {
   opacity: 1;
 }
 
@@ -474,32 +370,34 @@
   color: #065F46;
 }
 
+.statusWarning {
+  background-color: #FEF3C7;
+  color: #B45309;
+}
+
 .statusExpired {
   background-color: #FEE2E2;
   color: #991B1B;
 }
 
-.documentLink {
+.iconButton {
+  background: white;
+  border: 1px solid #E5E7EB;
+  color: #6B7280;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  color: #B9375D;
-  text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background: rgba(185, 55, 93, 0.05);
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
+  justify-content: center;
+  padding: 0.4rem;
+  border-radius: 8px;
   transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.documentLink:hover {
-  background: rgba(185, 55, 93, 0.1);
-}
-
-.documentActions {
-  display: flex;
-  gap: 0.5rem;
+.iconButton:hover {
+  background-color: #F3F4F6;
+  color: #111827;
+  transform: translateY(-1px);
 }
 
 .claimButton {
@@ -508,17 +406,28 @@
   padding: 0.75rem;
   border: 2px solid #E5E7EB;
   background: white;
-  color: #4B5563;
+  color: #9CA3AF;
   border-radius: 10px;
   font-weight: 700;
-  cursor: pointer;
+  cursor: not-allowed;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.claimButton:hover {
-  border-color: #B9375D;
-  color: #B9375D;
-  background: rgba(185, 55, 93, 0.02);
+.claimButtonActive {
+  color: #ef4444;
+  border-color: #fca5a5;
+  background: #fef2f2;
+  cursor: pointer;
+}
+
+.claimButtonActive:hover {
+  border-color: #ef4444;
+  color: white;
+  background: #ef4444;
 }
 
 .emptyState {
