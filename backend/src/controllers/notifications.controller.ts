@@ -30,9 +30,9 @@ export async function getNotifications(req: Request, res: Response) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // Auto-mark 'pending' ones as 'sent' now that the user is fetching them
+    // Auto-mark 'pending' and 'notified' ones as 'sent' now that the user is fetching them
     const pendingIds = (data || [])
-      .filter((n: any) => n.status === 'pending')
+      .filter((n: any) => n.status === 'pending' || n.status === 'notified')
       .map((n: any) => n.id);
 
     if (pendingIds.length > 0) {
@@ -68,7 +68,7 @@ export async function getUnreadCount(req: Request, res: Response) {
       .from('scheduled_notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'notified'])
       .lte('scheduled_for', now);
 
     if (error) {

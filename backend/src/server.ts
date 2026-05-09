@@ -8,6 +8,7 @@ import reminderRoutes from './routes/reminder';
 import todoRoutes from './routes/todo';
 import settingsRoutes from './routes/settings';
 import notificationsRoutes from './routes/notifications';
+import { startNotificationWorker } from './services/notificationWorker.service';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,4 +55,7 @@ app.get("/", (req, res) => {
 // Use '0.0.0.0' to ensure the server is discoverable by your mobile device
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
+  
+  // Start the background notification worker
+  startNotificationWorker();
 });
