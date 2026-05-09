@@ -8,14 +8,19 @@ import {
   CheckSquare, 
   Settings, 
   LogOut,
-  BellRing
+  BellRing,
+  X
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchUnreadCount } from "../../api/notifications";
 import styles from "./Sidebar.module.css";
 import logoImg from "../../assets/icon.png";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const { signOut, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -39,8 +44,15 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
-        <img src={logoImg} alt="Trakkit Logo" className={styles.logoImage} />
-        <span className={styles.logoText}>Trakkit</span>
+        <div className={styles.logoInner}>
+          <img src={logoImg} alt="Trakkit Logo" className={styles.logoImage} />
+          <span className={styles.logoText}>Trakkit</span>
+        </div>
+        {onClose && (
+          <button className={styles.closeBtn} onClick={onClose}>
+            <X size={24} />
+          </button>
+        )}
       </div>
 
       <nav className={styles.nav}>

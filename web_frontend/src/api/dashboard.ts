@@ -14,8 +14,8 @@ export type Warranty = {
 
 export type Subscription = {
   id: string;
-  name: string;
-  cost: number;
+  service_name: string;
+  amount: number;
   billing_cycle: string;
   next_billing_date: string;
   category: string;
@@ -32,6 +32,7 @@ export type Todo = {
 export type Reminder = {
   id: string;
   title: string;
+  type: string;
   reminder_date: string;
 };
 
