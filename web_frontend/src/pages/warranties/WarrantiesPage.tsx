@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   ShieldCheck, 
   Plus, 
@@ -22,6 +23,8 @@ import WarrantyFormModal from "./WarrantyFormModal";
 
 export default function WarrantiesPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,13 @@ export default function WarrantiesPage() {
     loadWarranties();
   }, [user]);
 
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setIsModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleOpenModal = (warranty?: Warranty) => {
     setSelectedWarranty(warranty || null);
     setIsModalOpen(true);
@@ -60,6 +70,9 @@ export default function WarrantiesPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedWarranty(null);
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+    }
   };
 
   const handleDelete = async (id: string) => {

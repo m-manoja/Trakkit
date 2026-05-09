@@ -27,7 +27,7 @@
 .logoText {
   font-weight: 800;
   font-size: 1.4rem;
-  color: var(--text-primary);
+  color: var(--primary);
   letter-spacing: -0.5px;
 }
 
@@ -53,8 +53,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  color: var(--text-secondary);
-  text-decoration: none;
+  color: #4B5563;
+  text-decoration: none !important;
   border-radius: 10px;
   font-weight: 500;
   transition: var(--transition);
@@ -63,12 +63,18 @@
 .navLink:hover {
   background: rgba(185, 55, 93, 0.05);
   color: var(--primary);
+  text-decoration: none !important;
 }
 
 .active {
   background: rgba(185, 55, 93, 0.08);
   color: var(--primary);
   font-weight: 600;
+}
+
+.active:hover {
+  background: rgba(185, 55, 93, 0.12);
+  color: var(--primary);
 }
 
 .footer {
@@ -78,6 +84,15 @@
   gap: 0.5rem;
   border-top: 1px solid var(--border);
   padding-top: 1.5rem;
+}
+
+.footer .navLink {
+  color: #4B5563;
+}
+
+.footer .navLink:hover {
+  background: rgba(185, 55, 93, 0.05);
+  color: var(--primary);
 }
 
 .signOutBtn {
@@ -98,6 +113,7 @@
 
 .signOutBtn:hover {
   background: rgba(231, 76, 60, 0.05);
+  color: var(--error);
 }
 
 .userProfile {
@@ -106,20 +122,22 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: #f9f9f9;
+  background: rgba(185, 55, 93, 0.03);
+  border: 1px solid rgba(185, 55, 93, 0.1);
   border-radius: 12px;
 }
 
 .avatar {
   width: 40px;
   height: 40px;
-  background: var(--bg);
+  background: white;
   color: var(--primary);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .avatarImg {
@@ -127,6 +145,7 @@
   height: 40px;
   border-radius: 10px;
   object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 .badge {

@@ -29,6 +29,12 @@ export type Todo = {
   reminder_date: string | null;
 };
 
+export type Reminder = {
+  id: string;
+  title: string;
+  reminder_date: string;
+};
+
 export async function fetchWarranties(userId: string, token: string): Promise<Warranty[]> {
   return apiRequest<Warranty[]>(`/api/warranties/user/${userId}`, "GET", undefined, token);
 }
@@ -39,4 +45,8 @@ export async function fetchSubscriptions(userId: string, token: string): Promise
 
 export async function fetchTodos(token: string): Promise<Todo[]> {
   return apiRequest<Todo[]>("/api/todos", "GET", undefined, token);
+}
+
+export async function fetchReminders(userId: string, token: string): Promise<Reminder[]> {
+  return apiRequest<Reminder[]>(`/api/reminders/user/${userId}`, "GET", undefined, token);
 }

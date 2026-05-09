@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   BellRing, 
   Plus, 
@@ -21,6 +22,8 @@ import ReminderFormModal from "./ReminderFormModal";
 // Force TS Language Server refresh
 export default function RemindersPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,13 @@ export default function RemindersPage() {
     loadReminders();
   }, [user]);
 
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setIsModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleOpenModal = (reminder?: Reminder) => {
     setSelectedReminder(reminder || null);
     setIsModalOpen(true);
@@ -59,6 +69,9 @@ export default function RemindersPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedReminder(null);
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+    }
   };
 
   const handleDelete = async (id: string) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   CheckSquare, 
   Plus, 
@@ -22,6 +23,8 @@ import TodoFormModal from "./TodoFormModal";
 
 export default function TodosPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,12 +54,22 @@ export default function TodosPage() {
     loadTodos();
   }, [user]);
 
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setIsModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+    }
   };
 
   const handleDelete = async (id: string) => {

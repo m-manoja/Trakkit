@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   CreditCard, 
   Plus, 
@@ -23,6 +24,8 @@ import SubscriptionFormModal from "./SubscriptionFormModal";
 // Force TS Language Server refresh
 export default function SubscriptionsPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +56,13 @@ export default function SubscriptionsPage() {
     loadSubscriptions();
   }, [user]);
 
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setIsModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleOpenModal = (subscription?: Subscription) => {
     setSelectedSubscription(subscription || null);
     setIsModalOpen(true);
@@ -61,6 +71,9 @@ export default function SubscriptionsPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedSubscription(null);
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+    }
   };
 
   const handleDelete = async (id: string) => {
