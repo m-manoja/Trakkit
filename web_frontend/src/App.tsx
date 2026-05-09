@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import EmailLoginPage from "./pages/auth/EmailLoginPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
+import ProfileSetupPage from "./pages/auth/ProfileSetupPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
@@ -23,6 +24,14 @@ export default function App() {
           <Route path="/verify-otp" element={<OTPVerificationPage />} />
 
           {/* Protected routes */}
+          <Route
+            path="/profile_setup"
+            element={
+              <ProtectedRoute>
+                <ProfileSetupPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

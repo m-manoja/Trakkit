@@ -2,6 +2,7 @@ import React, { useState, useRef, type KeyboardEvent, type ClipboardEvent } from
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyOTP, sendOTP } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import BackupPasswordPrompt from "../../components/BackupPasswordPrompt";
 import styles from "./OTPVerification.module.css";
 
 const OTP_LENGTH = 6;
@@ -18,6 +19,8 @@ export default function OTPVerificationPage() {
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -78,7 +81,22 @@ export default function OTPVerificationPage() {
         email: user.email ?? "",
       });
 
-      navigate("/dashboard", { replace: true });
+      const backupPromptShown = (user as any).backupPromptShown ?? true;
+      let target = response.nextScreen;
+      
+      if (!target || target === '/dashboard' || target === '/index' || target === '/(tabs)') {
+        target = '/dashboard';
+      }
+      if (target === '/profile_setup') {
+        target = '/profile_setup?isFirstSetup=true';
+      }
+
+      if (!backupPromptShown) {
+        setPendingRoute(target);
+        setShowBackupPrompt(true);
+      } else {
+        navigate(target, { replace: true });
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Verification failed");
     } finally {
@@ -161,6 +179,16 @@ export default function OTPVerificationPage() {
           ← Change phone number
         </button>
       </div>
+
+      <BackupPasswordPrompt
+        visible={showBackupPrompt}
+        onDone={() => {
+          setShowBackupPrompt(false);
+          if (pendingRoute) {
+            navigate(pendingRoute, { replace: true });
+          }
+        }}
+      />
     </div>
   );
 }

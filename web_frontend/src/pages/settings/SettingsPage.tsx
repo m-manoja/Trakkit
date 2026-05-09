@@ -131,7 +131,7 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     if (!user?.token) return;
     
-    if (!/^\\d+(,\\d+)*$/.test(schedule)) {
+    if (!/^\d+(,\d+)*$/.test(schedule)) {
       setError("Invalid schedule format. Use comma separated numbers (e.g., 7,3,1)");
       return;
     }
@@ -147,6 +147,13 @@ export default function SettingsPage() {
         push_notification: pushNotif,
         reminder_schedule: schedule
       }, user.token);
+      
+      setNotifSettings({
+        email_notification: emailNotif,
+        sms_notification: smsNotif,
+        push_notification: pushNotif,
+        reminder_schedule: schedule
+      });
       
       setSuccess("Notification preferences updated");
       setTimeout(() => setSuccess(null), 3000);

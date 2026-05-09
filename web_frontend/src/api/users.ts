@@ -96,3 +96,29 @@ export async function uploadProfileImage(file: File, token: string): Promise<{ p
   if (!response.ok) throw new Error(res.error || "Failed to upload profile image");
   return { profile_picture: res.profileImageUrl };
 }
+
+export async function setBackupPassword(email: string, password: string, token: string) {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/backup-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ email, password })
+  });
+  const res = await response.json();
+  if (!response.ok) throw new Error(res.error || "Failed to set backup password");
+  return res;
+}
+
+export async function dismissBackupPrompt(token: string) {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/backup-password/dismiss`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  const res = await response.json();
+  if (!response.ok) throw new Error(res.error || "Failed to dismiss prompt");
+  return res;
+}
