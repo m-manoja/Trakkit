@@ -5,7 +5,7 @@ import { supabase } from '../config/supabaseClient';
 export const addWarranty = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id || (req as any).user.userId;
-        const { product_name, purchase_place, warranty_period, category, purchase_date, description } = req.body;
+        const { product_name, purchase_place, warranty_period, category, purchase_date, description, reminder_schedule } = req.body;
 
         if (!product_name || !purchase_place) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -60,7 +60,8 @@ export const addWarranty = async (req: Request, res: Response) => {
             description,
             document_url,
             expiry_date: expiry.toISOString().split('T')[0],
-            status: 'Active'
+            status: 'Active',
+            reminder_schedule
         };
 
         const data = await warrantyService.createWarranty(userId, payload);

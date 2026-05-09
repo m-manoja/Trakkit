@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -7,14 +8,24 @@ import {
   CheckSquare, 
   Settings, 
   LogOut,
-  Plus,
   BellRing
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { fetchUnreadCount } from "../../api/notifications";
 import styles from "./Sidebar.module.css";
+import logoImg from "../../assets/icon.png";
 
 export default function Sidebar() {
   const { signOut, user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user?.token) {
+      fetchUnreadCount(user.token)
+        .then(res => setUnreadCount(res.count))
+        .catch(err => console.error("Failed to load badge count:", err));
+    }
+  }, [user]);
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -28,14 +39,9 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
-        <div className={styles.logoIcon}>T</div>
+        <img src={logoImg} alt="Trakkit Logo" className={styles.logoImage} />
         <span className={styles.logoText}>Trakkit</span>
       </div>
-
-      <button className={styles.addButton}>
-        <Plus size={20} />
-        <span>Add New</span>
-      </button>
 
       <nav className={styles.nav}>
         <div className={styles.sectionLabel}>Menu</div>
@@ -46,7 +52,10 @@ export default function Sidebar() {
             className={({ isActive }) => isActive ? `${styles.navLink} ${styles.active}` : styles.navLink}
           >
             <item.icon size={20} />
-            <span>{item.label}</span>
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.label === "Notifications" && unreadCount > 0 && (
+              <span className={styles.badge}>{unreadCount}</span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -63,9 +72,13 @@ export default function Sidebar() {
         </button>
 
         <div className={styles.userProfile}>
-          <div className={styles.avatar}>
-            {(user?.firstName || "U").charAt(0).toUpperCase()}
-          </div>
+          {user?.profilePicture ? (
+            <img src={user.profilePicture} alt="Avatar" className={styles.avatarImg} />
+          ) : (
+            <div className={styles.avatar}>
+              {(user?.firstName || "U").charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className={styles.userInfo}>
             <p className={styles.userName}>{user?.firstName || "User"}</p>
             <p className={styles.userEmail}>{user?.email || "Free Plan"}</p>

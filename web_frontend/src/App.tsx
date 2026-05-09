@@ -9,6 +9,8 @@ import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
 import RemindersPage from "./pages/reminders/RemindersPage";
 import TodosPage from "./pages/todos/TodosPage";
+import SettingsPage from "./pages/settings/SettingsPage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
 
 export default function App() {
   return (
@@ -58,6 +60,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TodosPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

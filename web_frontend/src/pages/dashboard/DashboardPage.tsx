@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,15 +38,17 @@ export default function DashboardPage() {
 
       try {
         setLoading(true);
-        const [wData, sData, tData] = await Promise.all([
+        const [wData, sData, tData, notifResponse] = await Promise.all([
           fetchWarranties(user.id, user.token),
           fetchSubscriptions(user.id, user.token),
-          fetchTodos(user.token)
+          fetchTodos(user.token),
+          fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/notifications/unread-count`, { headers: { Authorization: `Bearer ${user.token}` } }).then(r => r.json())
         ]);
 
         setWarranties(wData || []);
         setSubscriptions(sData || []);
         setTodos(tData || []);
+        setUnreadNotifications(notifResponse?.count || 0);
         setError(null);
       } catch (err: any) {
         console.error("Dashboard Load Error:", err);
@@ -65,9 +68,9 @@ export default function DashboardPage() {
 
   const stats = [
     { label: "Active Warranties", value: activeWarranties.toString(), icon: ShieldCheck, color: "#B9375D" },
-    { label: "Subscriptions", value: activeSubs.toString(), icon: CreditCard, color: "#2563EB" },
-    { label: "Pending Tasks", value: pendingTodos.toString(), icon: CheckSquare, color: "#059669" },
-    { label: "Notifications", value: "0", icon: Bell, color: "#D97706" }, // Placeholder for notifications
+    { label: "Subscriptions", value: activeSubs.toString(), icon: CreditCard, color: "#D25D5D" },
+    { label: "Pending Tasks", value: pendingTodos.toString(), icon: CheckSquare, color: "#2ECC71" },
+    { label: "Notifications", value: unreadNotifications.toString(), icon: Bell, color: "#F1C40F" },
   ];
 
   // Helper to calculate days remaining
