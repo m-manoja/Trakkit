@@ -2,6 +2,19 @@ import { Request, Response } from 'express';
 import * as warrantyService from '../services/warranty.service';
 import { supabase } from '../config/supabaseClient';
 
+export const getWarranty = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.id || (req as any).user.userId;
+        if (!id) return res.status(400).json({ success: false, message: 'Warranty ID required' });
+        const item = await warrantyService.getWarrantyById(id, userId);
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        return res.status(200).json({ success: true, data: item });
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const addWarranty = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id || (req as any).user.userId;

@@ -55,7 +55,7 @@ app.get("/", (req, res) => {
 // Use '0.0.0.0' to ensure the server is discoverable by your mobile device
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
-  
+
   // Start the background notification worker
   startNotificationWorker();
 });

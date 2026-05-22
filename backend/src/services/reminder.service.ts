@@ -45,6 +45,17 @@ export const getRemindersByUserId = async (userId: string) => {
     return augmentedData;
 };
 
+export const getReminderById = async (id: string) => {
+    const { data, error } = await supabase
+        .from('manual_reminders')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (error) throw error;
+    return data;
+};
+
+
 export const updateReminder = async (id: string, reminderData: any) => {
     const { data, error } = await supabase
         .from('manual_reminders')

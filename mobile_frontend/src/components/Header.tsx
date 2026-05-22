@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, AppState,
-  Modal, FlatList, ActivityIndicator, Alert, ScrollView, Image
+  Modal, ScrollView, ActivityIndicator, Alert, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
@@ -13,15 +13,17 @@ import {
   fetchUnreadCount,
   deleteNotification,
   clearAllNotifications,
+  markNotificationsRead,
   AppNotification,
 } from '../api/notifications';
+import { API_BASE_URL } from '../api/config';
 
 // Mapping from reference_type to readable label and target route
-const TYPE_META: Record<string, { label: string; route: string }> = {
-  subscription:    { label: 'Subscription',   route: '/(tabs)/subscription' },
-  warranty:        { label: 'Warranty',        route: '/(tabs)/warranty' },
-  todo:            { label: 'To Do',           route: '/(tabs)/todo' },
-  manual_reminder: { label: 'Reminder',        route: '/(tabs)/reminder' },
+const TYPE_META: Record<string, { label: string; route: string; icon: string }> = {
+  subscription:    { label: 'Subscription', route: '/(tabs)/subscription', icon: 'card-outline'             },
+  warranty:        { label: 'Warranty',      route: '/(tabs)/warranty',     icon: 'shield-checkmark-outline' },
+  todo:            { label: 'To Do',         route: '/(tabs)/todo',         icon: 'checkbox-outline'         },
+  manual_reminder: { label: 'Reminder',      route: '/(tabs)/reminder',     icon: 'alarm-outline'            },
 };
 
 function formatDate(dateStr: string): string {
@@ -36,7 +38,9 @@ function formatDate(dateStr: string): string {
 
 interface ListViewProps {
   notifications: AppNotification[];
+  newIds: Set<string>;
   loading: boolean;
+  fetchError: string | null;
   selectedIds: Set<string>;
   selectMode: boolean;
   onToggleSelect: (id: string) => void;
@@ -47,7 +51,7 @@ interface ListViewProps {
 }
 
 function ListView({
-  notifications, loading, selectedIds, selectMode,
+  notifications, newIds, loading, fetchError, selectedIds, selectMode,
   onToggleSelect, onToggleSelectMode, onDeleteSelected,
   onItemPress, onClose,
 }: ListViewProps) {
@@ -79,23 +83,26 @@ function ListView({
         <View style={styles.loadingBox}>
           <ActivityIndicator size="small" color={COLORS.primary} />
         </View>
+      ) : fetchError ? (
+        <View style={styles.emptyBox}>
+          <Ionicons name="cloud-offline-outline" size={40} color="#FF6B6B" />
+          <Text style={[styles.emptyText, { color: '#FF6B6B', textAlign: 'center', marginTop: 6 }]}>{fetchError}</Text>
+        </View>
       ) : notifications.length === 0 ? (
         <View style={styles.emptyBox}>
           <Ionicons name="notifications-off-outline" size={40} color="#CCC" />
           <Text style={styles.emptyText}>No notifications yet</Text>
         </View>
       ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={item => item.id}
-          style={styles.list}
-          renderItem={({ item }) => {
+        <ScrollView style={styles.list}>
+          {notifications.map(item => {
             const meta = TYPE_META[item.reference_type] || { label: 'Notification', route: '/' };
             const isSelected = selectedIds.has(item.id);
-            const isNew = item.status === 'pending';
+            const isNew = newIds.has(item.id);
 
             return (
               <TouchableOpacity
+                key={item.id}
                 style={[styles.notifRow, isNew && styles.notifRowNew]}
                 onPress={() => selectMode ? onToggleSelect(item.id) : onItemPress(item)}
                 activeOpacity={0.7}
@@ -124,8 +131,8 @@ function ListView({
                 </View>
               </TouchableOpacity>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       )}
     </>
   );
@@ -135,40 +142,140 @@ function ListView({
 
 interface DetailViewProps {
   item: AppNotification;
+  itemDetail: any;
+  itemLoading: boolean;
   onBack: () => void;
   onClose: () => void;
   onNavigate: (route: string) => void;
 }
 
-function DetailView({ item, onBack, onClose, onNavigate }: DetailViewProps) {
-  const meta = TYPE_META[item.reference_type] || { label: 'Notification', route: '/' };
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailRowLabel}>{label}</Text>
+      <Text style={styles.detailRowValue}>{value}</Text>
+    </View>
+  );
+}
+
+function renderItemFields(type: string, detail: any) {
+  if (!detail) return null;
+  switch (type) {
+    case 'manual_reminder':
+      return (
+        <>
+          {detail.reminder_date && <DetailRow label="Date" value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          {detail.type && <DetailRow label="Type" value={detail.type} />}
+          {detail.remind_time && <DetailRow label="Remind" value={detail.remind_time} />}
+          {detail.repeat_cycle && <DetailRow label="Repeat" value={detail.repeat_cycle} />}
+          {detail.description ? <DetailRow label="Notes" value={detail.description} /> : null}
+        </>
+      );
+    case 'subscription':
+      return (
+        <>
+          {detail.amount && <DetailRow label="Amount" value={`Rs. ${detail.amount} / ${detail.billing_cycle}`} />}
+          {detail.category && <DetailRow label="Category" value={detail.category} />}
+          {detail.next_billing_date && <DetailRow label="Next Billing" value={new Date(detail.next_billing_date).toLocaleDateString()} />}
+          {detail.status && <DetailRow label="Status" value={detail.status} />}
+          {detail.description ? <DetailRow label="Notes" value={detail.description} /> : null}
+        </>
+      );
+    case 'warranty':
+      return (
+        <>
+          {detail.purchase_place && <DetailRow label="Purchased From" value={detail.purchase_place} />}
+          {detail.category && <DetailRow label="Category" value={detail.category} />}
+          {detail.purchase_date && <DetailRow label="Purchase Date" value={new Date(detail.purchase_date).toLocaleDateString()} />}
+          {detail.expiry_date && <DetailRow label="Expiry Date" value={new Date(detail.expiry_date).toLocaleDateString()} />}
+          {detail.status && <DetailRow label="Status" value={detail.status} />}
+          {detail.description ? <DetailRow label="Notes" value={detail.description} /> : null}
+        </>
+      );
+    case 'todo':
+      return (
+        <>
+          {detail.reminder_date && <DetailRow label="Due Date" value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          <DetailRow label="Status" value={detail.is_completed ? 'Completed ✓' : 'Pending'} />
+        </>
+      );
+    default:
+      return null;
+  }
+}
+
+function DetailView({ item, itemDetail, itemLoading, onBack, onClose, onNavigate }: DetailViewProps) {
+  const meta = TYPE_META[item.reference_type] || { label: 'Notification', route: '/', icon: 'notifications-outline' };
+  const title = item.title.replace(/^(Subscription Renewal:|Warranty Expiry:|Todo Reminder:|Reminder:)\s?/i, '');
+  const body  = item.body;
 
   return (
-    <>
-      <View style={styles.panelHeader}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={22} color="#333" />
+    <ScrollView contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+      {/* Coloured accent bar */}
+      <View style={[styles.detailAccentBar, { backgroundColor: COLORS.primary }]} />
+
+      {/* Top row: icon + back + close */}
+      <View style={styles.detailPromptHeader}>
+        <View style={[styles.detailPromptIcon, { backgroundColor: COLORS.primary + '20' }]}>
+          <Ionicons name={meta.icon as any} size={28} color={COLORS.primary} />
+        </View>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.detailPromptIconBtn}>
+          <Ionicons name="chevron-back" size={20} color="#555" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="close" size={22} color="#333" />
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.detailPromptIconBtn}>
+          <Ionicons name="close" size={20} color="#555" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.detailContent}>
-        <View style={styles.detailMeta}>
-          <Text style={styles.notifCategory}>{meta.label}</Text>
-          <Text style={styles.notifDate}>{formatDate(item.scheduled_for)}</Text>
-        </View>
-        <Text style={styles.detailTitle}>
-          {item.title.replace(/^(Subscription Renewal:|Warranty Expiry:|Todo Reminder:|Reminder:)\s?/i, '')}
-        </Text>
-        <Text style={styles.detailBody}>{item.body}</Text>
+      {/* Type badge */}
+      <View style={[styles.detailPromptBadge, { backgroundColor: COLORS.primary + '18' }]}>
+        <Text style={[styles.detailPromptBadgeText, { color: COLORS.primary }]}>{meta.label} Reminder</Text>
+      </View>
 
-        <TouchableOpacity onPress={() => onNavigate(meta.route)}>
-          <Text style={styles.goToLink}>Go to {meta.label.toLowerCase()}</Text>
+      <View style={styles.detailContent}>
+        {/* Title */}
+        <Text style={styles.detailTitle}>{title}</Text>
+
+        {/* Body message */}
+        {!!body && (
+          <View style={styles.detailBodyBox}>
+            <Text style={styles.detailBody}>{body}</Text>
+          </View>
+        )}
+
+        {/* Scheduled time */}
+        <View style={styles.detailTimeRow}>
+          <Ionicons name="time-outline" size={13} color="#AAA" />
+          <Text style={styles.detailTimeText}>
+            {new Date(item.scheduled_for).toLocaleString('en-US', {
+              weekday: 'short', month: 'short', day: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })}
+          </Text>
+        </View>
+
+        {/* Item-specific fields */}
+        {itemLoading ? (
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 16 }} />
+        ) : (
+          itemDetail && (
+            <View style={styles.detailFieldsBox}>
+              {renderItemFields(item.reference_type, itemDetail)}
+            </View>
+          )
+        )}
+
+        {/* Navigation button */}
+        <TouchableOpacity
+          onPress={() => onNavigate(meta.route)}
+          style={[styles.detailNavBtn, { backgroundColor: COLORS.primary }]}
+        >
+          <Ionicons name="arrow-forward-circle-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+          <Text style={styles.detailNavBtnText}>Open in {meta.label}</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -191,10 +298,14 @@ export default function Header({ title, showBackButton = false, showAddButton = 
   const [panelVisible, setPanelVisible] = useState(false);
   const [premiumVisible, setPremiumVisible] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<AppNotification | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [itemDetail, setItemDetail] = useState<any>(null);
+  const [itemLoading, setItemLoading] = useState(false);
 
   const refreshBadge = useCallback(async () => {
     if (!user?.token) return;
@@ -216,13 +327,22 @@ export default function Header({ title, showBackButton = false, showAddButton = 
     setSelectedItem(null);
     setSelectMode(false);
     setSelectedIds(new Set());
+    setFetchError(null);
     if (!user?.token) return;
     setLoading(true);
     try {
-      const data = await fetchNotifications(user.token);
-      setNotifications(data);
-      setUnreadCount(0); // clear badge once opened
-    } catch { /* silent */ }
+      const result = await fetchNotifications(user.token);
+      setNotifications(result.notifications);
+      setNewIds(result.newIds);
+      setUnreadCount(0); // clear badge after successful fetch
+      // Mark the new (pending/notified) notifications as read in the background
+      if (result.newIds.size > 0) {
+        markNotificationsRead(Array.from(result.newIds), user.token).catch(() => {});
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch notifications:', err);
+      setFetchError('Could not load notifications. Check your connection.');
+    }
     finally { setLoading(false); }
   };
 
@@ -231,6 +351,8 @@ export default function Header({ title, showBackButton = false, showAddButton = 
     setSelectedItem(null);
     setSelectMode(false);
     setSelectedIds(new Set());
+    setNewIds(new Set());
+    setFetchError(null);
   };
 
   const handleToggleSelect = (id: string) => {
@@ -263,6 +385,26 @@ export default function Header({ title, showBackButton = false, showAddButton = 
     closePanel();
     router.push(route as any);
   };
+
+  // Fetch real item data when a notification is selected
+  useEffect(() => {
+    if (!selectedItem || !user?.token) { setItemDetail(null); return; }
+    const endpoints: Record<string, string> = {
+      manual_reminder: `${API_BASE_URL}/api/reminders/${selectedItem.reference_id}`,
+      subscription:    `${API_BASE_URL}/api/subscriptions/${selectedItem.reference_id}`,
+      warranty:        `${API_BASE_URL}/api/warranties/${selectedItem.reference_id}`,
+      todo:            `${API_BASE_URL}/api/todos/${selectedItem.reference_id}`,
+    };
+    const url = endpoints[selectedItem.reference_type];
+    if (!url) return;
+    setItemLoading(true);
+    setItemDetail(null);
+    fetch(url, { headers: { Authorization: `Bearer ${user.token}` } })
+      .then(r => r.json())
+      .then(json => setItemDetail(json.data || json))
+      .catch(() => {})
+      .finally(() => setItemLoading(false));
+  }, [selectedItem, user?.token]);
 
   return (
     <View style={styles.header}>
@@ -306,6 +448,8 @@ export default function Header({ title, showBackButton = false, showAddButton = 
             {selectedItem ? (
               <DetailView
                 item={selectedItem}
+                itemDetail={itemDetail}
+                itemLoading={itemLoading}
                 onBack={() => setSelectedItem(null)}
                 onClose={closePanel}
                 onNavigate={handleNavigate}
@@ -313,7 +457,9 @@ export default function Header({ title, showBackButton = false, showAddButton = 
             ) : (
               <ListView
                 notifications={notifications}
+                newIds={newIds}
                 loading={loading}
+                fetchError={fetchError}
                 selectedIds={selectedIds}
                 selectMode={selectMode}
                 onToggleSelect={handleToggleSelect}
@@ -394,7 +540,7 @@ const styles = StyleSheet.create({
   selectLabel: { fontSize: 13, color: '#444' },
 
   // List
-  list: { flex: 1 },
+  list: { maxHeight: 400 },
   notifRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     paddingVertical: 10, paddingHorizontal: 18,
@@ -418,17 +564,73 @@ const styles = StyleSheet.create({
   notifTitleNew: { fontWeight: '700', color: '#1A1A1A' },
 
   // Detail
-  detailContent: { padding: 18, paddingTop: 8 },
+  detailContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4 },
   detailMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  detailTitle: { fontSize: 17, fontWeight: '700', color: '#1A1A1A', marginBottom: 10 },
-  detailBody: { fontSize: 14, color: '#555', lineHeight: 21, marginBottom: 24 },
+  detailTitle: { fontSize: 17, fontWeight: '800', color: '#111', marginBottom: 10 },
+  detailBodyBox: {
+    backgroundColor: COLORS.primary + '0D',
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+  },
+  detailBody: { fontSize: 14, color: '#333', lineHeight: 22 },
+  detailFieldsBox: {
+    backgroundColor: '#F8F8F8', borderRadius: 12, padding: 14, marginBottom: 20,
+    borderWidth: 1, borderColor: '#EFEFEF',
+  },
+  detailRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#EFEFEF',
+  },
+  detailRowLabel: { fontSize: 13, color: '#888', flex: 1 },
+  detailRowValue: { fontSize: 13, fontWeight: '600', color: '#333', flex: 1, textAlign: 'right' },
+  goToBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   goToLink: {
     fontSize: 14, fontWeight: '600', color: COLORS.primary,
-    textDecorationLine: 'underline',
   },
 
   // Loading / empty
   loadingBox: { paddingVertical: 30, alignItems: 'center' },
   emptyBox: { paddingVertical: 30, alignItems: 'center', gap: 8 },
   emptyText: { fontSize: 13, color: '#AAA' },
+
+  // Detail prompt redesign
+  detailAccentBar: { height: 5, width: '100%' },
+  detailPromptHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4,
+  },
+  detailPromptIcon: {
+    width: 50, height: 50, borderRadius: 25,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  detailPromptIconBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center', alignItems: 'center',
+    marginLeft: 8,
+  },
+  detailPromptBadge: {
+    alignSelf: 'flex-start',
+    marginHorizontal: 18, marginTop: 10,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 10,
+  },
+  detailPromptBadgeText: {
+    fontSize: 11, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 0.6,
+  },
+  detailTimeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginBottom: 16,
+  },
+  detailTimeText: { fontSize: 12, color: '#AAA', fontWeight: '500' },
+  detailNavBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 13, borderRadius: 14, marginTop: 20,
+  },
+  detailNavBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
 });
+

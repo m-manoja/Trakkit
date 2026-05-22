@@ -6,12 +6,14 @@ import {
   getUnreadCount,
   deleteNotification,
   clearAllNotifications,
+  markNotificationsRead,
 } from '../controllers/notifications.controller.js';
 
 const router = Router();
 
 router.get('/', protect, asyncHandler(getNotifications));
 router.get('/unread-count', protect, asyncHandler(getUnreadCount));
+router.patch('/mark-read', protect, asyncHandler(markNotificationsRead));
 router.delete('/clear-all', protect, asyncHandler(clearAllNotifications));
 router.delete('/:id', protect, asyncHandler(deleteNotification));
 

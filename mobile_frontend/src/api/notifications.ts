@@ -8,11 +8,16 @@ export interface AppNotification {
   title: string;
   body: string;
   scheduled_for: string;
-  status: 'pending' | 'sent' | 'failed';
+  status: 'pending' | 'notified' | 'sent' | 'failed';  // 'notified' = worker sent SMS, not yet seen in-app
   created_at: string;
 }
 
-export async function fetchNotifications(token: string): Promise<AppNotification[]> {
+export interface FetchNotificationsResult {
+  notifications: AppNotification[];
+  newIds: Set<string>;
+}
+
+export async function fetchNotifications(token: string): Promise<FetchNotificationsResult> {
   const response = await fetch(`${API_BASE_URL}/api/notifications`, {
     method: 'GET',
     headers: {
@@ -22,7 +27,10 @@ export async function fetchNotifications(token: string): Promise<AppNotification
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result?.error || 'Failed to fetch notifications');
-  return result.data || [];
+  return {
+    notifications: result.data || [],
+    newIds: new Set<string>(result.newIds || []),
+  };
 }
 
 export async function fetchUnreadCount(token: string): Promise<number> {
@@ -48,6 +56,22 @@ export async function deleteNotification(id: string, token: string): Promise<voi
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
     throw new Error(result?.error || 'Failed to delete notification');
+  }
+}
+
+export async function markNotificationsRead(ids: string[], token: string): Promise<void> {
+  if (ids.length === 0) return;
+  const response = await fetch(`${API_BASE_URL}/api/notifications/mark-read`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result?.error || 'Failed to mark notifications as read');
   }
 }
 

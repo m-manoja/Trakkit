@@ -1,18 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, RefreshControl, StatusBar, Animated,
+  ActivityIndicator, Alert, RefreshControl, StatusBar, Animated, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { COLORS } from '../../src/theme/colors';
 import {
   fetchNotifications,
   deleteNotification,
   clearAllNotifications,
+  markNotificationsRead,
   AppNotification,
 } from '../../src/api/notifications';
+
+// Map reference_type to its destination tab route
+const TYPE_ROUTE: Record<string, string> = {
+  subscription: '/(tabs)/subscription',
+  warranty: '/(tabs)/warranty',
+  todo: '/(tabs)/todo',
+  manual_reminder: '/(tabs)/reminder',
+};
 
 // Map reference_type to icon + color
 const TYPE_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
@@ -66,16 +76,24 @@ function groupNotificationsByDate(notifications: AppNotification[]): { title: st
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const token = user?.token;
+  const router = useRouter();
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
 
   const loadNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const data = await fetchNotifications(token);
-      setNotifications(data);
+      const result = await fetchNotifications(token);
+      setNotifications(result.notifications);
+      setNewIds(result.newIds);
+      // Mark newly fetched (pending/notified) as read in the background
+      if (result.newIds.size > 0) {
+        markNotificationsRead(Array.from(result.newIds), token).catch(() => {});
+      }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {
@@ -111,7 +129,9 @@ export default function NotificationsScreen() {
             if (!token) return;
             try {
               await clearAllNotifications(token);
-              setNotifications(prev => prev.filter(n => n.status === 'pending'));
+              // Remove all sent/notified notifications (keep none — backend deletes by status='sent')
+              setNotifications([]);
+              setNewIds(new Set());
             } catch {
               Alert.alert('Error', 'Could not clear notifications');
             }
@@ -122,14 +142,18 @@ export default function NotificationsScreen() {
   };
 
   const groups = groupNotificationsByDate(notifications);
-  const sentCount = notifications.filter(n => n.status === 'sent').length;
+  const hasDelivered = notifications.length > 0;
 
   const renderNotification = ({ item }: { item: AppNotification }) => {
     const config = TYPE_CONFIG[item.reference_type] || TYPE_CONFIG.manual_reminder;
-    const isNew = item.status === 'pending';
+    const isNew = newIds.has(item.id);
 
     return (
-      <View style={[styles.notifCard, isNew && styles.notifCardNew]}>
+      <TouchableOpacity
+        activeOpacity={0.82}
+        style={[styles.notifCard, isNew && styles.notifCardNew]}
+        onPress={() => setSelectedNotif(item)}
+      >
         {/* Left accent */}
         <View style={[styles.typeAccent, { backgroundColor: config.color }]} />
 
@@ -152,10 +176,14 @@ export default function NotificationsScreen() {
         </View>
 
         {/* Delete button */}
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={(e) => { e.stopPropagation?.(); handleDelete(item.id); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name="close" size={16} color="#AAA" />
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -182,7 +210,7 @@ export default function NotificationsScreen() {
             {notifications.length === 0 ? 'All caught up!' : `${notifications.length} notification${notifications.length !== 1 ? 's' : ''}`}
           </Text>
         </View>
-        {sentCount > 0 && (
+        {notifications.length > 0 && (
           <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearAll}>
             <Ionicons name="trash-outline" size={16} color={COLORS.primary} />
             <Text style={styles.clearAllText}>Clear All</Text>
@@ -217,6 +245,81 @@ export default function NotificationsScreen() {
           }
         />
       )}
+
+      {/* ── Notification Detail Modal ─────────────────────────────── */}
+      <Modal
+        visible={!!selectedNotif}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNotif(null)}
+      >
+        <TouchableOpacity
+          style={styles.detailOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedNotif(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.detailCard}>
+            {selectedNotif && (() => {
+              const cfg = TYPE_CONFIG[selectedNotif.reference_type] || TYPE_CONFIG.manual_reminder;
+              const route = TYPE_ROUTE[selectedNotif.reference_type] || '/(tabs)/reminder';
+              return (
+                <>
+                  {/* Coloured top bar */}
+                  <View style={[styles.detailBar, { backgroundColor: cfg.color }]} />
+
+                  {/* Header row */}
+                  <View style={styles.detailHeader}>
+                    <View style={[styles.detailIconCircle, { backgroundColor: cfg.color + '18' }]}>
+                      <Ionicons name={cfg.icon as any} size={28} color={cfg.color} />
+                    </View>
+                    <TouchableOpacity onPress={() => setSelectedNotif(null)} style={styles.detailClose}>
+                      <Ionicons name="close" size={20} color="#888" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Type badge */}
+                  <View style={[styles.detailTypeBadge, { backgroundColor: cfg.color + '18' }]}>
+                    <Text style={[styles.detailTypeBadgeText, { color: cfg.color }]}>{cfg.label} Reminder</Text>
+                  </View>
+
+                  {/* Title */}
+                  <Text style={styles.detailTitle}>{selectedNotif.title}</Text>
+
+                  {/* Body */}
+                  <Text style={styles.detailBody}>{selectedNotif.body}</Text>
+
+                  {/* Time */}
+                  <View style={styles.detailTimeRow}>
+                    <Ionicons name="time-outline" size={14} color="#AAA" />
+                    <Text style={styles.detailTime}>
+                      {new Date(selectedNotif.scheduled_for).toLocaleString('en-US', {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+
+                  {/* Divider */}
+                  <View style={styles.detailDivider} />
+
+                  {/* Navigation button */}
+                  <TouchableOpacity
+                    style={[styles.detailNavBtn, { backgroundColor: cfg.color }]}
+                    onPress={() => {
+                      setSelectedNotif(null);
+                      router.push(route as any);
+                    }}
+                  >
+                    <Ionicons name="arrow-forward-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.detailNavBtnText}>View {cfg.label}</Text>
+                  </TouchableOpacity>
+                </>
+              );
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -355,6 +458,111 @@ const styles = StyleSheet.create({
   deleteBtn: {
     padding: 12,
     alignSelf: 'flex-start',
+  },
+
+  // ── Detail Modal ───────────────────────────────────────────────
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.52)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  detailCard: {
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 22,
+    overflow: 'hidden',
+    elevation: 10,
+  },
+  detailBar: {
+    height: 5,
+    width: '100%',
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 4,
+  },
+  detailIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailTypeBadge: {
+    alignSelf: 'flex-start',
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  detailTypeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  detailTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111',
+    marginHorizontal: 20,
+    marginTop: 8,
+    lineHeight: 24,
+  },
+  detailBody: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 21,
+    marginHorizontal: 20,
+    marginTop: 8,
+  },
+  detailTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  detailTime: {
+    fontSize: 12,
+    color: '#AAA',
+    fontWeight: '500',
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 16,
+  },
+  detailNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 22,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  detailNavBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 
   // Empty state

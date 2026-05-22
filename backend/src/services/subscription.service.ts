@@ -93,6 +93,17 @@ export const getSubscriptionsByUserId = async (userId: string) => {
   return augmentedData;
 };
 
+export const getSubscriptionById = async (id: string, userId: string) => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('id', id)
+    .eq('userId', userId)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 // Update an existing subscription
 export const updateSubscription = async (id: string, userId: string, updateData: any) => {
   const { data: current, error: fetchErr } = await supabase

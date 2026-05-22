@@ -1,6 +1,19 @@
 import { Request, Response } from 'express';
 import * as reminderService from '../services/reminder.service';
 
+export const getReminder = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ success: false, message: 'Reminder ID required' });
+        const data = await reminderService.getReminderById(id);
+        if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        return res.status(200).json({ success: true, data });
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
 export const addReminder = async (req: Request, res: Response) => {
     try {
         console.log('Request body:', req.body);

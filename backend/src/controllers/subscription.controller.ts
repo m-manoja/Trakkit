@@ -1,6 +1,20 @@
 import { Request, Response } from 'express';
 import * as subscriptionService from '../services/subscription.service';
 
+export const getSubscription = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user?.id || (req as any).user?.userId;
+        if (!id) return res.status(400).json({ success: false, message: 'Subscription ID required' });
+        const item = await subscriptionService.getSubscriptionById(id, userId);
+        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        return res.status(200).json({ success: true, data: item });
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
 export const addSubscription = async (req: Request, res: Response) => {
     try {
         // Look for ID in multiple common JWT locations
