@@ -5,7 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
 import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import GoogleCalendarSync from "../../components/GoogleCalendarSync/GoogleCalendarSync";
-import { Zap } from "lucide-react";
+import SharingSettings from "../../components/SharingSettings/SharingSettings";
+import { Zap, Users } from "lucide-react";
 import { 
   getProfile, 
   updateProfile, 
@@ -32,7 +33,7 @@ import {
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
   const { isPremium } = usePlan();
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "premium">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium">("profile");
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -296,6 +297,12 @@ export default function SettingsPage() {
             <Bell size={18} /> Notifications
           </button>
           <button 
+            className={`${styles.tab} ${activeTab === 'sharing' ? styles.active : ''}`}
+            onClick={() => { setActiveTab('sharing'); setError(null); setSuccess(null); }}
+          >
+            <Users size={18} /> Sharing
+          </button>
+          <button 
             className={`${styles.tab} ${activeTab === 'premium' ? styles.active : ''}`}
             onClick={() => { setActiveTab('premium'); setError(null); setSuccess(null); }}
           >
@@ -419,6 +426,20 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {activeTab === 'sharing' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Sharing</h2>
+              <p className={styles.cardSubtitle}>
+                Manage reminders you shared and items others shared with you.
+              </p>
+            </div>
+            <div className={styles.cardBody}>
+              <SharingSettings />
+            </div>
+          </div>
+        )}
+
         {activeTab === 'premium' && (
           <div className={styles.card}>
             <div className={styles.cardHeader}>
@@ -426,14 +447,14 @@ export default function SettingsPage() {
               <p className={styles.cardSubtitle}>
                 {isPremium
                   ? 'Manage your Premium-only preferences.'
-                  : 'Upgrade to unlock family sharing and Google Calendar sync.'}
+                  : 'Upgrade to unlock sharing, unlimited uploads, and Google Calendar sync.'}
               </p>
             </div>
             <div className={styles.cardBody}>
               {!isPremium ? (
                 <PremiumUpgradeCard
                   title="Unlock Premium"
-                  description="One-time payment for unlimited uploads, family sharing, and Google Calendar sync."
+                  description="One-time payment for unlimited uploads, sharing reminders with other users, and Google Calendar sync."
                 />
               ) : (
                 <GoogleCalendarSync />

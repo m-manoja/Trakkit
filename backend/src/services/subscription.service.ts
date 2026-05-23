@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabaseClient';
 import { scheduleSubscriptionReminders, scheduleSubscriptionRemindersForDate, removeScheduledReminders, getInitialSubscriptionDueDate, advanceOneCycle, toLocalDateStr } from './notificationQueue.service.js';
+import { removeSharesForItem } from './sharing.service.js';
 
 export const createSubscription = async (userId: string, data: any) => {
   const {
@@ -165,6 +166,7 @@ export const deleteSubscription = async (id: string, userId: string) => {
   if (error) throw error;
   if (!error) {
     await removeScheduledReminders(id);
+    await removeSharesForItem('subscription', id);
   }
 
   return true;

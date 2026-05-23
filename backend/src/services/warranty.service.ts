@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabaseClient';
 import { scheduleWarrantyReminders, removeScheduledReminders } from './notificationQueue.service.js';
+import { removeSharesForItem } from './sharing.service.js';
 
 export const createWarranty = async (userId: string, data: any) => {
     const { data: result, error } = await supabase
@@ -79,6 +80,7 @@ export const deleteWarranty = async (id: string, userId: string) => {
 
     if (error) throw error;
     await removeScheduledReminders(id);
+    await removeSharesForItem('warranty', id);
     return true;
 };
 

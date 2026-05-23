@@ -7,12 +7,15 @@ import {
   Trash2, 
   Loader2,
   CheckCircle,
-  Circle
+  Circle,
+  Share2,
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./TodosPage.module.css";
 import { useAuth } from "../../context/AuthContext";
-import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
+import { usePlan } from "../../hooks/usePlan";
+import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
+import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
   fetchTodos, 
   deleteTodo, 
@@ -24,6 +27,7 @@ import TodoFormModal from "./TodoFormModal";
 
 export default function TodosPage() {
   const { user } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -34,6 +38,11 @@ export default function TodosPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareItems, setShareItems] = useState<ShareModalItem[]>([]);
+  const [bulkShareMode, setBulkShareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadTodos = async () => {
     if (!user?.id || !user?.token) return;
@@ -118,6 +127,37 @@ export default function TodosPage() {
     t.task_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const openShare = (items: ShareModalItem[]) => {
+    if (!isPremium) return;
+    setShareItems(items);
+    setShareModalOpen(true);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkShare = () => {
+    const items = filteredTodos
+      .filter((t) => selectedIds.has(t.id))
+      .map((t) => ({ itemType: 'todo' as const, itemId: t.id, label: t.task_name }));
+    if (!items.length) {
+      alert('Select at least one task.');
+      return;
+    }
+    openShare(items);
+  };
+
+  const exitBulkMode = () => {
+    setBulkShareMode(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <Layout>
       <div className={styles.pageContainer}>
@@ -136,6 +176,20 @@ export default function TodosPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {isPremium && (
+              bulkShareMode ? (
+                <>
+                  <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
+                    <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
+                  </button>
+                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                </>
+              ) : (
+                <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
+                  <Share2 size={20} /><span>Share</span>
+                </button>
+              )
+            )}
             <button className={styles.addButton} onClick={() => handleOpenModal()}>
               <Plus size={20} />
               <span>Add New</span>
@@ -143,7 +197,10 @@ export default function TodosPage() {
           </div>
         </header>
 
-        <FamilySharingPanel userId={user?.id} module="todo" />
+        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46' }}>{shareNotice}</div>}
+        {isFree && (
+          <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share to-do reminders with other Trakkit users." />
+        )}
 
         {error && (
           <div className={styles.errorBanner}>
@@ -175,7 +232,10 @@ export default function TodosPage() {
           <div className={styles.todoList}>
             {filteredTodos.map((todo) => (
               <div key={todo.id} className={`${styles.todoItem} ${todo.is_completed ? styles.todoItemCompleted : ''}`}>
-                <div className={styles.todoContent} onClick={() => handleToggle(todo.id)}>
+                {bulkShareMode && isPremium && (
+                  <input type="checkbox" checked={selectedIds.has(todo.id)} onChange={() => toggleSelect(todo.id)} onClick={(e) => e.stopPropagation()} />
+                )}
+                <div className={styles.todoContent} onClick={() => !bulkShareMode && handleToggle(todo.id)}>
                   <button className={styles.checkButton}>
                     {todo.is_completed ? (
                       <CheckCircle size={24} className={styles.checkIconCompleted} />
@@ -195,9 +255,16 @@ export default function TodosPage() {
                   </div>
                 </div>
                 
-                <button className={styles.deleteButton} onClick={() => handleDelete(todo.id)}>
-                  <Trash2 size={20} />
-                </button>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {isPremium && !bulkShareMode && (
+                    <button type="button" className={styles.deleteButton} title="Share" onClick={() => openShare([{ itemType: 'todo', itemId: todo.id, label: todo.task_name }])}>
+                      <Share2 size={20} />
+                    </button>
+                  )}
+                  <button className={styles.deleteButton} onClick={() => handleDelete(todo.id)}>
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -209,6 +276,16 @@ export default function TodosPage() {
           onSubmit={handleSaveTodo}
           isSaving={isSaving}
         />
+
+        {user?.token && (
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => { setShareModalOpen(false); exitBulkMode(); }}
+            items={shareItems}
+            token={user.token}
+            onSuccess={(msg) => { setShareNotice(msg); setTimeout(() => setShareNotice(null), 4000); }}
+          />
+        )}
       </div>
     </Layout>
   );

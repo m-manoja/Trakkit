@@ -1,0 +1,117 @@
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.sectionDesc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 1rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fafafa;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.cardTitle {
+  font-weight: 600;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.meta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0.35rem 0 0;
+}
+
+.detailBtn,
+.revokeBtn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.5rem;
+}
+
+.detailBtn {
+  color: var(--primary, #b9375d);
+}
+
+.revokeBtn {
+  color: #dc2626;
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.detailPanel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.detailLabel {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.detailValue {
+  text-align: right;
+  word-break: break-word;
+}
+
+.docLink {
+  color: var(--primary, #b9375d);
+}

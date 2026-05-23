@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabaseClient';
 import { scheduleTodoReminder, removeScheduledReminders } from './notificationQueue.service.js';
+import { removeSharesForItem } from './sharing.service.js';
 
 export const createTodo = async (todoData: any) => {
     console.log('createTodo called with:', todoData);
@@ -134,5 +135,6 @@ export const deleteTodo = async (id: string) => {
     const { error } = await supabase.from('todos').delete().eq('id', id);
     if (error) throw error;
     await removeScheduledReminders(id);
+    await removeSharesForItem('todo', id);
     return true;
 };

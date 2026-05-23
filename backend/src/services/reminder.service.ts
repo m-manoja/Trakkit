@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabaseClient';
 import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence } from './notificationQueue.service.js';
+import { removeSharesForItem } from './sharing.service.js';
 
 export const createReminder = async (reminderData: any) => {
     const { data, error } = await supabase
@@ -85,5 +86,6 @@ export const deleteReminderById = async (id: string) => {
     const { error } = await supabase.from('manual_reminders').delete().eq('id', id);
     if (error) throw error;
     await removeScheduledReminders(id);
+    await removeSharesForItem('reminder', id);
     return true;
 };

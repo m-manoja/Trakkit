@@ -6,12 +6,15 @@ import {
   Search, 
   Edit2, 
   Trash2, 
-  Loader2
+  Loader2,
+  Share2,
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./RemindersPage.module.css";
 import { useAuth } from "../../context/AuthContext";
-import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
+import { usePlan } from "../../hooks/usePlan";
+import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
+import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
   fetchReminders, 
   deleteReminder, 
@@ -23,6 +26,7 @@ import ReminderFormModal from "./ReminderFormModal";
 // Force TS Language Server refresh
 export default function RemindersPage() {
   const { user } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -34,6 +38,11 @@ export default function RemindersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareItems, setShareItems] = useState<ShareModalItem[]>([]);
+  const [bulkShareMode, setBulkShareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadReminders = async () => {
     if (!user?.id || !user?.token) return;
@@ -108,6 +117,37 @@ export default function RemindersPage() {
     r.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const openShare = (items: ShareModalItem[]) => {
+    if (!isPremium) return;
+    setShareItems(items);
+    setShareModalOpen(true);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkShare = () => {
+    const items = filteredReminders
+      .filter((r) => selectedIds.has(r.id))
+      .map((r) => ({ itemType: 'reminder' as const, itemId: r.id, label: r.title }));
+    if (!items.length) {
+      alert('Select at least one reminder.');
+      return;
+    }
+    openShare(items);
+  };
+
+  const exitBulkMode = () => {
+    setBulkShareMode(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <Layout>
       <div className={styles.pageContainer}>
@@ -126,6 +166,20 @@ export default function RemindersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {isPremium && (
+              bulkShareMode ? (
+                <>
+                  <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
+                    <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
+                  </button>
+                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                </>
+              ) : (
+                <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
+                  <Share2 size={20} /><span>Share</span>
+                </button>
+              )
+            )}
             <button className={styles.addButton} onClick={() => handleOpenModal()}>
               <Plus size={20} />
               <span>Add New</span>
@@ -133,7 +187,10 @@ export default function RemindersPage() {
           </div>
         </header>
 
-        <FamilySharingPanel userId={user?.id} module="reminder" />
+        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>{shareNotice}</div>}
+        {isFree && (
+          <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share reminders with other Trakkit users." />
+        )}
 
         {error && (
           <div className={styles.errorBanner}>
@@ -166,11 +223,21 @@ export default function RemindersPage() {
             {filteredReminders.map((rem) => (
               <div key={rem.id} className={styles.reminderCard}>
                 <div className={styles.cardHeader}>
-                  <div>
-                    <h3 className={styles.cardTitle}>{rem.title}</h3>
-                    <span className={styles.categoryBadge}>{rem.type}</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    {bulkShareMode && isPremium && (
+                      <input type="checkbox" checked={selectedIds.has(rem.id)} onChange={() => toggleSelect(rem.id)} style={{ marginTop: 4 }} />
+                    )}
+                    <div>
+                      <h3 className={styles.cardTitle}>{rem.title}</h3>
+                      <span className={styles.categoryBadge}>{rem.type}</span>
+                    </div>
                   </div>
                   <div className={styles.cardActions}>
+                    {isPremium && !bulkShareMode && (
+                      <button type="button" className={styles.iconButton} title="Share" onClick={() => openShare([{ itemType: 'reminder', itemId: rem.id, label: rem.title }])}>
+                        <Share2 size={18} />
+                      </button>
+                    )}
                     <button className={styles.iconButton} onClick={() => handleOpenModal(rem)}>
                       <Edit2 size={18} />
                     </button>
@@ -217,6 +284,16 @@ export default function RemindersPage() {
           onSubmit={handleSaveReminder}
           isSaving={isSaving}
         />
+
+        {user?.token && (
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => { setShareModalOpen(false); exitBulkMode(); }}
+            items={shareItems}
+            token={user.token}
+            onSuccess={(msg) => { setShareNotice(msg); setTimeout(() => setShareNotice(null), 4000); }}
+          />
+        )}
       </div>
     </Layout>
   );

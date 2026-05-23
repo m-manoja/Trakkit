@@ -8,14 +8,16 @@ import {
   Trash2, 
   Eye, 
   Download,
-  Loader2
+  Loader2,
+  Share2,
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./WarrantiesPage.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
 import { getPremiumUsage, type PremiumUsage } from "../../api/payment";
-import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
+import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
+import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
   fetchWarranties, 
   deleteWarranty, 
@@ -40,6 +42,11 @@ export default function WarrantiesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareItems, setShareItems] = useState<ShareModalItem[]>([]);
+  const [bulkShareMode, setBulkShareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadWarranties = async () => {
     if (!user?.id || !user?.token) return;
@@ -141,6 +148,41 @@ export default function WarrantiesPage() {
     w.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const openShare = (items: ShareModalItem[]) => {
+    if (!isPremium) return;
+    setShareItems(items);
+    setShareModalOpen(true);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkShare = () => {
+    const items = filteredWarranties
+      .filter((w) => selectedIds.has(w.id))
+      .map((w) => ({
+        itemType: 'warranty' as const,
+        itemId: w.id,
+        label: w.product_name,
+      }));
+    if (!items.length) {
+      alert('Select at least one warranty.');
+      return;
+    }
+    openShare(items);
+  };
+
+  const exitBulkMode = () => {
+    setBulkShareMode(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <Layout>
       <div className={styles.pageContainer}>
@@ -159,12 +201,45 @@ export default function WarrantiesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {isPremium && (
+              <>
+                {bulkShareMode ? (
+                  <>
+                    <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
+                      <Share2 size={20} />
+                      <span>Share selected ({selectedIds.size})</span>
+                    </button>
+                    <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
+                    <Share2 size={20} />
+                    <span>Share</span>
+                  </button>
+                )}
+              </>
+            )}
             <button className={styles.addButton} onClick={() => handleOpenModal()}>
               <Plus size={20} />
               <span>Add New</span>
             </button>
           </div>
         </header>
+
+        {shareNotice && (
+          <div className={styles.premiumBanner} style={{ marginBottom: 12 }}>
+            {shareNotice}
+          </div>
+        )}
+
+        {isFree && (
+          <PremiumUpgradeCard
+            title="Sharing mode"
+            description="Upgrade to Premium to share warranty reminders with other Trakkit users."
+          />
+        )}
 
         {isFree && usage?.document_limit != null && (
           <div className={styles.usageBanner}>
@@ -182,8 +257,6 @@ export default function WarrantiesPage() {
             Premium — unlimited document uploads
           </div>
         )}
-
-        <FamilySharingPanel userId={user?.id} module="warranty" />
 
         {error && (
           <div className={styles.errorBanner}>
@@ -216,11 +289,39 @@ export default function WarrantiesPage() {
             {filteredWarranties.map((warranty) => (
               <div key={warranty.id} className={styles.warrantyCard}>
                 <div className={styles.cardHeader}>
-                  <div>
-                    <h3 className={styles.cardTitle}>{warranty.product_name}</h3>
-                    <span className={styles.categoryBadge}>{warranty.category}</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    {bulkShareMode && isPremium && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(warranty.id)}
+                        onChange={() => toggleSelect(warranty.id)}
+                        style={{ marginTop: 4 }}
+                      />
+                    )}
+                    <div>
+                      <h3 className={styles.cardTitle}>{warranty.product_name}</h3>
+                      <span className={styles.categoryBadge}>{warranty.category}</span>
+                    </div>
                   </div>
                   <div className={styles.cardActions}>
+                    {isPremium && !bulkShareMode && (
+                      <button
+                        type="button"
+                        className={styles.iconButton}
+                        title="Share"
+                        onClick={() =>
+                          openShare([
+                            {
+                              itemType: 'warranty',
+                              itemId: warranty.id,
+                              label: warranty.product_name,
+                            },
+                          ])
+                        }
+                      >
+                        <Share2 size={18} />
+                      </button>
+                    )}
                     <button className={styles.iconButton} onClick={() => handleOpenModal(warranty)}>
                       <Edit2 size={18} />
                     </button>
@@ -288,6 +389,22 @@ export default function WarrantiesPage() {
           onSubmit={handleSaveWarranty}
           isSaving={isSaving}
         />
+
+        {user?.token && (
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => {
+              setShareModalOpen(false);
+              exitBulkMode();
+            }}
+            items={shareItems}
+            token={user.token}
+            onSuccess={(msg) => {
+              setShareNotice(msg);
+              setTimeout(() => setShareNotice(null), 4000);
+            }}
+          />
+        )}
       </div>
     </Layout>
   );

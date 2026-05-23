@@ -93,7 +93,7 @@ export function advanceOneCycle(date: Date, cycle: string): Date {
  * Calculates reminder dates based on a schedule string like '7,3,1'
  * Filters out days that are too large for the cycle (e.g. 7 days before a weekly cycle).
  */
-function calculateReminderDates(targetDate: Date, scheduleStr: string, cycle?: string): Date[] {
+export function calculateReminderDates(targetDate: Date, scheduleStr: string, cycle?: string): Date[] {
   if (!scheduleStr) return [];
   
   let daysArray = scheduleStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d));
@@ -182,6 +182,7 @@ export const scheduleSubscriptionReminders = async (
   });
 
   await insertQueueItems(queueItems);
+  await notifyShareRecipients(userId, 'subscription', subscriptionId);
 };
 
 /**
@@ -218,6 +219,7 @@ export const scheduleSubscriptionRemindersForDate = async (
   });
 
   await insertQueueItems(queueItems);
+  await notifyShareRecipients(userId, 'subscription', subscriptionId);
 };
 
 export const scheduleTodoReminder = async (
@@ -249,6 +251,7 @@ export const scheduleTodoReminder = async (
     });
 
   await insertQueueItems(queueItems);
+  await notifyShareRecipients(userId, 'todo', todoId);
 };
 
 export const scheduleWarrantyReminders = async (
@@ -278,6 +281,7 @@ export const scheduleWarrantyReminders = async (
   });
 
   await insertQueueItems(queueItems);
+  await notifyShareRecipients(userId, 'warranty', warrantyId);
 };
 
 export const removeScheduledReminders = async (referenceId: string) => {
@@ -328,4 +332,20 @@ export const scheduleManualReminder = async (
     });
 
   await insertQueueItems(queueItems);
+  await notifyShareRecipients(userId, 'reminder', reminderId);
 };
+
+type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
+
+async function notifyShareRecipients(
+  ownerUserId: string,
+  itemType: ShareItemType,
+  itemId: string
+) {
+  try {
+    const { syncShareNotificationsForItem } = await import('./sharing.service.js');
+    await syncShareNotificationsForItem(ownerUserId, itemType, itemId);
+  } catch (e) {
+    console.error('Failed to sync share notifications:', e);
+  }
+}

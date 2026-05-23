@@ -1,0 +1,140 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+}
+
+.body {
+  padding: 1.25rem;
+}
+
+.itemsSummary {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.itemsSummary ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.35rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+  box-sizing: border-box;
+}
+
+.or {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.resolved {
+  padding: 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #065f46;
+  margin-top: 0.5rem;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btnSecondary {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btnPrimary {
+  padding: 0.5rem 1rem;
+  background: var(--primary, #b9375d);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.75rem;
+}

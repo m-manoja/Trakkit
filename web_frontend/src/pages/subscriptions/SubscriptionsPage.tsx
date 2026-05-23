@@ -7,12 +7,15 @@ import {
   Edit2, 
   Trash2, 
   RefreshCw,
-  Loader2
+  Loader2,
+  Share2,
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./SubscriptionsPage.module.css";
 import { useAuth } from "../../context/AuthContext";
-import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
+import { usePlan } from "../../hooks/usePlan";
+import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
+import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
   fetchSubscriptions, 
   deleteSubscription, 
@@ -25,6 +28,7 @@ import SubscriptionFormModal from "./SubscriptionFormModal";
 // Force TS Language Server refresh
 export default function SubscriptionsPage() {
   const { user } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -36,6 +40,11 @@ export default function SubscriptionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareItems, setShareItems] = useState<ShareModalItem[]>([]);
+  const [bulkShareMode, setBulkShareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const loadSubscriptions = async () => {
     if (!user?.id || !user?.token) return;
@@ -125,6 +134,37 @@ export default function SubscriptionsPage() {
     s.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const openShare = (items: ShareModalItem[]) => {
+    if (!isPremium) return;
+    setShareItems(items);
+    setShareModalOpen(true);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkShare = () => {
+    const items = filteredSubscriptions
+      .filter((s) => selectedIds.has(s.id))
+      .map((s) => ({ itemType: 'subscription' as const, itemId: s.id, label: s.service_name }));
+    if (!items.length) {
+      alert('Select at least one subscription.');
+      return;
+    }
+    openShare(items);
+  };
+
+  const exitBulkMode = () => {
+    setBulkShareMode(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <Layout>
       <div className={styles.pageContainer}>
@@ -143,6 +183,20 @@ export default function SubscriptionsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {isPremium && (
+              bulkShareMode ? (
+                <>
+                  <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
+                    <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
+                  </button>
+                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                </>
+              ) : (
+                <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
+                  <Share2 size={20} /><span>Share</span>
+                </button>
+              )
+            )}
             <button className={styles.addButton} onClick={() => handleOpenModal()}>
               <Plus size={20} />
               <span>Add New</span>
@@ -150,7 +204,10 @@ export default function SubscriptionsPage() {
           </div>
         </header>
 
-        <FamilySharingPanel userId={user?.id} module="subscription" />
+        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46' }}>{shareNotice}</div>}
+        {isFree && (
+          <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share subscription reminders with other Trakkit users." />
+        )}
 
         {error && (
           <div className={styles.errorBanner}>
@@ -183,11 +240,21 @@ export default function SubscriptionsPage() {
             {filteredSubscriptions.map((sub) => (
               <div key={sub.id} className={styles.subscriptionCard}>
                 <div className={styles.cardHeader}>
-                  <div>
-                    <h3 className={styles.cardTitle}>{sub.service_name}</h3>
-                    <span className={styles.categoryBadge}>{sub.category}</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    {bulkShareMode && isPremium && (
+                      <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelect(sub.id)} style={{ marginTop: 4 }} />
+                    )}
+                    <div>
+                      <h3 className={styles.cardTitle}>{sub.service_name}</h3>
+                      <span className={styles.categoryBadge}>{sub.category}</span>
+                    </div>
                   </div>
                   <div className={styles.cardActions}>
+                    {isPremium && !bulkShareMode && (
+                      <button type="button" className={styles.iconButton} title="Share" onClick={() => openShare([{ itemType: 'subscription', itemId: sub.id, label: sub.service_name }])}>
+                        <Share2 size={18} />
+                      </button>
+                    )}
                     <button className={styles.iconButton} onClick={() => handleOpenModal(sub)}>
                       <Edit2 size={18} />
                     </button>
@@ -241,6 +308,16 @@ export default function SubscriptionsPage() {
           onSubmit={handleSaveSubscription}
           isSaving={isSaving}
         />
+
+        {user?.token && (
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => { setShareModalOpen(false); exitBulkMode(); }}
+            items={shareItems}
+            token={user.token}
+            onSuccess={(msg) => { setShareNotice(msg); setTimeout(() => setShareNotice(null), 4000); }}
+          />
+        )}
       </div>
     </Layout>
   );
