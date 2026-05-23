@@ -389,6 +389,17 @@
     flex-direction: column;
     text-align: center;
   }
+
+  .calendarPremiumNotice {
+    flex-wrap: wrap;
+  }
+
+  .calendarPremiumLink {
+    width: 100%;
+    text-align: left;
+    align-self: flex-start;
+    margin-top: 0.25rem;
+  }
 }
 
 .upgradeContent h3 {
@@ -416,6 +427,91 @@
 .upgradeBtn:hover {
   transform: scale(1.05);
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Calendar premium notice — matches section list label scale (itemSub / legendLabel) */
+.calendarPremiumNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.calendarPremiumNoticeIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(185, 55, 93, 0.08);
+  color: var(--primary);
+  margin-top: 0.125rem;
+}
+
+.calendarPremiumNoticeBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendarPremiumNoticeLabel {
+  margin: 0 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.calendarPremiumNoticeText {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.calendarPremiumLink {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.calendarPremiumLink:hover {
+  text-decoration: underline;
+}
+
+.calendarExportBtn {
+  background: white;
+  color: var(--primary);
+  border: 1px solid rgba(185, 55, 93, 0.35);
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.calendarExportBtn:hover:not(:disabled) {
+  background: rgba(185, 55, 93, 0.06);
+}
+
+.calendarExportBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

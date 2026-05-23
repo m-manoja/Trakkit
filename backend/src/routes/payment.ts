@@ -13,5 +13,8 @@ router.post('/notify', paymentController.handleNotify);
 
 // Protected: frontend checks if user is premium
 router.get('/status', protect, paymentController.getPlanStatus);
+router.get('/usage', protect, paymentController.getPremiumUsage);
+router.post('/complete', protect, paymentController.completePayment);
+router.post('/activate', protect, paymentController.activateCheckout);
 
 export default router;

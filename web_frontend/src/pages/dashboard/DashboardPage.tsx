@@ -10,11 +10,12 @@ import {
   Search,
   Plus,
   Loader2,
-  BellRing
+  BellRing,
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./DashboardPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import GoogleCalendarSync from "../../components/GoogleCalendarSync/GoogleCalendarSync";
 import { 
   fetchWarranties, 
   fetchSubscriptions, 
@@ -319,20 +320,28 @@ export default function DashboardPage() {
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Calendar</h2>
               </div>
+              <GoogleCalendarSync />
               <MiniCalendar events={allEvents} />
             </section>
           </>
         )}
       </div>
 
-      {/* Upgrade Banner */}
-      <div className={styles.upgradeBanner}>
-        <div className={styles.upgradeContent}>
-          <h3>Get the full Trakkit experience</h3>
-          <p>Unlimited warranty documents, custom categories, and priority support.</p>
+      {user?.plan !== 'premium' && (
+        <div className={styles.upgradeBanner}>
+          <div className={styles.upgradeContent}>
+            <h3>Get the full Trakkit experience</h3>
+            <p>10 document uploads on Free. Premium adds unlimited uploads and family sharing across all modules.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.upgradeBtn}
+            onClick={() => navigate('/pricing')}
+          >
+            Upgrade to Premium
+          </button>
         </div>
-        <button className={styles.upgradeBtn}>Upgrade to Premium</button>
-      </div>
+      )}
     </Layout>
   );
 }

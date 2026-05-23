@@ -13,6 +13,9 @@ import {
 import Layout from "../../components/Layout";
 import styles from "./WarrantiesPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import { usePlan } from "../../hooks/usePlan";
+import { getPremiumUsage, type PremiumUsage } from "../../api/payment";
+import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
 import { 
   fetchWarranties, 
   deleteWarranty, 
@@ -24,10 +27,12 @@ import WarrantyFormModal from "./WarrantyFormModal";
 
 export default function WarrantiesPage() {
   const { user } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
   
   const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [usage, setUsage] = useState<PremiumUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +60,13 @@ export default function WarrantiesPage() {
   useEffect(() => {
     loadWarranties();
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.token) return;
+    getPremiumUsage(user.token)
+      .then(setUsage)
+      .catch(() => setUsage(null));
+  }, [user?.token, isPremium]);
 
   useEffect(() => {
     if (location.state?.openModal) {
@@ -112,7 +124,10 @@ export default function WarrantiesPage() {
     } catch (err: any) {
       console.error("Save error:", err);
       if (err.error_code === 'DOCUMENT_LIMIT_REACHED') {
-        alert(err.message);
+        const upgrade = window.confirm(
+          `${err.message}\n\nGo to the pricing page to upgrade?`
+        );
+        if (upgrade) navigate('/pricing');
       } else {
         alert("Failed to save warranty");
       }
@@ -150,6 +165,25 @@ export default function WarrantiesPage() {
             </button>
           </div>
         </header>
+
+        {isFree && usage?.document_limit != null && (
+          <div className={styles.usageBanner}>
+            <span>
+              Documents: <strong>{usage.document_count}</strong> / {usage.document_limit}
+            </span>
+            <button type="button" onClick={() => navigate('/pricing')}>
+              Upgrade for unlimited
+            </button>
+          </div>
+        )}
+
+        {isPremium && (
+          <div className={styles.premiumBanner}>
+            Premium — unlimited document uploads
+          </div>
+        )}
+
+        <FamilySharingPanel userId={user?.id} module="warranty" />
 
         {error && (
           <div className={styles.errorBanner}>

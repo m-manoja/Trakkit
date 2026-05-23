@@ -3,6 +3,8 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 
@@ -24,7 +26,7 @@ type AuthContextType = {
   setUser: (user: AuthUser) => void;
   signOut: () => void;
   loading: boolean;
-  refreshPlan: () => Promise<void>;
+  refreshPlan: () => Promise<'free' | 'premium' | null>;
 };
 
 // ─── Context ───────────────────────────────────────────────────────────────────
@@ -40,19 +42,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [user, setUserState] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<AuthUser>(null);
+  userRef.current = user;
 
-  // Load persisted session on mount
+  // Load persisted session on mount, then sync plan from server
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        setUserState(JSON.parse(stored));
+    let cancelled = false;
+
+    const loadSession = async () => {
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!stored) return;
+
+        const parsed: AuthUser = JSON.parse(stored);
+        if (cancelled) return;
+        setUserState(parsed);
+
+        if (!parsed?.token) return;
+
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payment/status`,
+          { cache: 'no-store', headers: { Authorization: `Bearer ${parsed.token}` } }
+        );
+        const json = await res.json();
+        if (!cancelled && json.success && json.data?.plan) {
+          setUserState({ ...parsed, plan: json.data.plan });
+          localStorage.setItem(
+            AUTH_STORAGE_KEY,
+            JSON.stringify({ ...parsed, plan: json.data.plan })
+          );
+        }
+      } catch (e) {
+        console.error("Failed to load auth from localStorage:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (e) {
-      console.error("Failed to load auth from localStorage:", e);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    loadSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setUser = (newUser: AuthUser) => {
@@ -71,20 +101,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const signOut = () => setUser(null);
 
   // Called after a successful payment to refresh the plan from the server
-  const refreshPlan = async () => {
-    if (!user?.token) return;
+  const refreshPlan = useCallback(async (): Promise<'free' | 'premium' | null> => {
+    const current = userRef.current;
+    if (!current?.token) return null;
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payment/status`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payment/status`,
+        { cache: 'no-store', headers: { Authorization: `Bearer ${current.token}` } }
+      );
       const json = await res.json();
       if (json.success && json.data?.plan) {
-        setUser({ ...user, plan: json.data.plan });
+        const plan = json.data.plan === 'premium' ? 'premium' : 'free';
+        const next = { ...current, plan };
+        setUserState(next);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+        return plan;
       }
     } catch (e) {
       console.error('Failed to refresh plan:', e);
     }
-  };
+
+    return current.plan ?? null;
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser, signOut, loading, refreshPlan }}>

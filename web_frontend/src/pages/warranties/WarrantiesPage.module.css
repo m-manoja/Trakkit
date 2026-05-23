@@ -28,6 +28,40 @@
   font-weight: 500;
 }
 
+.usageBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
+.usageBanner button {
+  background: linear-gradient(135deg, #b9375d, #e05c85);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.premiumBanner {
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #fdf2f5, #fff);
+  border: 1px solid rgba(185, 55, 93, 0.2);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b9375d;
+}
+
 .headerActions {
   display: flex;
   gap: 1rem;

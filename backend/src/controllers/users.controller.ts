@@ -234,6 +234,8 @@ export async function emailLogin(req: Request, res: Response) {
         email: user.email,
         backupEmail: user.backup_email,
         backupPromptShown: user.backup_prompt_shown,
+        plan: user.plan ?? 'free',
+        planActivatedAt: user.plan_activated_at ?? null,
       },
       nextScreen: '/(tabs)',
     });

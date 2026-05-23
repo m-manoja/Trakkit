@@ -33,6 +33,7 @@ export default function EmailLoginPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
+        plan: user.plan === 'premium' ? 'premium' : 'free',
       });
 
       navigate("/dashboard", { replace: true });

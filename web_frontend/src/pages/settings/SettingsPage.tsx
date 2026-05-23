@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import Layout from "../../components/Layout";
 import styles from "./SettingsPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import { usePlan } from "../../hooks/usePlan";
+import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
+import GoogleCalendarSync from "../../components/GoogleCalendarSync/GoogleCalendarSync";
+import { Zap } from "lucide-react";
 import { 
   getProfile, 
   updateProfile, 
@@ -27,7 +31,8 @@ import {
 
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications">("profile");
+  const { isPremium } = usePlan();
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "premium">("profile");
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -290,6 +295,12 @@ export default function SettingsPage() {
           >
             <Bell size={18} /> Notifications
           </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'premium' ? styles.active : ''}`}
+            onClick={() => { setActiveTab('premium'); setError(null); setSuccess(null); }}
+          >
+            <Zap size={18} /> Premium
+          </button>
         </div>
 
         {activeTab === 'profile' && (
@@ -404,6 +415,29 @@ export default function SettingsPage() {
                 {saving ? <Loader2 size={16} className={styles.spinner} style={{marginBottom:0}} /> : <Save size={16} />}
                 Save Changes
               </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'premium' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Premium features</h2>
+              <p className={styles.cardSubtitle}>
+                {isPremium
+                  ? 'Manage your Premium-only preferences.'
+                  : 'Upgrade to unlock family sharing and Google Calendar sync.'}
+              </p>
+            </div>
+            <div className={styles.cardBody}>
+              {!isPremium ? (
+                <PremiumUpgradeCard
+                  title="Unlock Premium"
+                  description="One-time payment for unlimited uploads, family sharing, and Google Calendar sync."
+                />
+              ) : (
+                <GoogleCalendarSync />
+              )}
             </div>
           </div>
         )}

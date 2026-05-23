@@ -1,77 +1,15 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import * as paymentService from '../services/payment.service.js';
+import { PREMIUM_AMOUNT, PREMIUM_CURRENCY } from '../services/payment.service.js';
 
 const PAYHERE_MERCHANT_ID = process.env.PAYHERE_MERCHANT_ID ?? '';
 const PAYHERE_MERCHANT_SECRET = process.env.PAYHERE_MERCHANT_SECRET ?? '';
-const PREMIUM_AMOUNT = '999.00'; // LKR 999 — change this if needed
-const PREMIUM_CURRENCY = 'LKR';
 
 // ─── POST /api/payment/initiate ───────────────────────────────────────────────
 // Frontend calls this to get all the fields needed to submit to PayHere.
 // We generate the hash here (in the backend) so the merchant secret is never
 // exposed to the browser.
-
-// ─── POST /api/payment/verify-return ─────────────────────────────────────────
-// Called by our OWN frontend when PayHere redirects back to /payment/success.
-// PayHere appends status params + hash to the return_url — we verify the hash
-// and upgrade the plan. This is a fallback when the webhook (notify) is blocked
-// by local tunnels or firewalls.
-export const verifyReturn = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user?.id || (req as any).user?.userId;
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
-    const {
-      merchant_id,
-      order_id,
-      payhere_amount,
-      payhere_currency,
-      status_code,
-      md5sig,
-    } = req.body;
-
-    // Must be a successful payment
-    if (status_code !== '2') {
-      return res.status(400).json({ success: false, message: `Payment not successful. Status: ${status_code}` });
-    }
-
-    // Verify the hash — same algorithm as notify
-    const isValid = paymentService.verifyPayHereNotification(
-      merchant_id,
-      order_id,
-      payhere_amount,
-      payhere_currency,
-      status_code,
-      PAYHERE_MERCHANT_SECRET,
-      md5sig
-    );
-
-    if (!isValid) {
-      console.error('❌ verifyReturn: hash mismatch for user', userId);
-      return res.status(400).json({ success: false, message: 'Invalid payment signature' });
-    }
-
-    // Verify order belongs to this user (order_id starts with TRAKKIT-{first8ofUserId})
-    const userPrefix = userId.slice(0, 8).toUpperCase();
-    if (!order_id.startsWith(`TRAKKIT-${userPrefix}`)) {
-      return res.status(403).json({ success: false, message: 'Order does not belong to this user' });
-    }
-
-    // All checks passed — upgrade the plan
-    await paymentService.upgradePlanToPremium(userId);
-    console.log(`✅ verifyReturn: User ${userId} upgraded to Premium`);
-
-    return res.status(200).json({ success: true, message: 'Plan upgraded to Premium!' });
-  } catch (error: any) {
-    console.error('verifyReturn error:', error.message);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-
 export const initiatePayment = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id || (req as any).user?.userId;
@@ -87,6 +25,7 @@ export const initiatePayment = async (req: Request, res: Response) => {
 
     // Generate a unique order ID for this payment attempt
     const orderId = `TRAKKIT-${userId.slice(0, 8).toUpperCase()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+    paymentService.recordPendingOrder(orderId, userId);
 
     // Generate the PayHere hash
     const hash = paymentService.generatePayHereHash(
@@ -187,11 +126,102 @@ export const getPlanStatus = async (req: Request, res: Response) => {
 
     const planData = await paymentService.getUserPlan(userId);
 
+    res.set('Cache-Control', 'no-store');
     return res.status(200).json({
       success: true,
       data: planData,
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ─── POST /api/payment/activate ───────────────────────────────────────────────
+// PayHere return_url does not include md5sig — use order_id saved before checkout.
+export const activateCheckout = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id || (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { order_id } = req.body;
+    if (!order_id) {
+      return res.status(400).json({ success: false, message: 'order_id is required' });
+    }
+
+    const result = await paymentService.activateAfterCheckout(userId, order_id);
+    const planData = await paymentService.getUserPlan(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: { ...result, plan: planData.plan, plan_activated_at: planData.plan_activated_at },
+    });
+  } catch (error: any) {
+    console.error('activateCheckout error:', error.message);
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// ─── GET /api/payment/usage ───────────────────────────────────────────────────
+export const getPremiumUsage = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id || (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const usage = await paymentService.getPremiumUsage(userId);
+    return res.status(200).json({ success: true, data: usage });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ─── POST /api/payment/complete ───────────────────────────────────────────────
+// PayHere redirects the browser to /payment/success with query params.
+// Use this when the server notify webhook has not run yet (common in local dev).
+export const completePayment = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id || (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const {
+      merchant_id,
+      order_id,
+      payhere_amount,
+      payhere_currency,
+      status_code,
+      md5sig,
+    } = req.body;
+
+    if (!order_id || !status_code || !md5sig) {
+      return res.status(400).json({ success: false, message: 'Missing payment confirmation fields' });
+    }
+
+    const result = await paymentService.completePaymentFromReturn(
+      userId,
+      {
+        merchant_id: merchant_id || PAYHERE_MERCHANT_ID,
+        order_id,
+        payhere_amount: payhere_amount || PREMIUM_AMOUNT,
+        payhere_currency: payhere_currency || PREMIUM_CURRENCY,
+        status_code: String(status_code),
+        md5sig,
+      },
+      PAYHERE_MERCHANT_SECRET
+    );
+
+    const planData = await paymentService.getUserPlan(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: { ...result, plan: planData.plan, plan_activated_at: planData.plan_activated_at },
+    });
+  } catch (error: any) {
+    console.error('completePayment error:', error.message);
+    return res.status(400).json({ success: false, message: error.message });
   }
 };

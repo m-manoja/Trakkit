@@ -1,38 +1,112 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { activateCheckout, completePayment, getPlanStatus } from '../../api/payment';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+
+const PENDING_ORDER_KEY = 'trakkit_pending_order_id';
 
 export default function PaymentSuccessPage() {
   const { refreshPlan, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [refreshing, setRefreshing] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [activationNote, setActivationNote] = useState<string | null>(null);
+  const ranRef = useRef(false);
 
   useEffect(() => {
-    // As soon as this page loads, refresh the plan from the server.
-    // The webhook may have already upgraded the plan by now.
-    const activate = async () => {
+    if (ranRef.current) return;
+    if (!user?.token) {
+      setRefreshing(false);
+      setActivationNote('Please sign in again to activate your Premium plan.');
+      return;
+    }
+
+    ranRef.current = true;
+
+    const run = async () => {
+      const token = user.token;
+      const orderId =
+        searchParams.get('order_id') ||
+        sessionStorage.getItem(PENDING_ORDER_KEY);
+
       try {
-        await refreshPlan();
-      } catch (e) {
-        console.error('Failed to refresh plan on success page:', e);
+        // If PayHere ever sends signed params on return URL, verify them first.
+        const statusCode = searchParams.get('status_code');
+        const md5sig = searchParams.get('md5sig');
+        if (orderId && statusCode && md5sig) {
+          try {
+            await completePayment(token, {
+              order_id: orderId,
+              status_code: statusCode,
+              md5sig,
+              merchant_id: searchParams.get('merchant_id') ?? undefined,
+              payhere_amount: searchParams.get('payhere_amount') ?? undefined,
+              payhere_currency: searchParams.get('payhere_currency') ?? undefined,
+            });
+          } catch (e) {
+            console.warn('Payment complete (signed return):', e);
+          }
+        } else if (orderId) {
+          // PayHere success redirect — no query params; activate via stored order id.
+          try {
+            await activateCheckout(token, orderId);
+          } catch (e) {
+            console.warn('Activate checkout:', e);
+          }
+        }
+
+        const maxAttempts = 10;
+        const delayMs = 1500;
+        let resolvedPlan: string | undefined;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+            const data = await getPlanStatus(token);
+            resolvedPlan = data.plan;
+            await refreshPlan();
+          } catch (e) {
+            console.error('Failed to refresh plan:', e);
+          }
+
+          if (resolvedPlan === 'premium') {
+            setIsPremium(true);
+            setActivationNote(null);
+            break;
+          }
+
+          if (attempt < maxAttempts - 1) {
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
+        }
+
+        if (resolvedPlan !== 'premium') {
+          const final = await getPlanStatus(token).catch(() => null);
+          const premium = final?.plan === 'premium';
+          setIsPremium(premium);
+          if (!premium) {
+            setActivationNote(
+              'Payment received. Premium may take a moment — tap below to check again, or refresh the page.'
+            );
+          }
+        }
       } finally {
+        sessionStorage.removeItem(PENDING_ORDER_KEY);
         setRefreshing(false);
       }
     };
 
-    activate();
-  }, []);
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per mount when token is ready
+  }, [user?.token]);
 
-  // Auto-redirect to dashboard after 4 seconds
   useEffect(() => {
-    if (!refreshing) {
-      const timer = setTimeout(() => {
-        navigate('/dashboard');
-      }, 4000);
+    if (!refreshing && isPremium) {
+      const timer = setTimeout(() => navigate('/dashboard'), 4000);
       return () => clearTimeout(timer);
     }
-  }, [refreshing, navigate]);
+  }, [refreshing, isPremium, navigate]);
 
   return (
     <div style={{
@@ -66,7 +140,7 @@ export default function PaymentSuccessPage() {
               Please wait while we confirm your payment.
             </p>
           </>
-        ) : (
+        ) : isPremium ? (
           <>
             <div style={{
               width: '80px',
@@ -83,7 +157,7 @@ export default function PaymentSuccessPage() {
             </div>
 
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1F2937', margin: '0 0 0.75rem', letterSpacing: '-0.5px' }}>
-              You're now Premium! 🎉
+              You&apos;re now Premium!
             </h1>
             <p style={{ color: '#6B7280', fontSize: '0.975rem', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
               Welcome, <strong>{user?.firstName || 'Trakkit user'}</strong>! Your Premium features are now active.
@@ -95,8 +169,8 @@ export default function PaymentSuccessPage() {
             <ul style={{ textAlign: 'left', listStyle: 'none', padding: 0, margin: '0 0 2rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {[
                 'Unlimited document uploads',
-                'Share reminders with family',
-                'Google Calendar sync',
+                'Family sharing for warranties, subscriptions, reminders & to-dos',
+                'Sync with Google Calendar',
               ].map((f, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.9rem', color: '#374151' }}>
                   <CheckCircle size={16} style={{ color: '#10B981', flexShrink: 0 }} />
@@ -106,6 +180,7 @@ export default function PaymentSuccessPage() {
             </ul>
 
             <button
+              type="button"
               onClick={() => navigate('/dashboard')}
               style={{
                 width: '100%',
@@ -121,6 +196,65 @@ export default function PaymentSuccessPage() {
               }}
             >
               Go to Dashboard →
+            </button>
+          </>
+        ) : (
+          <>
+            <AlertCircle size={56} style={{ color: '#F59E0B', marginBottom: '1.5rem' }} />
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937', margin: '0 0 0.75rem' }}>
+              Almost there…
+            </h1>
+            <p style={{ color: '#6B7280', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 1.5rem' }}>
+              {activationNote}
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user?.token) return;
+                setRefreshing(true);
+                const orderId = sessionStorage.getItem(PENDING_ORDER_KEY);
+                if (orderId) {
+                  try {
+                    await activateCheckout(user.token, orderId);
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                }
+                const data = await getPlanStatus(user.token);
+                await refreshPlan();
+                setIsPremium(data.plan === 'premium');
+                setRefreshing(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                background: 'white',
+                color: '#b9375d',
+                border: '2px solid #b9375d',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                marginBottom: '0.75rem',
+              }}
+            >
+              Check activation again
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                background: 'transparent',
+                color: '#6B7280',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              Continue to dashboard
             </button>
           </>
         )}

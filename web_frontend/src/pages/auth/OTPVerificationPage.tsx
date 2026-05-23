@@ -79,6 +79,7 @@ export default function OTPVerificationPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
+        plan: user.plan === 'premium' ? 'premium' : 'free',
       });
 
       const backupPromptShown = (user as any).backupPromptShown ?? true;

@@ -12,6 +12,7 @@ import {
 import Layout from "../../components/Layout";
 import styles from "./SubscriptionsPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
 import { 
   fetchSubscriptions, 
   deleteSubscription, 
@@ -148,6 +149,8 @@ export default function SubscriptionsPage() {
             </button>
           </div>
         </header>
+
+        <FamilySharingPanel userId={user?.id} module="subscription" />
 
         {error && (
           <div className={styles.errorBanner}>

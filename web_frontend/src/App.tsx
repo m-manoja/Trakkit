@@ -101,8 +101,22 @@ export default function App() {
           />
 
           {/* Payment result pages — no sidebar, standalone pages */}
-          <Route path="/payment/success" element={<PaymentSuccessPage />} />
-          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+          <Route
+            path="/payment/success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/cancel"
+            element={
+              <ProtectedRoute>
+                <PaymentCancelPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -65,7 +65,7 @@ export async function verifyOtp(req: Request, res: Response) {
     // Check user in DB using the standardized number
     const { data: userProfile, error } = await supabase
       .from('users')
-      .select('id, phone, first_name, last_name, email, profile_completed, created_at')
+      .select('id, phone, first_name, last_name, email, profile_completed, created_at, plan, plan_activated_at')
       .eq('phone', cleanPhone)
       .single();
 
@@ -94,7 +94,9 @@ export async function verifyOtp(req: Request, res: Response) {
         lastName: userProfile.last_name,
         email: userProfile.email,
         createdAt: userProfile.created_at,
-        profileCompleted: userProfile.profile_completed
+        profileCompleted: userProfile.profile_completed,
+        plan: userProfile.plan ?? 'free',
+        planActivatedAt: userProfile.plan_activated_at ?? null,
       },
       token: jwtToken, // Send the token to the client
       nextScreen

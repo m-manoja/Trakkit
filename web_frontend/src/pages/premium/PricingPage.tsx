@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import styles from './PricingPage.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -23,21 +23,25 @@ const PAYHERE_CHECKOUT_URL = 'https://sandbox.payhere.lk/pay/checkout';
 // const frontendUrl = ...
 
 const FREE_FEATURES = [
-  { icon: Upload, text: 'Up to 5 document uploads', included: true },
+  { icon: Upload, text: 'Up to 10 document uploads', included: true },
   { icon: Bell,   text: 'Personal reminders & notifications', included: true },
-  { icon: Users,  text: 'Family reminder sharing', included: false },
+  { icon: Users,  text: 'Family sharing mode', included: false },
   { icon: Calendar, text: 'Google Calendar sync', included: false },
 ];
 
 const PREMIUM_FEATURES = [
   { icon: Upload,   text: 'Unlimited document uploads', included: true },
   { icon: Bell,     text: 'Personal reminders & notifications', included: true },
-  { icon: Users,    text: 'Share reminders with family members', included: true },
-  { icon: Calendar, text: 'Google Calendar sync for all events', included: true },
+  { icon: Users,    text: 'Family sharing for warranties, subscriptions, reminders & to-dos', included: true },
+  { icon: Calendar, text: 'Sync all events to your Google Calendar (Gmail)', included: true },
 ];
 
 export default function PricingPage() {
-  const { user } = useAuth();
+  const { user, refreshPlan } = useAuth();
+
+  useEffect(() => {
+    if (user?.token) refreshPlan();
+  }, [user?.token, refreshPlan]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentInitData | null>(null);
@@ -53,6 +57,7 @@ export default function PricingPage() {
     try {
       const data = await initiatePayment(user.token);
       setPaymentData(data);
+      sessionStorage.setItem('trakkit_pending_order_id', data.order_id);
 
       // Small timeout so React renders the hidden form before we submit it
       setTimeout(() => {
@@ -128,7 +133,7 @@ export default function PricingPage() {
               <Zap size={24} />
             </div>
             <h2 className={styles.planName}>Premium Plan</h2>
-            <p className={styles.planDesc}>The complete experience — unlimited storage, family sharing, and calendar sync.</p>
+            <p className={styles.planDesc}>Unlimited uploads, family sharing, and Google Calendar sync.</p>
             <div className={styles.priceRow}>
               <span className={styles.currency}>LKR</span>
               <span className={styles.amount}>999</span>

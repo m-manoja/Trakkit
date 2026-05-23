@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
 import * as warrantyService from '../services/warranty.service';
+import { getUserPlan, FREE_PLAN_DOCUMENT_LIMIT } from '../services/payment.service.js';
+import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
 import { supabase } from '../config/supabaseClient';
+
+function userIdFromRequest(req: Request): string | undefined {
+    const user = (req as any).user;
+    return user?.id || user?.userId;
+}
 
 export const getWarranty = async (req: Request, res: Response) => {
     try {
@@ -28,16 +35,18 @@ export const addWarranty = async (req: Request, res: Response) => {
 
         if (req.file) {
             // ─── FREEMIUM LIMIT CHECK ────────────────────────────────────────
-            // Freemium users may only have 15 warranties with documents attached.
-            const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
-            if (currentDocCount >= 15) {
-                return res.status(403).json({
-                    success: false,
-                    error_code: 'DOCUMENT_LIMIT_REACHED',
-                    message: 'Free plan allows up to 15 warranty documents. Upgrade to Premium for unlimited uploads.',
-                    current_count: currentDocCount,
-                    limit: 15,
-                });
+            const { plan } = await getUserPlan(userId);
+            if (plan !== 'premium') {
+                const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
+                if (currentDocCount >= FREE_PLAN_DOCUMENT_LIMIT) {
+                    return res.status(403).json({
+                        success: false,
+                        error_code: 'DOCUMENT_LIMIT_REACHED',
+                        message: `Free plan allows up to ${FREE_PLAN_DOCUMENT_LIMIT} document uploads. Upgrade to Premium for unlimited uploads.`,
+                        current_count: currentDocCount,
+                        limit: FREE_PLAN_DOCUMENT_LIMIT,
+                    });
+                }
             }
             // ─────────────────────────────────────────────────────────────────
 
@@ -78,6 +87,7 @@ export const addWarranty = async (req: Request, res: Response) => {
         };
 
         const data = await warrantyService.createWarranty(userId, payload);
+        triggerGoogleCalendarSync(userId);
         res.status(201).json({ success: true, data });
     } catch (error: any) {
         console.error("Add Controller Error:", error.message);
@@ -113,15 +123,18 @@ export const editWarranty = async (req: Request, res: Response) => {
         if (req.file) {
             // ─── FREEMIUM LIMIT CHECK (only when adding a NEW file to a warranty that has none) ─
             if (!existingWarranty.document_url) {
-                const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
-                if (currentDocCount >= 15) {
-                    return res.status(403).json({
-                        success: false,
-                        error_code: 'DOCUMENT_LIMIT_REACHED',
-                        message: 'Free plan allows up to 15 warranty documents. Upgrade to Premium for unlimited uploads.',
-                        current_count: currentDocCount,
-                        limit: 15,
-                    });
+                const { plan } = await getUserPlan(userId);
+                if (plan !== 'premium') {
+                    const currentDocCount = await warrantyService.countDocumentsByUserId(userId);
+                    if (currentDocCount >= FREE_PLAN_DOCUMENT_LIMIT) {
+                        return res.status(403).json({
+                            success: false,
+                            error_code: 'DOCUMENT_LIMIT_REACHED',
+                            message: `Free plan allows up to ${FREE_PLAN_DOCUMENT_LIMIT} document uploads. Upgrade to Premium for unlimited uploads.`,
+                            current_count: currentDocCount,
+                            limit: FREE_PLAN_DOCUMENT_LIMIT,
+                        });
+                    }
                 }
             }
             // ─────────────────────────────────────────────────────────────────
@@ -153,6 +166,7 @@ export const editWarranty = async (req: Request, res: Response) => {
         }
 
         const data = await warrantyService.updateWarranty(id, userId, updateData);
+        triggerGoogleCalendarSync(userId);
         res.status(200).json({ success: true, data });
     } catch (error: any) {
         console.error("Edit Controller Error:", error.message);
@@ -198,6 +212,7 @@ export const removeWarranty = async (req: Request, res: Response) => {
         }
 
         await warrantyService.deleteWarranty(id, userId);
+        triggerGoogleCalendarSync(userId);
         res.status(200).json({ success: true, message: "Warranty deleted successfully" });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });

@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
 import * as reminderService from '../services/reminder.service';
+import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
+
+function userIdFromRequest(req: Request): string | undefined {
+    const user = (req as any).user;
+    return user?.id || user?.userId;
+}
 
 export const getReminder = async (req: Request, res: Response) => {
     try {
@@ -43,6 +49,7 @@ export const addReminder = async (req: Request, res: Response) => {
         const newReminder = await reminderService.createReminder(reminderData);
         console.log('Created reminder:', newReminder);
 
+        triggerGoogleCalendarSync(userId);
         res.status(201).json({ success: true, data: newReminder });
     } catch (error: any) {
         console.error('Error in addReminder:', error);
@@ -71,6 +78,7 @@ export const updateReminder = async (req: Request, res: Response) => {
         };
 
         const updatedReminder = await reminderService.updateReminder(id, updateData);
+        triggerGoogleCalendarSync(userIdFromRequest(req));
         res.status(200).json({ success: true, data: updatedReminder });
     } catch (error: any) {
         console.error('Error in updateReminder:', error);
@@ -99,6 +107,7 @@ export const deleteReminder = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Reminder ID is required" });
         }
         await reminderService.deleteReminderById(id);
+        triggerGoogleCalendarSync(userIdFromRequest(req));
         res.status(200).json({ success: true, message: "Reminder deleted" });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });

@@ -12,6 +12,7 @@ import {
 import Layout from "../../components/Layout";
 import styles from "./TodosPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
 import { 
   fetchTodos, 
   deleteTodo, 
@@ -141,6 +142,8 @@ export default function TodosPage() {
             </button>
           </div>
         </header>
+
+        <FamilySharingPanel userId={user?.id} module="todo" />
 
         {error && (
           <div className={styles.errorBanner}>

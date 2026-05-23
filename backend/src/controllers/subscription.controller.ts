@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
 import * as subscriptionService from '../services/subscription.service';
+import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
+
+function userIdFromRequest(req: Request): string | undefined {
+    const user = (req as any).user;
+    return user?.id || user?.userId;
+}
 
 export const getSubscription = async (req: Request, res: Response) => {
     try {
@@ -30,6 +36,7 @@ export const addSubscription = async (req: Request, res: Response) => {
         // Pass the body to the service. 
         // Note: Ensure your service uses 'userId' as the key for the database column.
         const data = await subscriptionService.createSubscription(userId, req.body);
+        triggerGoogleCalendarSync(userId);
 
         res.status(201).json({
             success: true,
@@ -87,6 +94,7 @@ export const editSubscription = async (req: Request, res: Response) => {
         }
 
         const updatedData = await subscriptionService.updateSubscription(id, userId, req.body);
+        triggerGoogleCalendarSync(userId);
 
         return res.status(200).json({
             success: true,
@@ -109,6 +117,7 @@ export const removeSubscription = async (req: Request, res: Response) => {
         }
 
         await subscriptionService.deleteSubscription(id, userId);
+        triggerGoogleCalendarSync(userId);
 
         res.status(200).json({
             success: true,
@@ -129,6 +138,7 @@ export const renewUserSubscription = async (req: Request, res: Response) => {
         }
 
         const renewed = await subscriptionService.renewSubscription(id, userId);
+        triggerGoogleCalendarSync(userId);
 
         res.status(200).json({
             success: true,

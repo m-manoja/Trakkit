@@ -188,7 +188,7 @@ export async function dismissBackupPrompt(userId: string) {
 export async function loginWithEmail(email: string, password: string) {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown')
+    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown, plan, plan_activated_at')
     .eq('backup_email', email.toLowerCase())
     .maybeSingle();
 

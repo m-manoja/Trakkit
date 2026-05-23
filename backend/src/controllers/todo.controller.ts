@@ -1,6 +1,12 @@
 import { Request, Response } from 'express';
 import * as todoService from '../services/todo.service.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
+import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
+
+function userIdFromRequest(req: Request): string | undefined {
+    const user = (req as AuthRequest).user;
+    return user?.id;
+}
 
 // Todo controller for handling CRUD operations
 
@@ -32,6 +38,7 @@ export const addTodo = async (req: AuthRequest, res: Response) => {
 
         console.log('Creating todo with data:', todoData);
         const todo = await todoService.createTodo(todoData);
+        triggerGoogleCalendarSync(userId);
         res.status(201).json({ success: true, data: todo });
     } catch (error: any) {
         console.error('Error in addTodo:', error);
@@ -63,6 +70,7 @@ export const toggleTodoStatus = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Todo ID is required" });
         }
         const updated = await todoService.toggleCompletion(id);
+        triggerGoogleCalendarSync(userIdFromRequest(req));
         res.status(200).json({ success: true, data: updated });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
@@ -76,6 +84,7 @@ export const updateTodo = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Todo ID is required" });
         }
         const updated = await todoService.updateTodo(id, req.body);
+        triggerGoogleCalendarSync(userIdFromRequest(req));
         res.status(200).json({ success: true, data: updated });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
@@ -89,6 +98,7 @@ export const deleteTodo = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Todo ID is required" });
         }
         await todoService.deleteTodo(id);
+        triggerGoogleCalendarSync(userIdFromRequest(req));
         res.status(200).json({ success: true, message: "Task removed" });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });

@@ -9,6 +9,7 @@ import todoRoutes from './routes/todo';
 import settingsRoutes from './routes/settings';
 import notificationsRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment';
+import googleCalendarRoutes from './routes/googleCalendar.js';
 import { startNotificationWorker } from './services/notificationWorker.service';
 
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/todos', todoRoutes);
 app.use('/api/users', settingsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/google-calendar', googleCalendarRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is working!");

@@ -11,6 +11,7 @@ import {
 import Layout from "../../components/Layout";
 import styles from "./RemindersPage.module.css";
 import { useAuth } from "../../context/AuthContext";
+import FamilySharingPanel from "../../components/FamilySharingPanel/FamilySharingPanel";
 import { 
   fetchReminders, 
   deleteReminder, 
@@ -131,6 +132,8 @@ export default function RemindersPage() {
             </button>
           </div>
         </header>
+
+        <FamilySharingPanel userId={user?.id} module="reminder" />
 
         {error && (
           <div className={styles.errorBanner}>
