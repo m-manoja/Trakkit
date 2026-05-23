@@ -23,6 +23,10 @@ interface Config {
         apiToken?: string;
         senderId?: string;
     };
+    payhere: {
+        merchantId: string;
+        merchantSecret: string;
+    };
 }
 
 const config: Config = {
@@ -47,6 +51,12 @@ const config: Config = {
     textlk: {
         apiToken: process.env.TEXTLK_API_TOKEN,
         senderId: process.env.TEXTLK_SENDER_ID,
+    },
+
+    // PayHere configuration
+    payhere: {
+        merchantId: process.env.PAYHERE_MERCHANT_ID || '',
+        merchantSecret: process.env.PAYHERE_MERCHANT_SECRET || '',
     },
 };
 

@@ -9,7 +9,9 @@ import {
   Settings, 
   LogOut,
   BellRing,
-  X
+  X,
+  Zap,
+  Crown
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchUnreadCount } from "../../api/notifications";
@@ -70,6 +72,22 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )}
           </NavLink>
         ))}
+
+        {/* Upgrade / Premium status */}
+        {user?.plan === 'premium' ? (
+          <div className={styles.premiumBadge}>
+            <Crown size={15} />
+            <span>Premium Plan</span>
+          </div>
+        ) : (
+          <NavLink
+            to="/pricing"
+            className={({ isActive }) => isActive ? `${styles.upgradeLink} ${styles.active}` : styles.upgradeLink}
+          >
+            <Zap size={18} />
+            <span>Upgrade to Premium</span>
+          </NavLink>
+        )}
       </nav>
 
       <div className={styles.footer}>
@@ -93,7 +111,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
           <div className={styles.userInfo}>
             <p className={styles.userName}>{user?.firstName || "User"}</p>
-            <p className={styles.userEmail}>{user?.email || "Free Plan"}</p>
+            <p className={styles.userEmail}>
+              {user?.plan === 'premium' ? '⭐ Premium Plan' : (user?.email || 'Free Plan')}
+            </p>
           </div>
         </div>
       </div>

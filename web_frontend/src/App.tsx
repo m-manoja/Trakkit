@@ -12,6 +12,9 @@ import RemindersPage from "./pages/reminders/RemindersPage";
 import TodosPage from "./pages/todos/TodosPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
+import PricingPage from "./pages/premium/PricingPage";
+import PaymentSuccessPage from "./pages/premium/PaymentSuccessPage";
+import PaymentCancelPage from "./pages/premium/PaymentCancelPage";
 
 export default function App() {
   return (
@@ -88,6 +91,18 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute>
+                <PricingPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Payment result pages — no sidebar, standalone pages */}
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

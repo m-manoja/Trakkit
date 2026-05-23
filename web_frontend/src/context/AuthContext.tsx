@@ -16,6 +16,7 @@ export type AuthUser = {
   email?: string;
   profilePicture?: string;
   token: string;
+  plan?: 'free' | 'premium';
 } | null;
 
 type AuthContextType = {
@@ -23,6 +24,7 @@ type AuthContextType = {
   setUser: (user: AuthUser) => void;
   signOut: () => void;
   loading: boolean;
+  refreshPlan: () => Promise<void>;
 };
 
 // ─── Context ───────────────────────────────────────────────────────────────────
@@ -68,8 +70,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const signOut = () => setUser(null);
 
+  // Called after a successful payment to refresh the plan from the server
+  const refreshPlan = async () => {
+    if (!user?.token) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payment/status`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const json = await res.json();
+      if (json.success && json.data?.plan) {
+        setUser({ ...user, plan: json.data.plan });
+      }
+    } catch (e) {
+      console.error('Failed to refresh plan:', e);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, signOut, loading }}>
+    <AuthContext.Provider value={{ user, setUser, signOut, loading, refreshPlan }}>
       {children}
     </AuthContext.Provider>
   );
