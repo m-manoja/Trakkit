@@ -50,3 +50,7 @@ export async function saveWarranty(
 
   return result.data as Warranty;
 }
+
+export async function claimWarranty(id: string, token: string): Promise<Warranty> {
+  return apiRequest<Warranty>(`/api/warranties/${id}/claim`, "PATCH", undefined, token);
+}

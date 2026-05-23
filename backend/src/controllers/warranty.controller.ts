@@ -203,3 +203,31 @@ export const removeWarranty = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const claimWarranty = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.id || (req as any).user.userId;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Warranty ID is required' });
+        }
+
+        // Verify the warranty exists and belongs to the user
+        const existing = await warrantyService.getWarrantyById(id, userId);
+        if (!existing) {
+            return res.status(404).json({ success: false, message: 'Warranty not found' });
+        }
+
+        // Guard against double-claiming
+        if (existing.status === 'Claimed') {
+            return res.status(400).json({ success: false, message: 'Warranty has already been claimed' });
+        }
+
+        const data = await warrantyService.claimWarranty(id, userId);
+        return res.status(200).json({ success: true, data });
+    } catch (error: any) {
+        console.error('Claim Controller Error:', error.message);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

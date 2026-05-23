@@ -486,6 +486,11 @@
   color: #991B1B;
 }
 
+.statusClaimed {
+  background-color: #EDE9FE;
+  color: #5B21B6;
+}
+
 .documentLink {
   display: flex;
   align-items: center;
@@ -522,10 +527,18 @@
   transition: all 0.3s ease;
 }
 
-.claimButton:hover {
+.claimButton:hover:not(:disabled) {
   border-color: #B9375D;
   color: #B9375D;
   background: rgba(185, 55, 93, 0.02);
+}
+
+.claimButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-color: #D1D5DB;
+  color: #9CA3AF;
+  background: #F9FAFB;
 }
 
 .emptyState {

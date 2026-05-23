@@ -198,10 +198,34 @@ export default function WarrantyScreen() {
               await axios.delete(`${API_BASE_URL}/api/warranties/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
-              // Re-fetch the list so the card disappears
               fetchWarranties();
             } catch (error) {
               Alert.alert("Error", "Could not delete. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleClaim = (item: any) => {
+    Alert.alert(
+      "Claim Warranty",
+      `Are you sure you want to claim the warranty for "${item.product_name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Claim",
+          style: "default",
+          onPress: async () => {
+            try {
+              await axios.patch(`${API_BASE_URL}/api/warranties/${item.id}/claim`, {}, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              fetchWarranties();
+            } catch (error: any) {
+              const msg = error?.response?.data?.message || "Could not claim warranty. Please try again.";
+              Alert.alert("Error", msg);
             }
           }
         }
@@ -314,50 +338,67 @@ export default function WarrantyScreen() {
     setPickerVisible(true);
   };
 
-  const WarrantyCard = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{item.product_name}</Text>
-          <View style={[styles.catBadge, { backgroundColor: '#FADBD8' }]}><Text style={[styles.catBadgeText, { color: COLORS.primary }]}>{item.category}</Text></View>
-        </View>
-        <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => handleEditPress(item)}><Ionicons name="create-outline" size={22} color="#555" /></TouchableOpacity>
-          <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => handleDelete(item.id)}><Ionicons name="trash-outline" size={22} color="#E74C3C" /></TouchableOpacity>
-        </View>
-      </View>
+  const WarrantyCard = ({ item }: { item: any }) => {
+    const isClaimed = item.status === 'Claimed';
+    const isExpired = item.status === 'Expired';
+    const isDisabled = isClaimed || isExpired;
 
-      <View style={styles.cardContent}>
-        <DetailRow label="Purchase from" value={item.purchase_place} />
-        <DetailRow label="Expiry Date" value={new Date(item.expiry_date).toLocaleDateString()} />
+    const statusBgColor = isClaimed ? '#EDE9FE' : isExpired ? '#FADBD8' : '#D4EFDF';
+    const statusTextColor = isClaimed ? '#5B21B6' : isExpired ? '#E74C3C' : '#27AE60';
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Warranty Document</Text>
-          {item.document_url ? (
-            <View style={styles.docActions}>
-              <TouchableOpacity style={styles.docIconBtn} onPress={() => handleView(item.document_url)}>
-                <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.docLinkText}>View</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.docIconBtn, { marginLeft: 8 }]} onPress={() => handleDownload(item.document_url)}>
-                <Ionicons name="download-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.docLinkText}>Download</Text>
-              </TouchableOpacity>
-            </View>
-          ) : <Text style={styles.noFileText}>No file</Text>}
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Status</Text>
-          <View style={[styles.statusBox, { backgroundColor: item.status === 'Expired' ? '#FADBD8' : '#D4EFDF' }]}>
-            <Text style={[styles.statusText, { color: item.status === 'Expired' ? '#E74C3C' : '#27AE60' }]}>{item.status || 'Active'}</Text>
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>{item.product_name}</Text>
+            <View style={[styles.catBadge, { backgroundColor: '#FADBD8' }]}><Text style={[styles.catBadgeText, { color: COLORS.primary }]}>{item.category}</Text></View>
+          </View>
+          <View style={styles.cardActions}>
+            <TouchableOpacity onPress={() => handleEditPress(item)}><Ionicons name="create-outline" size={22} color="#555" /></TouchableOpacity>
+            <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => handleDelete(item.id)}><Ionicons name="trash-outline" size={22} color="#E74C3C" /></TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      <TouchableOpacity style={[styles.renewBtn, { borderColor: COLORS.primary }]}><Text style={[styles.renewBtnText, { color: COLORS.primary }]}>Claim Warranty</Text></TouchableOpacity>
-    </View>
-  );
+        <View style={styles.cardContent}>
+          <DetailRow label="Purchase from" value={item.purchase_place} />
+          <DetailRow label="Expiry Date" value={new Date(item.expiry_date).toLocaleDateString()} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Warranty Document</Text>
+            {item.document_url ? (
+              <View style={styles.docActions}>
+                <TouchableOpacity style={styles.docIconBtn} onPress={() => handleView(item.document_url)}>
+                  <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.docLinkText}>View</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.docIconBtn, { marginLeft: 8 }]} onPress={() => handleDownload(item.document_url)}>
+                  <Ionicons name="download-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.docLinkText}>Download</Text>
+                </TouchableOpacity>
+              </View>
+            ) : <Text style={styles.noFileText}>No file</Text>}
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Status</Text>
+            <View style={[styles.statusBox, { backgroundColor: statusBgColor }]}>
+              <Text style={[styles.statusText, { color: statusTextColor }]}>{item.status || 'Active'}</Text>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.renewBtn, { borderColor: isDisabled ? '#D1D5DB' : COLORS.primary, backgroundColor: isDisabled ? '#F9FAFB' : 'transparent', opacity: isDisabled ? 0.6 : 1 }]}
+          onPress={() => handleClaim(item)}
+          disabled={isDisabled}
+        >
+          <Text style={[styles.renewBtnText, { color: isDisabled ? '#9CA3AF' : COLORS.primary }]}>
+            {isClaimed ? '✓ Claimed' : 'Claim Warranty'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
 
   if (authLoading) return <View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.primary} /></View>;

@@ -114,6 +114,36 @@ export const getWarrantyById = async (id: string, userId: string) => {
     return data;
 };
 
+export const claimWarranty = async (id: string, userId: string) => {
+    // 1. Update status to 'Claimed'
+    const { data: result, error } = await supabase
+        .from('warranties')
+        .update({ status: 'Claimed' })
+        .eq('id', id)
+        .eq('userId', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    if (!result) throw new Error('Warranty not found');
+
+    // 2. Remove all pending scheduled reminders for this warranty
+    await removeScheduledReminders(id);
+
+    // 3. Insert an immediate in-app notification (scheduled_for = now)
+    await supabase.from('scheduled_notifications').insert({
+        user_id: userId,
+        reference_id: id,
+        reference_type: 'warranty',
+        title: `Warranty Claimed: ${result.product_name}`,
+        body: `You have successfully claimed the warranty for ${result.product_name}. No further reminders will be sent.`,
+        scheduled_for: new Date().toISOString(),
+        status: 'pending',
+    });
+
+    return result;
+};
+
 export const countDocumentsByUserId = async (userId: string): Promise<number> => {
     const { count, error } = await supabase
         .from('warranties')

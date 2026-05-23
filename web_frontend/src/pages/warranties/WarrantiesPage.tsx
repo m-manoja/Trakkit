@@ -17,6 +17,7 @@ import {
   fetchWarranties, 
   deleteWarranty, 
   saveWarranty, 
+  claimWarranty,
   type Warranty 
 } from "../../api/warranties";
 import WarrantyFormModal from "./WarrantyFormModal";
@@ -84,6 +85,19 @@ export default function WarrantiesPage() {
     } catch (err) {
       console.error("Failed to delete:", err);
       alert("Failed to delete warranty");
+    }
+  };
+
+  const handleClaim = async (warranty: Warranty) => {
+    if (!user?.token) return;
+    if (!window.confirm(`Are you sure you want to claim the warranty for "${warranty.product_name}"? This action cannot be undone.`)) return;
+
+    try {
+      await claimWarranty(warranty.id, user.token);
+      loadWarranties();
+    } catch (err: any) {
+      console.error("Claim error:", err);
+      alert(err?.message || "Failed to claim warranty");
     }
   };
 
@@ -210,14 +224,23 @@ export default function WarrantiesPage() {
 
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>Status</span>
-                    <span className={`${styles.statusBadge} ${warranty.status === 'Expired' ? styles.statusExpired : styles.statusActive}`}>
+                    <span className={`${styles.statusBadge} ${
+                      warranty.status === 'Expired' ? styles.statusExpired :
+                      warranty.status === 'Claimed' ? styles.statusClaimed :
+                      styles.statusActive
+                    }`}>
                       {warranty.status || 'Active'}
                     </span>
                   </div>
                 </div>
 
-                <button className={styles.claimButton}>
-                  Claim Warranty
+                <button 
+                  className={styles.claimButton}
+                  onClick={() => handleClaim(warranty)}
+                  disabled={warranty.status === 'Claimed' || warranty.status === 'Expired'}
+                  title={warranty.status === 'Claimed' ? 'Warranty already claimed' : warranty.status === 'Expired' ? 'Warranty has expired' : 'Claim this warranty'}
+                >
+                  {warranty.status === 'Claimed' ? '✓ Claimed' : 'Claim Warranty'}
                 </button>
               </div>
             ))}

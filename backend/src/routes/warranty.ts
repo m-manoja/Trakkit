@@ -13,5 +13,6 @@ router.get('/user/:userId', protect, warrantyController.getUserWarranties);
 router.get('/:id', protect, warrantyController.getWarranty);
 router.put('/:id', protect, upload.single('document'), warrantyController.editWarranty);
 router.delete('/:id', protect, warrantyController.removeWarranty);
+router.patch('/:id/claim', protect, warrantyController.claimWarranty);
 
 export default router;
