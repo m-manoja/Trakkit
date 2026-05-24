@@ -9,13 +9,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import { usePlan } from '../../src/hooks/usePlan';
+import { useItemSharing } from '../../src/hooks/useItemSharing';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
+import ShareModal from '../../src/components/ShareModal';
+import { ShareHeaderActions, SharePageNotices, shareCardStyles } from '../../src/components/SharePageHeader';
 
 export default function SubscriptionInitial() {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const token = user?.token;
+  const sharing = useItemSharing(isPremium, token);
 
   // --- DATA STATES ---
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -198,22 +204,49 @@ export default function SubscriptionInitial() {
     return { bg: '#FADBD8', text: '#E74C3C' };
   };
 
+  const filteredSubscriptions = subscriptions.filter((s) =>
+    s.service_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const SubscriptionCard = ({ item }: { item: any }) => {
     const status = getStatusStyle(item.status);
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
+          {sharing.bulkShareMode && isPremium && (
+            <TouchableOpacity style={shareCardStyles.checkbox} onPress={() => sharing.toggleSelect(item.id)}>
+              <Ionicons
+                name={sharing.selectedIds.has(item.id) ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={COLORS.primary}
+              />
+            </TouchableOpacity>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{item.service_name}</Text>
             <View style={styles.catBadge}><Text style={styles.catBadgeText}>{item.category}</Text></View>
           </View>
           <View style={styles.cardActions}>
-            <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionIcon}>
-              <Ionicons name="create-outline" size={22} color="#555" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(item.id, item.service_name)} style={styles.actionIcon}>
-              <Ionicons name="trash-outline" size={22} color="#E74C3C" />
-            </TouchableOpacity>
+            {isPremium && !sharing.bulkShareMode && (
+              <TouchableOpacity
+                style={shareCardStyles.cardShareBtn}
+                onPress={() =>
+                  sharing.openShare([{ itemType: 'subscription', itemId: item.id, label: item.service_name }])
+                }
+              >
+                <Ionicons name="share-social-outline" size={22} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+            {!sharing.bulkShareMode && (
+              <>
+                <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionIcon}>
+                  <Ionicons name="create-outline" size={22} color="#555" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(item.id, item.service_name)} style={styles.actionIcon}>
+                  <Ionicons name="trash-outline" size={22} color="#E74C3C" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -253,10 +286,34 @@ export default function SubscriptionInitial() {
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
           <Text style={styles.screenTitle}>Subscriptions</Text>
-          <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}>
-            <Ionicons name="add-circle" size={42} color={COLORS.primary} />
-          </TouchableOpacity>
+          <ShareHeaderActions
+            isPremium={isPremium}
+            bulkShareMode={sharing.bulkShareMode}
+            selectedCount={sharing.selectedIds.size}
+            onBulkShare={() =>
+              sharing.handleBulkShare(
+                () =>
+                  filteredSubscriptions
+                    .filter((s) => sharing.selectedIds.has(s.id))
+                    .map((s) => ({ itemType: 'subscription' as const, itemId: s.id, label: s.service_name })),
+                'Select at least one subscription.'
+              )
+            }
+            onEnterBulkMode={() => sharing.setBulkShareMode(true)}
+            onExitBulkMode={sharing.exitBulkMode}
+            addButton={
+              <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}>
+                <Ionicons name="add-circle" size={42} color={COLORS.primary} />
+              </TouchableOpacity>
+            }
+          />
         </View>
+        <SharePageNotices
+          isFree={isFree}
+          shareNotice={sharing.shareNotice}
+          upgradeTitle="Sharing mode"
+          upgradeDescription="Upgrade to Premium to share subscription reminders with other Trakkit users."
+        />
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
           <TextInput
@@ -271,7 +328,7 @@ export default function SubscriptionInitial() {
       {/* Main Content Area */}
       <View style={{ flex: 1 }}>
         <FlatList
-          data={subscriptions.filter(s => s.service_name.toLowerCase().includes(searchQuery.toLowerCase()))}
+          data={filteredSubscriptions}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => <SubscriptionCard item={item} />}
           contentContainerStyle={{ paddingBottom: 120 }} // Prevents overlapping with Nav bar
@@ -343,6 +400,17 @@ export default function SubscriptionInitial() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {token ? (
+        <ShareModal
+          visible={sharing.shareModalVisible}
+          onClose={sharing.closeShareModal}
+          items={sharing.shareItems}
+          token={token}
+          title="Share subscription"
+          onSuccess={sharing.showShareSuccess}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

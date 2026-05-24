@@ -7,11 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
 import Header from '../../src/components/Header';
+import GoogleCalendarSync from '../../src/components/GoogleCalendarSync';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,13 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setCalendarRefreshKey((k) => k + 1);
+    }, [])
+  );
 
   const fetchAll = useCallback(async () => {
     if (!token || !userId) return;
@@ -507,6 +515,7 @@ export default function DashboardHome() {
         {/* ─── CALENDAR ─── */}
         <SectionHeader title="Calendar" />
         <View style={styles.card}>
+          <GoogleCalendarSync refreshKey={calendarRefreshKey} />
           <MiniCalendar events={allEvents} />
         </View>
 

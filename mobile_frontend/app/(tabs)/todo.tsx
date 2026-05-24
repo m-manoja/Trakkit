@@ -9,13 +9,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import { usePlan } from '../../src/hooks/usePlan';
+import { useItemSharing } from '../../src/hooks/useItemSharing';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
+import ShareModal from '../../src/components/ShareModal';
+import { ShareHeaderActions, SharePageNotices, shareCardStyles } from '../../src/components/SharePageHeader';
 
 export default function TodoScreen() {
   const { user } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const token = user?.token;
+  const sharing = useItemSharing(isPremium, token);
 
   // --- STATES ---
   const [todos, setTodos] = useState<any[]>([]);
@@ -120,21 +126,45 @@ export default function TodoScreen() {
     }
   };
 
+  const filteredTodos = todos.filter((t) =>
+    t.task_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const TodoItem = ({ item }: { item: any }) => (
     <View style={styles.todoRow}>
-      <TouchableOpacity onPress={() => toggleComplete(item)}>
-        <Ionicons
-          name={item.is_completed ? "checkbox" : "square-outline"}
-          size={24}
-          color={COLORS.primary}
-        />
-      </TouchableOpacity>
+      {sharing.bulkShareMode && isPremium ? (
+        <TouchableOpacity style={shareCardStyles.checkbox} onPress={() => sharing.toggleSelect(item.id)}>
+          <Ionicons
+            name={sharing.selectedIds.has(item.id) ? 'checkbox' : 'square-outline'}
+            size={24}
+            color={COLORS.primary}
+          />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity onPress={() => toggleComplete(item)}>
+          <Ionicons
+            name={item.is_completed ? 'checkbox' : 'square-outline'}
+            size={24}
+            color={COLORS.primary}
+          />
+        </TouchableOpacity>
+      )}
       <Text style={[styles.todoText, item.is_completed && styles.todoTextDone]}>
         {item.task_name}
       </Text>
-      <TouchableOpacity onPress={() => handleDelete(item.id)}>
-        <Ionicons name="close" size={24} color="#000" />
-      </TouchableOpacity>
+      {isPremium && !sharing.bulkShareMode && (
+        <TouchableOpacity
+          style={shareCardStyles.cardShareBtn}
+          onPress={() => sharing.openShare([{ itemType: 'todo', itemId: item.id, label: item.task_name }])}
+        >
+          <Ionicons name="share-social-outline" size={22} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+      {!sharing.bulkShareMode && (
+        <TouchableOpacity onPress={() => handleDelete(item.id)}>
+          <Ionicons name="close" size={24} color="#000" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -148,10 +178,34 @@ export default function TodoScreen() {
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
           <Text style={styles.screenTitle}>TO DO List</Text>
-          <TouchableOpacity onPress={() => setIsFormVisible(true)}>
-            <Ionicons name="add-circle" size={42} color={COLORS.primary} />
-          </TouchableOpacity>
+          <ShareHeaderActions
+            isPremium={isPremium}
+            bulkShareMode={sharing.bulkShareMode}
+            selectedCount={sharing.selectedIds.size}
+            onBulkShare={() =>
+              sharing.handleBulkShare(
+                () =>
+                  filteredTodos
+                    .filter((t) => sharing.selectedIds.has(t.id))
+                    .map((t) => ({ itemType: 'todo' as const, itemId: t.id, label: t.task_name })),
+                'Select at least one task.'
+              )
+            }
+            onEnterBulkMode={() => sharing.setBulkShareMode(true)}
+            onExitBulkMode={sharing.exitBulkMode}
+            addButton={
+              <TouchableOpacity onPress={() => setIsFormVisible(true)}>
+                <Ionicons name="add-circle" size={42} color={COLORS.primary} />
+              </TouchableOpacity>
+            }
+          />
         </View>
+        <SharePageNotices
+          isFree={isFree}
+          shareNotice={sharing.shareNotice}
+          upgradeTitle="Sharing mode"
+          upgradeDescription="Upgrade to Premium to share to-do reminders with other Trakkit users."
+        />
 
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
@@ -165,7 +219,7 @@ export default function TodoScreen() {
       </View>
 
       <FlatList
-        data={todos.filter(t => t.task_name.toLowerCase().includes(searchQuery.toLowerCase()))}
+        data={filteredTodos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TodoItem item={item} />}
         contentContainerStyle={[todos.length > 0 ? styles.listContent : {}, { paddingBottom: 120 }]}
@@ -255,6 +309,17 @@ export default function TodoScreen() {
           </View>
         </View>
       </Modal>
+
+      {token ? (
+        <ShareModal
+          visible={sharing.shareModalVisible}
+          onClose={sharing.closeShareModal}
+          items={sharing.shareItems}
+          token={token}
+          title="Share task"
+          onSuccess={sharing.showShareSuccess}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -2,6 +2,18 @@ import { Request, Response } from 'express';
 import * as googleCalendarService from '../services/googleCalendar.service.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const MOBILE_APP_SCHEME = process.env.MOBILE_APP_SCHEME || 'mobilefrontend';
+
+function oauthRedirectUrl(
+  platform: googleCalendarService.OAuthPlatform,
+  params: Record<string, string>
+): string {
+  const qs = new URLSearchParams(params).toString();
+  if (platform === 'mobile') {
+    return `${MOBILE_APP_SCHEME}://google-calendar-callback?${qs}`;
+  }
+  return `${FRONTEND_URL}/dashboard?${qs}`;
+}
 
 export const getAuthUrl = async (req: Request, res: Response) => {
   try {
@@ -10,8 +22,11 @@ export const getAuthUrl = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
+    const platform: googleCalendarService.OAuthPlatform =
+      req.query.platform === 'mobile' ? 'mobile' : 'web';
+
     await googleCalendarService.assertPremium(userId);
-    const url = googleCalendarService.getAuthorizationUrl(userId);
+    const url = googleCalendarService.getAuthorizationUrl(userId, platform);
 
     return res.json({ success: true, data: { url } });
   } catch (error: any) {
@@ -20,28 +35,54 @@ export const getAuthUrl = async (req: Request, res: Response) => {
 };
 
 export const oauthCallback = async (req: Request, res: Response) => {
-  try {
-    const code = req.query.code as string | undefined;
-    const state = req.query.state as string | undefined;
-    const oauthError = req.query.error as string | undefined;
+  const oauthError = req.query.error as string | undefined;
+  const code = req.query.code as string | undefined;
+  const state = req.query.state as string | undefined;
 
+  let platform: googleCalendarService.OAuthPlatform = 'web';
+  if (state) {
+    try {
+      platform = googleCalendarService.parseOAuthState(state).platform;
+    } catch {
+      // fall back to web redirect
+    }
+  }
+
+  try {
     if (oauthError) {
-      return res.redirect(`${FRONTEND_URL}/dashboard?googleCalendar=error&message=${encodeURIComponent(oauthError)}`);
+      return res.redirect(
+        oauthRedirectUrl(platform, {
+          googleCalendar: 'error',
+          message: oauthError,
+        })
+      );
     }
 
     if (!code || !state) {
-      return res.redirect(`${FRONTEND_URL}/dashboard?googleCalendar=error&message=missing_code`);
+      return res.redirect(
+        oauthRedirectUrl(platform, {
+          googleCalendar: 'error',
+          message: 'missing_code',
+        })
+      );
     }
 
-    const { email } = await googleCalendarService.handleOAuthCallback(code, state);
+    const { email, platform: resolvedPlatform } = await googleCalendarService.handleOAuthCallback(code, state);
+    platform = resolvedPlatform;
 
     return res.redirect(
-      `${FRONTEND_URL}/dashboard?googleCalendar=connected&email=${encodeURIComponent(email)}`
+      oauthRedirectUrl(platform, {
+        googleCalendar: 'connected',
+        email,
+      })
     );
   } catch (error: any) {
     console.error('Google OAuth callback error:', error.message);
     return res.redirect(
-      `${FRONTEND_URL}/dashboard?googleCalendar=error&message=${encodeURIComponent(error.message)}`
+      oauthRedirectUrl(platform, {
+        googleCalendar: 'error',
+        message: error.message,
+      })
     );
   }
 };

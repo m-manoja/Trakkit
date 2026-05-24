@@ -9,15 +9,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
+import { usePlan } from '../../src/hooks/usePlan';
+import { useItemSharing } from '../../src/hooks/useItemSharing';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
+import ShareModal from '../../src/components/ShareModal';
+import { ShareHeaderActions, SharePageNotices, shareCardStyles } from '../../src/components/SharePageHeader';
 
 export default function RemindersScreen() {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const token = user?.token;
-
-  // --- DATA STATES ---
+  const sharing = useItemSharing(isPremium, token);
   const [reminders, setReminders] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +34,7 @@ export default function RemindersScreen() {
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
   const [editId, setEditId] = useState<string | null>(null);
 
-  // --- FORM DATA (Matching your screenshot) ---
+  // --- DATA STATES ---
   const [formData, setFormData] = useState<{
     title: string;
     type: string;
@@ -164,6 +168,10 @@ export default function RemindersScreen() {
     setPickerVisible(true);
   };
 
+  const filteredReminders = reminders.filter((r) =>
+    r.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // --- SUB-COMPONENTS ---
   const RadioButton = ({ label, value, field }: any) => (
     <TouchableOpacity
@@ -189,10 +197,34 @@ export default function RemindersScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
+            {sharing.bulkShareMode && isPremium && (
+              <TouchableOpacity style={shareCardStyles.checkbox} onPress={() => sharing.toggleSelect(item.id)}>
+                <Ionicons
+                  name={sharing.selectedIds.has(item.id) ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={COLORS.primary}
+                />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.cardTitle, sharing.bulkShareMode && isPremium && { flex: 1 }]}>{item.title}</Text>
             <View style={styles.cardActions}>
-              <TouchableOpacity onPress={() => handleEditPress(item)}><Ionicons name="create-outline" size={20} color="#555" /></TouchableOpacity>
-              <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => handleDelete(item.id, item.title)}><Ionicons name="trash-outline" size={20} color="#E74C3C" /></TouchableOpacity>
+              {isPremium && !sharing.bulkShareMode && (
+                <TouchableOpacity
+                  onPress={() => sharing.openShare([{ itemType: 'reminder', itemId: item.id, label: item.title }])}
+                >
+                  <Ionicons name="share-social-outline" size={20} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+              {!sharing.bulkShareMode && (
+                <>
+                  <TouchableOpacity style={{ marginLeft: 12 }} onPress={() => handleEditPress(item)}>
+                    <Ionicons name="create-outline" size={20} color="#555" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{ marginLeft: 12 }} onPress={() => handleDelete(item.id, item.title)}>
+                    <Ionicons name="trash-outline" size={20} color="#E74C3C" />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -238,8 +270,34 @@ export default function RemindersScreen() {
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
           <Text style={styles.screenTitle}>Reminder</Text>
-          <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}><Ionicons name="add-circle" size={42} color={COLORS.primary} /></TouchableOpacity>
+          <ShareHeaderActions
+            isPremium={isPremium}
+            bulkShareMode={sharing.bulkShareMode}
+            selectedCount={sharing.selectedIds.size}
+            onBulkShare={() =>
+              sharing.handleBulkShare(
+                () =>
+                  filteredReminders
+                    .filter((r) => sharing.selectedIds.has(r.id))
+                    .map((r) => ({ itemType: 'reminder' as const, itemId: r.id, label: r.title })),
+                'Select at least one reminder.'
+              )
+            }
+            onEnterBulkMode={() => sharing.setBulkShareMode(true)}
+            onExitBulkMode={sharing.exitBulkMode}
+            addButton={
+              <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}>
+                <Ionicons name="add-circle" size={42} color={COLORS.primary} />
+              </TouchableOpacity>
+            }
+          />
         </View>
+        <SharePageNotices
+          isFree={isFree}
+          shareNotice={sharing.shareNotice}
+          upgradeTitle="Sharing mode"
+          upgradeDescription="Upgrade to Premium to share reminders with other Trakkit users."
+        />
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
           <TextInput
@@ -252,7 +310,7 @@ export default function RemindersScreen() {
       </View>
 
       <FlatList
-        data={reminders.filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()))}
+        data={filteredReminders}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <ReminderCard item={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -370,6 +428,17 @@ export default function RemindersScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {token ? (
+        <ShareModal
+          visible={sharing.shareModalVisible}
+          onClose={sharing.closeShareModal}
+          items={sharing.shareItems}
+          token={token}
+          title="Share reminder"
+          onSuccess={sharing.showShareSuccess}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -13,7 +13,7 @@ function AuthGuard() {
 
     const root = segments[0];
     const inTabs = root === '(tabs)';
-    const needsAuth = inTabs || root === 'pricing';
+    const needsAuth = inTabs || root === 'pricing' || root === 'settings';
 
     if (!user && needsAuth) {
       router.replace('/login');
@@ -42,6 +42,8 @@ export default function RootLayout() {
         <Stack.Screen name="verification" />
         <Stack.Screen name="email_login" />
         <Stack.Screen name="pricing" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="google-calendar-callback" options={{ headerShown: false }} />
         <Stack.Screen
           name="(tabs)"
           options={{

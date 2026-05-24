@@ -7,8 +7,6 @@ import { COLORS } from '../../src/theme/colors';
 import { useAuth } from '../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getProfile } from '../../src/api/users';
-import NotificationSettingsModal from '../../src/components/NotificationSettingsModal';
-
 
 const { width } = Dimensions.get('window');
 
@@ -27,8 +25,6 @@ export default function ProfileScreen() {
     const { user, signOut } = useAuth();
     const router = useRouter();
     const [profileImage, setProfileImage] = useState<string | null>((user as any)?.profileImage || null);
-    const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-
     useFocusEffect(
         React.useCallback(() => {
             if (!user?.id) return;
@@ -93,14 +89,6 @@ export default function ProfileScreen() {
             bgColor: `${COLORS.primary}18`,
         },
         {
-            icon: 'notifications-outline',
-            label: 'Notifications',
-            subtitle: 'Manage alert preferences',
-            onPress: () => setSettingsModalVisible(true),
-            color: '#FF9500',
-            bgColor: '#FF950018',
-        },
-        {
             icon: 'diamond-outline',
             label: 'Trakkit Premium',
             subtitle: 'Upgrade plan & billing',
@@ -127,8 +115,8 @@ export default function ProfileScreen() {
         {
             icon: 'settings-outline',
             label: 'Settings',
-            subtitle: 'App preferences & configuration',
-            onPress: () => Alert.alert('Settings', 'Coming soon!'),
+            subtitle: 'Notifications, sharing & calendar',
+            onPress: () => router.push('/settings'),
             color: '#8E8E93',
             bgColor: '#8E8E9318',
         },
@@ -221,11 +209,6 @@ export default function ProfileScreen() {
                 {/* Version */}
                 <Text style={styles.version}>Trakkit v1.0.0</Text>
             </ScrollView>
-
-            <NotificationSettingsModal 
-                visible={settingsModalVisible} 
-                onClose={() => setSettingsModalVisible(false)} 
-            />
         </SafeAreaView>
     );
 }

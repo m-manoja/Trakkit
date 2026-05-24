@@ -72,29 +72,38 @@ export async function assertPremium(userId: string): Promise<void> {
   }
 }
 
-export function createOAuthState(userId: string): string {
+export type OAuthPlatform = 'web' | 'mobile';
+
+export function createOAuthState(userId: string, platform: OAuthPlatform = 'web'): string {
   return jwt.sign(
-    { userId, purpose: 'google_calendar' },
+    { userId, purpose: 'google_calendar', platform },
     config.jwt.secret,
     { expiresIn: '15m' }
   );
 }
 
-export function parseOAuthState(state: string): string {
-  const decoded = jwt.verify(state, config.jwt.secret) as { userId?: string; purpose?: string };
+export function parseOAuthState(state: string): { userId: string; platform: OAuthPlatform } {
+  const decoded = jwt.verify(state, config.jwt.secret) as {
+    userId?: string;
+    purpose?: string;
+    platform?: string;
+  };
   if (decoded.purpose !== 'google_calendar' || !decoded.userId) {
     throw new Error('Invalid OAuth state');
   }
-  return decoded.userId;
+  return {
+    userId: decoded.userId,
+    platform: decoded.platform === 'mobile' ? 'mobile' : 'web',
+  };
 }
 
-export function getAuthorizationUrl(userId: string): string {
+export function getAuthorizationUrl(userId: string, platform: OAuthPlatform = 'web'): string {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: SCOPES,
-    state: createOAuthState(userId),
+    state: createOAuthState(userId, platform),
   });
 }
 
@@ -130,8 +139,8 @@ async function oauth2ClientWithRefreshToken(refreshToken: string) {
   return oauth2;
 }
 
-export async function handleOAuthCallback(code: string, state: string): Promise<{ email: string }> {
-  const userId = parseOAuthState(state);
+export async function handleOAuthCallback(code: string, state: string): Promise<{ email: string; platform: OAuthPlatform }> {
+  const { userId, platform } = parseOAuthState(state);
   await assertPremium(userId);
 
   const oauth2 = getOAuth2Client();
@@ -162,7 +171,7 @@ export async function handleOAuthCallback(code: string, state: string): Promise<
     throw new Error(error.message);
   }
 
-  return { email };
+  return { email, platform };
 }
 
 export async function getConnectionStatus(userId: string): Promise<{

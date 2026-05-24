@@ -14,20 +14,34 @@ import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { usePlan } from '../../src/hooks/usePlan';
+import { useItemSharing } from '../../src/hooks/useItemSharing';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
+import ShareModal from '../../src/components/ShareModal';
+import { ShareHeaderActions, SharePageNotices, shareCardStyles } from '../../src/components/SharePageHeader';
+
+type PremiumUsage = {
+  plan: 'free' | 'premium';
+  document_count: number;
+  document_limit: number | null;
+  is_premium: boolean;
+};
 
 export default function WarrantyScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { isPremium, isFree } = usePlan();
   const token = user?.token;
+  const sharing = useItemSharing(isPremium, token);
 
   const [warranties, setWarranties] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [usage, setUsage] = useState<PremiumUsage | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
@@ -91,8 +105,21 @@ export default function WarrantyScreen() {
     }
   }, [token, user?.id]);
 
+  const fetchUsage = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/payment/usage`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsage(response.data?.data ?? null);
+    } catch {
+      setUsage(null);
+    }
+  }, [token]);
+
   useEffect(() => { 
     fetchWarranties();
+    fetchUsage();
     
     // Fetch global notification settings for the default reminder schedule
     if (token) {
@@ -102,7 +129,7 @@ export default function WarrantyScreen() {
         }
       }).catch(err => console.log('Failed to fetch default settings:', err));
     }
-  }, [fetchWarranties, token]);
+  }, [fetchWarranties, fetchUsage, token]);
 
   const handleSave = async () => {
     const { product_name, purchase_place, warranty_period, category, purchase_date, description, selectedFile, fileAction, reminder_schedule } = formData;
@@ -147,6 +174,7 @@ export default function WarrantyScreen() {
       setIsFormVisible(false);
       resetForm();
       fetchWarranties();
+      fetchUsage();
     } catch (error: any) {
       // Check if backend rejected due to freemium document limit
       const errorCode = error?.response?.data?.error_code;
@@ -154,7 +182,17 @@ export default function WarrantyScreen() {
 
       if (error?.response?.status === 403 && errorCode === 'DOCUMENT_LIMIT_REACHED') {
         setIsFormVisible(false);
-        setTimeout(() => router.push('/pricing'), 300);
+        const limit = error?.response?.data?.limit ?? 10;
+        const count = error?.response?.data?.current_count ?? currentCount ?? limit;
+        Alert.alert(
+          'Free plan upload limit reached',
+          `You already used ${count}/${limit} document uploads.\n\nUpgrade to Premium for unlimited uploads.`,
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'View plans', onPress: () => router.push('/pricing') },
+          ]
+        );
+        fetchUsage();
       } else {
         Alert.alert("Error", "Failed to save. Ensure backend is running.");
       }
@@ -198,6 +236,7 @@ export default function WarrantyScreen() {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               fetchWarranties();
+              fetchUsage();
             } catch (error) {
               Alert.alert("Error", "Could not delete. Please try again.");
             }
@@ -222,6 +261,7 @@ export default function WarrantyScreen() {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               fetchWarranties();
+              fetchUsage();
             } catch (error: any) {
               const msg = error?.response?.data?.message || "Could not claim warranty. Please try again.";
               Alert.alert("Error", msg);
@@ -337,6 +377,10 @@ export default function WarrantyScreen() {
     setPickerVisible(true);
   };
 
+  const filteredWarranties = warranties.filter((w) =>
+    w.product_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const WarrantyCard = ({ item }: { item: any }) => {
     const isClaimed = item.status === 'Claimed';
     const isExpired = item.status === 'Expired';
@@ -348,13 +392,36 @@ export default function WarrantyScreen() {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
+          {sharing.bulkShareMode && isPremium && (
+            <TouchableOpacity style={shareCardStyles.checkbox} onPress={() => sharing.toggleSelect(item.id)}>
+              <Ionicons
+                name={sharing.selectedIds.has(item.id) ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={COLORS.primary}
+              />
+            </TouchableOpacity>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{item.product_name}</Text>
             <View style={[styles.catBadge, { backgroundColor: '#FADBD8' }]}><Text style={[styles.catBadgeText, { color: COLORS.primary }]}>{item.category}</Text></View>
           </View>
           <View style={styles.cardActions}>
-            <TouchableOpacity onPress={() => handleEditPress(item)}><Ionicons name="create-outline" size={22} color="#555" /></TouchableOpacity>
-            <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => handleDelete(item.id)}><Ionicons name="trash-outline" size={22} color="#E74C3C" /></TouchableOpacity>
+            {isPremium && !sharing.bulkShareMode && (
+              <TouchableOpacity
+                style={shareCardStyles.cardShareBtn}
+                onPress={() =>
+                  sharing.openShare([{ itemType: 'warranty', itemId: item.id, label: item.product_name }])
+                }
+              >
+                <Ionicons name="share-social-outline" size={22} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+            {!sharing.bulkShareMode && (
+              <>
+                <TouchableOpacity onPress={() => handleEditPress(item)}><Ionicons name="create-outline" size={22} color="#555" /></TouchableOpacity>
+                <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => handleDelete(item.id)}><Ionicons name="trash-outline" size={22} color="#E74C3C" /></TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -410,8 +477,47 @@ export default function WarrantyScreen() {
       <View style={styles.subHeader}>
         <View style={styles.titleRow}>
           <Text style={[styles.screenTitle, { color: COLORS.textPrimary }]}>Warranty</Text>
-          <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}><Ionicons name="add-circle" size={42} color={COLORS.primary} /></TouchableOpacity>
+          <ShareHeaderActions
+            isPremium={isPremium}
+            bulkShareMode={sharing.bulkShareMode}
+            selectedCount={sharing.selectedIds.size}
+            onBulkShare={() =>
+              sharing.handleBulkShare(
+                () =>
+                  filteredWarranties
+                    .filter((w) => sharing.selectedIds.has(w.id))
+                    .map((w) => ({ itemType: 'warranty' as const, itemId: w.id, label: w.product_name })),
+                'Select at least one warranty.'
+              )
+            }
+            onEnterBulkMode={() => sharing.setBulkShareMode(true)}
+            onExitBulkMode={sharing.exitBulkMode}
+            addButton={
+              <TouchableOpacity onPress={() => { resetForm(); setIsFormVisible(true); }}>
+                <Ionicons name="add-circle" size={42} color={COLORS.primary} />
+              </TouchableOpacity>
+            }
+          />
         </View>
+        <SharePageNotices
+          isFree={isFree}
+          shareNotice={sharing.shareNotice}
+          upgradeTitle="Sharing mode"
+          upgradeDescription="Upgrade to Premium to share warranty reminders with other Trakkit users."
+        />
+        {usage?.document_limit != null && (
+          <TouchableOpacity style={styles.usageBanner} onPress={() => router.push('/pricing')}>
+            <Text style={styles.usageBannerText}>
+              Documents: <Text style={styles.usageCount}>{usage.document_count}</Text> / {usage.document_limit}
+            </Text>
+            <Text style={styles.usageUpgradeText}>Upgrade for unlimited</Text>
+          </TouchableOpacity>
+        )}
+        {usage?.is_premium && (
+          <View style={styles.premiumBanner}>
+            <Text style={styles.premiumBannerText}>Premium — unlimited document uploads</Text>
+          </View>
+        )}
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 10 }} />
           <TextInput
@@ -424,7 +530,7 @@ export default function WarrantyScreen() {
       </View>
 
       <FlatList
-        data={warranties.filter(w => w.product_name.toLowerCase().includes(searchQuery.toLowerCase()))}
+        data={filteredWarranties}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <WarrantyCard item={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -535,6 +641,17 @@ export default function WarrantyScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {token ? (
+        <ShareModal
+          visible={sharing.shareModalVisible}
+          onClose={sharing.closeShareModal}
+          items={sharing.shareItems}
+          token={token}
+          title="Share warranty"
+          onSuccess={sharing.showShareSuccess}
+        />
+      ) : null}
+
     </SafeAreaView>
   );
 }
@@ -556,6 +673,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9F4F4' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   subHeader: { paddingHorizontal: 20, marginTop: 15, marginBottom: 20 },
+  usageBanner: {
+    marginTop: 12,
+    marginBottom: 6,
+    backgroundColor: '#FFF6F8',
+    borderWidth: 1,
+    borderColor: '#F3D1DC',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  usageBannerText: { color: '#7A2846', fontSize: 13, fontWeight: '600' },
+  usageCount: { fontWeight: '800' },
+  usageUpgradeText: { color: COLORS.primary, fontSize: 12, fontWeight: '700' },
+  premiumBanner: {
+    marginTop: 12,
+    marginBottom: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  premiumBannerText: { color: '#065F46', fontSize: 13, fontWeight: '700' },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   screenTitle: { fontSize: 22, fontWeight: 'bold' },
   searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 10, marginTop: 15, height: 45, borderWidth: 1, borderColor: '#DDD' },
