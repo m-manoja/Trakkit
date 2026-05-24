@@ -2,6 +2,7 @@ import React, { useState, useRef, type KeyboardEvent, type ClipboardEvent } from
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyOTP, sendOTP } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import { normalizePlan } from "../../utils/plan";
 import BackupPasswordPrompt from "../../components/BackupPasswordPrompt";
 import styles from "./OTPVerification.module.css";
 
@@ -80,10 +81,10 @@ export default function OTPVerificationPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
-        plan: user.plan === 'premium' ? 'premium' : 'free',
+        plan: normalizePlan(user.plan),
       });
 
-      const backupPromptShown = (user as any).backupPromptShown ?? true;
+      const backupPromptShown = user.backupPromptShown ?? true;
       let target = returnTo || response.nextScreen;
       
       if (!target || target === '/dashboard' || target === '/index' || target === '/(tabs)') {

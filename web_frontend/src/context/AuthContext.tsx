@@ -7,6 +7,7 @@ import React, {
   useCallback,
   type ReactNode,
 } from "react";
+import { normalizePlan, type UserPlan } from "../utils/plan";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ export type AuthUser = {
   email?: string;
   profilePicture?: string;
   token: string;
-  plan?: 'free' | 'premium';
+  plan?: UserPlan;
 } | null;
 
 type AuthContextType = {
@@ -26,7 +27,7 @@ type AuthContextType = {
   setUser: (user: AuthUser) => void;
   signOut: () => void;
   loading: boolean;
-  refreshPlan: () => Promise<'free' | 'premium' | null>;
+  refreshPlan: () => Promise<UserPlan | null>;
 };
 
 // ─── Context ───────────────────────────────────────────────────────────────────
@@ -66,10 +67,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         );
         const json = await res.json();
         if (!cancelled && json.success && json.data?.plan) {
-          setUserState({ ...parsed, plan: json.data.plan });
+          const plan = normalizePlan(json.data.plan);
+          setUserState({ ...parsed, plan });
           localStorage.setItem(
             AUTH_STORAGE_KEY,
-            JSON.stringify({ ...parsed, plan: json.data.plan })
+            JSON.stringify({ ...parsed, plan })
           );
         }
       } catch (e) {
@@ -101,7 +103,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const signOut = () => setUser(null);
 
   // Called after a successful payment to refresh the plan from the server
-  const refreshPlan = useCallback(async (): Promise<'free' | 'premium' | null> => {
+  const refreshPlan = useCallback(async (): Promise<UserPlan | null> => {
     const current = userRef.current;
     if (!current?.token) return null;
 
@@ -112,7 +114,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       );
       const json = await res.json();
       if (json.success && json.data?.plan) {
-        const plan = json.data.plan === 'premium' ? 'premium' : 'free';
+        const plan = normalizePlan(json.data.plan);
         const next = { ...current, plan };
         setUserState(next);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));

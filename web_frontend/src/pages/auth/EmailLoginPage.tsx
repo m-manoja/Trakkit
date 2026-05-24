@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { emailLogin } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import { normalizePlan } from "../../utils/plan";
 import styles from "./EmailLoginPage.module.css";
 
 export default function EmailLoginPage() {
@@ -33,7 +34,7 @@ export default function EmailLoginPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
-        plan: user.plan === 'premium' ? 'premium' : 'free',
+        plan: normalizePlan(user.plan),
       });
 
       navigate("/dashboard", { replace: true });

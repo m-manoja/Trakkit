@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, Bell, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, Bell } from "lucide-react";
 import styles from "./MiniCalendar.module.css";
 
 export interface CalEvent {
