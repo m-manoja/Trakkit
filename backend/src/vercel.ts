@@ -1,3 +1,5 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 const required = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -14,4 +16,6 @@ if (missing.length > 0) {
 
 import app from "./app.js";
 
-export default app;
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  return app(req, res);
+}
