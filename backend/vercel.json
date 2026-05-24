@@ -2,7 +2,7 @@
   "version": 2,
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "builds": [{ "src": "api/index.ts", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "/api/index.ts" }]
+  "buildCommand": "npm run build:vercel",
+  "builds": [{ "src": "api/vercel.cjs", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/api/vercel.cjs" }]
 }

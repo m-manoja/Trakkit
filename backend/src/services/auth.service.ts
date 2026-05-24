@@ -1,8 +1,6 @@
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 import { supabase } from "../config/supabaseClient.js";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const bcrypt = require("bcryptjs") as typeof import("bcryptjs");
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const TEXTLK_API_URL = "https://app.text.lk/api/http/sms/send";
