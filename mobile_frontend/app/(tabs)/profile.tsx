@@ -101,6 +101,14 @@ export default function ProfileScreen() {
             bgColor: '#FF950018',
         },
         {
+            icon: 'diamond-outline',
+            label: 'Trakkit Premium',
+            subtitle: 'Upgrade plan & billing',
+            onPress: () => router.push('/pricing'),
+            color: COLORS.primary,
+            bgColor: `${COLORS.primary}18`,
+        },
+        {
             icon: 'shield-checkmark-outline',
             label: 'Privacy & Security',
             subtitle: 'Control your data & account',

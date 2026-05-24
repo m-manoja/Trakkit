@@ -3,23 +3,24 @@ import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { COLORS } from '../src/theme/colors';
 
-// ─── AUTH GUARD ───────────────────────────────────────────────────────────────
-// Watches the auth state and redirects to login or tabs as needed.
 function AuthGuard() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    if (loading) return; // Wait until AsyncStorage has been read
+    if (loading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)';
+    const root = segments[0];
+    const inTabs = root === '(tabs)';
+    const needsAuth = inTabs || root === 'pricing';
 
-    if (!user && inAuthGroup) {
-      // Signed out while on a protected tab — send to login
+    if (!user && needsAuth) {
       router.replace('/login');
-    } else if (user && !inAuthGroup && segments[0] !== 'verification' && segments[0] !== 'email_login') {
-      // Already logged in but on the login screen — send to tabs
+      return;
+    }
+
+    if (user && root === 'login') {
       router.replace('/(tabs)');
     }
   }, [user, loading, segments]);
@@ -27,7 +28,6 @@ function AuthGuard() {
   return null;
 }
 
-// ─── ROOT LAYOUT ──────────────────────────────────────────────────────────────
 export default function RootLayout() {
   return (
     <AuthProvider>
@@ -41,6 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="verification" />
         <Stack.Screen name="email_login" />
+        <Stack.Screen name="pricing" />
         <Stack.Screen
           name="(tabs)"
           options={{

@@ -12,13 +12,14 @@ import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { COLORS } from '../../src/theme/colors';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { API_BASE_URL } from '../../src/api/config';
 import { getNotificationSettings } from '../../src/api/users';
 import Header from '../../src/components/Header';
-import PremiumModal from '../../src/components/PremiumModal';
 
 export default function WarrantyScreen() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const token = user?.token;
 
@@ -31,7 +32,6 @@ export default function WarrantyScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
   const [editId, setEditId] = useState<string | null>(null);
-  const [premiumVisible, setPremiumVisible] = useState(false);
 
   const categories = ['Electronics', 'Appliances', 'Furniture', 'Vehicles', 'Other'];
   const durations = ['6', '12', '18', '24', '36', '48', '60'];
@@ -154,8 +154,7 @@ export default function WarrantyScreen() {
 
       if (error?.response?.status === 403 && errorCode === 'DOCUMENT_LIMIT_REACHED') {
         setIsFormVisible(false);
-        // Small delay so the form closes before the premium modal opens
-        setTimeout(() => setPremiumVisible(true), 300);
+        setTimeout(() => router.push('/pricing'), 300);
       } else {
         Alert.alert("Error", "Failed to save. Ensure backend is running.");
       }
@@ -536,8 +535,6 @@ export default function WarrantyScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Premium upgrade gate — shown when freemium doc limit is hit */}
-      <PremiumModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </SafeAreaView>
   );
 }

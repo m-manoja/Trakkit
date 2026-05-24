@@ -33,6 +33,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
     background: white;
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -70,7 +71,8 @@
   }
 
   .container {
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 1rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   }
 
   .sidebarWrapper {

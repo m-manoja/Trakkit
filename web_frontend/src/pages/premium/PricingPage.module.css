@@ -1,6 +1,6 @@
 .pageWrapper {
   min-height: 100%;
-  padding: 2rem 1rem 4rem;
+  padding: 0.5rem 0 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -286,6 +286,35 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   text-align: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mobileNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 1rem;
+  padding: 0.875rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.mobileNote p {
+  margin: 0;
+  flex: 1;
+}
+
+.mobileNote svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #9ca3af;
 }
 
 /* ── Sandbox Test Banner ──────────────────── */
@@ -359,11 +388,51 @@
 }
 
 @media (max-width: 640px) {
+  .pageWrapper {
+    padding: 0 0 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 2rem;
+  }
+
   .cardsGrid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .title {
-    font-size: 1.8rem;
+    font-size: 1.65rem;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .amount {
+    font-size: 2.5rem;
+  }
+
+  .upgradeBtn {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .popularBadge {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .divider {
+    margin: 2rem 0 1.25rem;
   }
 }

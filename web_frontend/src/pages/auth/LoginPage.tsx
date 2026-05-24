@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { sendOTP } from "../../api/auth";
 import styles from "./LoginPage.module.css";
 
@@ -17,6 +17,8 @@ const POPULAR_COUNTRIES = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { from?: string } | null)?.from;
 
   const [countryCode, setCountryCode] = useState("+94");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -36,7 +38,7 @@ export default function LoginPage() {
 
     try {
       await sendOTP(fullPhone);
-      navigate("/verify-otp", { state: { phone: fullPhone } });
+      navigate("/verify-otp", { state: { phone: fullPhone, from: returnTo } });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to send OTP. Please try again.");
     } finally {
@@ -69,7 +71,11 @@ export default function LoginPage() {
         {/* Form */}
         <div className={styles.formSection}>
           <h2 className={styles.title}>Welcome Back</h2>
-          <p className={styles.subtitle}>Enter your phone number to receive a verification code</p>
+          <p className={styles.subtitle}>
+            {returnTo === '/pricing'
+              ? 'Sign in with the same phone number as the Trakkit app to continue checkout.'
+              : 'Enter your phone number to receive a verification code'}
+          </p>
 
           <label className={styles.label}>Phone Number</label>
           <div className={styles.phoneRow}>

@@ -13,6 +13,7 @@ export default function OTPVerificationPage() {
   const { setUser } = useAuth();
 
   const phone: string = location.state?.phone ?? "";
+  const returnTo: string | undefined = location.state?.from;
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
@@ -83,10 +84,10 @@ export default function OTPVerificationPage() {
       });
 
       const backupPromptShown = (user as any).backupPromptShown ?? true;
-      let target = response.nextScreen;
+      let target = returnTo || response.nextScreen;
       
       if (!target || target === '/dashboard' || target === '/index' || target === '/(tabs)') {
-        target = '/dashboard';
+        target = returnTo || '/dashboard';
       }
       if (target === '/profile_setup') {
         target = '/profile_setup?isFirstSetup=true';

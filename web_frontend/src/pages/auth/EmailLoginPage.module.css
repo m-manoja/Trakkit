@@ -236,3 +236,20 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 480px) {
+  .page {
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .input {
+    min-height: 48px;
+  }
+}

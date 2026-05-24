@@ -9,6 +9,33 @@ export const PREMIUM_CURRENCY = 'LKR';
 /** orderId → userId, set when checkout is initiated */
 const pendingOrders = new Map<string, string>();
 
+/** One-time tokens so the phone browser can open checkout without JWT headers */
+const mobileCheckoutTokens = new Map<
+  string,
+  { userId: string; orderId: string; exp: number }
+>();
+
+export function createMobileCheckoutToken(userId: string, orderId: string): string {
+  const token = crypto.randomBytes(24).toString('hex');
+  mobileCheckoutTokens.set(token, {
+    userId,
+    orderId,
+    exp: Date.now() + 15 * 60 * 1000,
+  });
+  return token;
+}
+
+export function validateMobileCheckoutToken(
+  token: string,
+  orderId: string
+): string | undefined {
+  const entry = mobileCheckoutTokens.get(token);
+  if (!entry || entry.orderId !== orderId || entry.exp < Date.now()) {
+    return undefined;
+  }
+  return entry.userId;
+}
+
 // ─── PayHere Hash Generation ───────────────────────────────────────────────────
 // PayHere requires an MD5 hash to verify the payment request is genuine.
 // Formula: MD5(merchant_id + order_id + amount + currency + MD5(merchant_secret))
@@ -21,7 +48,7 @@ export function generatePayHereHash(
 ): string {
   const secretHash = crypto
     .createHash('md5')
-    .update(merchantSecret)
+    .update(merchantSecret.trim())
     .digest('hex')
     .toUpperCase();
 
@@ -48,7 +75,7 @@ export function verifyPayHereNotification(
 ): boolean {
   const secretHash = crypto
     .createHash('md5')
-    .update(merchantSecret)
+    .update(merchantSecret.trim())
     .digest('hex')
     .toUpperCase();
 

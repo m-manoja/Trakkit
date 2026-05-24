@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import Layout from '../../components/Layout';
+import CheckoutLayout from '../../components/CheckoutLayout';
 import styles from './PricingPage.module.css';
 import { useAuth } from '../../context/AuthContext';
 import { initiatePayment, type PaymentInitData } from '../../api/payment';
@@ -14,6 +14,7 @@ import {
   Users,
   Calendar,
   Bell,
+  Smartphone,
 } from 'lucide-react';
 
 // PayHere sandbox URL — switch to live URL after academic submission
@@ -70,7 +71,7 @@ export default function PricingPage() {
   };
 
   return (
-    <Layout>
+    <CheckoutLayout>
       <div className={styles.pageWrapper}>
         {/* ── Header ── */}
         <div className={styles.header}>
@@ -177,6 +178,14 @@ export default function PricingPage() {
           Secured by PayHere · Safe &amp; encrypted checkout
         </div>
 
+        <div className={styles.mobileNote}>
+          <Smartphone size={16} />
+          <p>
+            Opened from the Trakkit app? After payment, close this browser and return to the app —
+            Premium updates automatically.
+          </p>
+        </div>
+
         {/* ── Hidden PayHere Form ── */}
         {/* PayHere works by submitting a standard HTML form to their URL.
             We build the form in React state after getting data from our backend. */}
@@ -199,14 +208,14 @@ export default function PricingPage() {
             <input type="hidden" name="custom_1"      value={paymentData.userId} />
             <input type="hidden" name="first_name"    value={user?.firstName || ''} />
             <input type="hidden" name="last_name"     value={user?.lastName || ''} />
-            <input type="hidden" name="email"         value={user?.email || ''} />
-            <input type="hidden" name="phone"         value={user?.phone || ''} />
+            <input type="hidden" name="email"         value={user?.email?.includes('@') ? user.email : 'customer@trakkit.app'} />
+            <input type="hidden" name="phone"         value={(user?.phone || '0770000000').replace(/\s/g, '')} />
             <input type="hidden" name="address"       value="N/A" />
             <input type="hidden" name="city"          value="Colombo" />
             <input type="hidden" name="country"       value="Sri Lanka" />
           </form>
         )}
       </div>
-    </Layout>
+    </CheckoutLayout>
   );
 }

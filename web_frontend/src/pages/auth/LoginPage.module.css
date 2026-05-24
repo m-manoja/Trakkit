@@ -274,3 +274,37 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 480px) {
+  .page {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+  }
+
+  .card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+  }
+
+  .appName {
+    font-size: 1.85rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .phoneRow {
+    flex-direction: column;
+  }
+
+  .countrySelect,
+  .phoneInput,
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    min-height: 48px;
+  }
+}

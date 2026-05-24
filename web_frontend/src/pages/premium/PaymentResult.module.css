@@ -1,0 +1,172 @@
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fdf2f5 0%, #fff 60%);
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pageMuted {
+  background: #fafafa;
+}
+
+.card {
+  background: white;
+  border-radius: 24px;
+  padding: 2rem 1.5rem;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 48px rgba(185, 55, 93, 0.12);
+  border: 1px solid rgba(185, 55, 93, 0.1);
+}
+
+.cardMuted {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border-color: #e5e7eb;
+}
+
+.iconCircle {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #b9375d, #e05c85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 8px 24px rgba(185, 55, 93, 0.35);
+}
+
+.iconCircleMuted {
+  width: 72px;
+  height: 72px;
+  background: #fef2f2;
+  box-shadow: none;
+}
+
+.title {
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.hint {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  margin: 0 0 1.5rem;
+}
+
+.appNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  text-align: left;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.featureList {
+  text-align: left;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.primaryBtn {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, #b9375d, #e05c85);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(185, 55, 93, 0.35);
+}
+
+.outlineBtn {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.875rem 1rem;
+  background: white;
+  color: #b9375d;
+  border: 2px solid #b9375d;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+}
+
+.textBtn {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.textBtnPlain {
+  border: none;
+  margin-top: 0.25rem;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: 480px) {
+  .card {
+    padding: 3rem 2.5rem;
+  }
+}
