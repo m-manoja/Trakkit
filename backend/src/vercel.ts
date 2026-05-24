@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import app from "./app.js";
 
 const required = [
   "SUPABASE_URL",
@@ -7,15 +8,12 @@ const required = [
   "JWT_SECRET",
 ] as const;
 
-const missing = required.filter((key) => !process.env[key]);
-if (missing.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${missing.join(", ")}. Add them in Vercel → Settings → Environment Variables.`
-  );
-}
-
-import app from "./app.js";
-
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    return res.status(500).json({
+      error: `Missing required environment variables: ${missing.join(", ")}. Add them in Vercel → Settings → Environment Variables.`,
+    });
+  }
   return app(req, res);
 }
