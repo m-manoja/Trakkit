@@ -361,7 +361,7 @@ async function dedupeTrakkitKey(
   const ids = await listGoogleEventIdsByTrakkitKey(calendar, trakkitKey);
   if (ids.length === 0) return { keepId: null, duplicatesRemoved: 0 };
 
-  const keepId = ids[0];
+  const keepId = ids[0] ?? null;
   let duplicatesRemoved = 0;
   for (let i = 1; i < ids.length; i++) {
     await calendar.events.delete({ calendarId: CALENDAR_ID, eventId: ids[i] });
