@@ -1,5 +1,5 @@
 node_modules
 .env
 coverage
-api/*.cjs
-api/*.cjs.map
+api/index.js
+api/index.js.map

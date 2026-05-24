@@ -3,6 +3,5 @@
   "framework": null,
   "installCommand": "npm install",
   "buildCommand": "npm run build:vercel",
-  "builds": [{ "src": "api/vercel.cjs", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "/api/vercel.cjs" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
 }

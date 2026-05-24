@@ -1,14 +1,14 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/vercel.ts"],
+  entry: { index: "src/vercel.ts" },
   format: ["cjs"],
   platform: "node",
   target: "node20",
   outDir: "api",
-  outExtension: () => ({ js: ".cjs" }),
+  outExtension: () => ({ js: ".js" }),
   bundle: true,
   splitting: false,
-  clean: true,
+  clean: false,
   sourcemap: true,
 });
