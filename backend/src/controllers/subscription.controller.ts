@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import * as subscriptionService from '../services/subscription.service';
+import * as subscriptionService from '../services/subscription.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
 
 function userIdFromRequest(req: Request): string | undefined {

@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../config/supabaseClient.js';
 import { scheduleTodoReminder, removeScheduledReminders } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
 

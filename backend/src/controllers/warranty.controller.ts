@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import * as warrantyService from '../services/warranty.service';
+import * as warrantyService from '../services/warranty.service.js';
 import { getUserPlan, FREE_PLAN_DOCUMENT_LIMIT } from '../services/payment.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../config/supabaseClient.js';
 
 function userIdFromRequest(req: Request): string | undefined {
     const user = (req as any).user;

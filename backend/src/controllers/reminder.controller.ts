@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import * as reminderService from '../services/reminder.service';
+import * as reminderService from '../services/reminder.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
 
 function userIdFromRequest(req: Request): string | undefined {

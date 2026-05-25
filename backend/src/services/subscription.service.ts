@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../config/supabaseClient.js';
 import { scheduleSubscriptionReminders, scheduleSubscriptionRemindersForDate, removeScheduledReminders, getInitialSubscriptionDueDate, advanceOneCycle, toLocalDateStr } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
 

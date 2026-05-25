@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../config/supabaseClient.js';
 
 /**
  * Parses a YYYY-MM-DD string as LOCAL midnight (not UTC midnight).

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as subscriptionController from '../controllers/subscription.controller';
-import { protect } from '../middlewares/auth.middleware';
+import * as subscriptionController from '../controllers/subscription.controller.js';
+import { protect } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 

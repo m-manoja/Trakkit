@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as reminderController from '../controllers/reminder.controller';
-import { protect } from '../middlewares/auth.middleware'; // Your existing auth guard
+import * as reminderController from '../controllers/reminder.controller.js';
+import { protect } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 

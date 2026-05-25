@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as warrantyController from '../controllers/warranty.controller';
-import { protect } from '../middlewares/auth.middleware';
+import * as warrantyController from '../controllers/warranty.controller.js';
+import { protect } from '../middlewares/auth.middleware.js';
 import multer from 'multer';
 
 const router = Router();
