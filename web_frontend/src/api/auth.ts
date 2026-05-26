@@ -85,3 +85,47 @@ export async function emailLogin(
 
   return result as EmailLoginResponse;
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to send reset email");
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to reset password");
+}
+
+export async function sendEmailVerification(token: string, email: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ email }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to send verification email");
+}
+
+export async function confirmEmailVerification(token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Verification failed");
+}

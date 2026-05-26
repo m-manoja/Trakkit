@@ -8,7 +8,7 @@ interface SubscriptionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: Subscription | null;
-  onSubmit: (formData: any, editId: string | null) => void;
+  onSubmit: (formData: Record<string, unknown>, editId: string | null) => void;
   isSaving: boolean;
 }
 
@@ -77,7 +77,7 @@ export default function SubscriptionFormModal({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>{initialData ? "Edit Subscription" : "Add Subscription"}</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
@@ -116,6 +116,7 @@ export default function SubscriptionFormModal({
                 <select
                   required
                   className={styles.formSelect}
+                  title="Billing cycle"
                   value={formData.billing_cycle}
                   onChange={(e) => setFormData({...formData, billing_cycle: e.target.value})}
                 >
@@ -128,6 +129,7 @@ export default function SubscriptionFormModal({
                 <select
                   required
                   className={styles.formSelect}
+                  title="Category"
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                 >

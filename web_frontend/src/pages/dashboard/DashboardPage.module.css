@@ -151,6 +151,11 @@
   justify-content: center;
 }
 
+.statIcon[data-type="warranty"]     { background-color: rgba(185, 55, 93, 0.082);  color: #B9375D; }
+.statIcon[data-type="subscription"] { background-color: rgba(210, 93, 93, 0.082);  color: #D25D5D; }
+.statIcon[data-type="todo"]         { background-color: rgba(46, 204, 113, 0.082); color: #2ECC71; }
+.statIcon[data-type="notification"] { background-color: rgba(241, 196, 15, 0.082); color: #F1C40F; }
+
 .statInfo {
   flex: 1;
 }
@@ -212,6 +217,11 @@
   align-items: center;
   justify-content: center;
 }
+
+.quickActionIcon[data-type="warranty"]     { background-color: rgba(185, 55, 93, 0.082);  color: #B9375D; }
+.quickActionIcon[data-type="subscription"] { background-color: rgba(210, 93, 93, 0.082);  color: #D25D5D; }
+.quickActionIcon[data-type="reminder"]     { background-color: rgba(139, 92, 246, 0.082); color: #8B5CF6; }
+.quickActionIcon[data-type="todo"]         { background-color: rgba(46, 204, 113, 0.082); color: #2ECC71; }
 
 .quickActionLabel {
   font-size: 0.875rem;
@@ -294,6 +304,11 @@
   color: var(--text-secondary);
 }
 
+.itemIcon[data-type="warranty"]     { background-color: rgba(185, 55, 93, 0.082);  color: #B9375D; }
+.itemIcon[data-type="subscription"] { background-color: rgba(210, 93, 93, 0.082);  color: #D25D5D; }
+.itemIcon[data-type="todo"]         { background-color: rgba(46, 204, 113, 0.082); color: #2ECC71; }
+.itemIcon[data-type="reminder"]     { background-color: rgba(139, 92, 246, 0.082); color: #8B5CF6; }
+
 .itemContent {
   flex: 1;
 }
@@ -307,6 +322,32 @@
 .itemSub {
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+.sectionFullWidth {
+  grid-column: 1 / -1;
+}
+
+.badgePrimary {
+  padding: 0.35rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--primary);
+  color: white;
+}
+
+.badgeGray {
+  padding: 0.35rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.listItemClickable {
+  cursor: pointer;
 }
 
 .badge, .badgeUrgent {

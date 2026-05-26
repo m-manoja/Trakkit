@@ -18,7 +18,7 @@ export interface NotificationSettings {
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {
-  const result = await apiRequest<any>("/api/users/profile", "GET", undefined, token);
+  const result = await apiRequest<UserProfile>("/api/users/profile", "GET", undefined, token);
   // the client.ts returns result.data which might be what we need, but let's check profile controller in backend.
   // getProfile returns { success: true, data: profile }
   // wait, apiRequest extracts `result.data`. So it returns `UserProfile` directly!

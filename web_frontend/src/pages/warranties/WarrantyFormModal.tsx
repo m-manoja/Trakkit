@@ -68,6 +68,8 @@ export default function WarrantyFormModal({
 
   if (!isOpen) return null;
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -76,6 +78,10 @@ export default function WarrantyFormModal({
 
   const handleSubmitWrapper = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.purchase_date > today) {
+      alert("Purchase date cannot be in the future. Please enter the actual purchase date.");
+      return;
+    }
     const submitData = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       submitData.append(key, value);
@@ -93,7 +99,7 @@ export default function WarrantyFormModal({
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2>{initialData ? 'Edit Warranty' : 'Add New Warranty'}</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} title="Close">
             <X size={24} />
           </button>
         </div>
@@ -115,8 +121,9 @@ export default function WarrantyFormModal({
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Duration (Months)</label>
-                <select 
+                <select
                   className={styles.formSelect}
+                  title="Duration in months"
                   value={formData.warranty_period}
                   onChange={(e) => setFormData({...formData, warranty_period: e.target.value})}
                 >
@@ -125,8 +132,9 @@ export default function WarrantyFormModal({
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Category</label>
-                <select 
+                <select
                   className={styles.formSelect}
+                  title="Category"
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                 >
@@ -137,10 +145,11 @@ export default function WarrantyFormModal({
 
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Purchase Date *</label>
-              <input 
-                type="date" 
-                className={styles.formInput} 
+              <input
+                type="date"
+                className={styles.formInput}
                 required
+                max={today}
                 value={formData.purchase_date}
                 onChange={(e) => setFormData({...formData, purchase_date: e.target.value})}
               />
@@ -166,9 +175,9 @@ export default function WarrantyFormModal({
                   className={styles.fileUploadArea}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <UploadCloud size={32} color="#9CA3AF" style={{ marginBottom: '8px' }} />
+                  <UploadCloud size={32} color="#9CA3AF" className={styles.uploadIcon} />
                   <p>Click to browse or drag and drop</p>
-                  <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>PNG, JPG, PDF up to 10MB</span>
+                  <span className={styles.fileHint}>PNG, JPG, PDF up to 10MB</span>
                 </div>
               ) : (
                 <div className={styles.fileInfo}>
@@ -193,12 +202,14 @@ export default function WarrantyFormModal({
                 </div>
               )}
               
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                style={{ display: 'none' }} 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className={styles.fileInputHidden}
                 accept=".pdf,image/*"
+                aria-hidden="true"
+                tabIndex={-1}
               />
 
               {selectedFile && existingUrl && (

@@ -87,11 +87,11 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
     <div className={styles.wrapper}>
       {/* Header */}
       <div className={styles.header}>
-        <button onClick={prevMonth} className={styles.navBtn}>
+        <button onClick={prevMonth} className={styles.navBtn} title="Previous month" aria-label="Previous month">
           <ChevronLeft size={20} />
         </button>
         <h3 className={styles.monthLabel}>{monthLabel}</h3>
-        <button onClick={nextMonth} className={styles.navBtn}>
+        <button onClick={nextMonth} className={styles.navBtn} title="Next month" aria-label="Next month">
           <ChevronRight size={20} />
         </button>
       </div>
@@ -133,7 +133,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
                         <span
                           key={t}
                           className={styles.dot}
-                          style={{ backgroundColor: TYPE_COLORS[t] || "#999" }}
+                          data-type={t}
                         />
                       ))}
                     </div>
@@ -149,7 +149,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
       <div className={styles.legend}>
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
           <div key={type} className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ backgroundColor: color }} />
+            <span className={styles.legendDot} data-type={type} />
             <span className={styles.legendLabel}>
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </span>
@@ -172,9 +172,9 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
             ) : (
               selectedEvents.map((ev, i) => (
                 <div key={i} className={styles.eventItem}>
-                  <div 
-                    className={styles.eventIcon} 
-                    style={{ backgroundColor: `${TYPE_COLORS[ev.type]}20`, color: TYPE_COLORS[ev.type] }}
+                  <div
+                    className={styles.eventIcon}
+                    data-type={ev.type}
                   >
                     {ev.type === "warranty" ? <ShieldCheckIcon size={16} /> : 
                      ev.type === "subscription" ? <Clock size={16} /> :
@@ -182,9 +182,9 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
                   </div>
                   <div className={styles.eventInfo}>
                     <p className={styles.eventTitle}>{ev.label}</p>
-                    <span 
+                    <span
                       className={styles.eventType}
-                      style={{ color: TYPE_COLORS[ev.type], backgroundColor: `${TYPE_COLORS[ev.type]}15` }}
+                      data-type={ev.type}
                     >
                       {ev.type.charAt(0).toUpperCase() + ev.type.slice(1)}
                     </span>
@@ -200,7 +200,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
 }
 
 // Temporary icon to avoid importing many lucide icons
-function ShieldCheckIcon(props: any) {
+function ShieldCheckIcon(props: React.SVGProps<SVGSVGElement> & { size?: number }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={props.size} height={props.size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

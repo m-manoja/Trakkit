@@ -38,7 +38,9 @@ export default function EmailLoginScreen() {
         lastName: user.lastName || '',
         email: user.email || '',
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      } as any);
+        profileCompleted: true,
+        emailVerified: user.emailVerified ?? true,
+      });
 
       router.replace('/(tabs)');
     } catch (err: any) {
@@ -116,6 +118,14 @@ export default function EmailLoginScreen() {
               : <Text style={styles.loginBtnText}>Sign In</Text>
             }
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/forgot-password' as any)}
+            style={styles.forgotBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.hint}>
@@ -177,4 +187,7 @@ const styles = StyleSheet.create({
   loginBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 
   hint: { marginTop: 24, textAlign: 'center', fontSize: 12, color: '#AAA', lineHeight: 18 },
+
+  forgotBtn: { marginTop: 16, alignItems: 'center', padding: 6 },
+  forgotText: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
 });

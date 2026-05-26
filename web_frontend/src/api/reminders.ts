@@ -23,7 +23,7 @@ export async function deleteReminder(id: string, token: string): Promise<void> {
 
 export async function saveReminder(
   id: string | null,
-  data: any,
+  data: Record<string, unknown>,
   token: string
 ): Promise<Reminder> {
   const endpoint = id ? `/api/reminders/${id}` : "/api/reminders/add";

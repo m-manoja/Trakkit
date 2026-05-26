@@ -1,5 +1,12 @@
 import type { Request, Response } from "express";
-import { requestOtp, verifyOtp as verifyOtpService } from "../services/auth.service.js";
+import {
+  requestOtp,
+  verifyOtp as verifyOtpService,
+  requestPasswordReset,
+  confirmPasswordReset,
+  requestEmailVerification,
+  confirmEmailVerification,
+} from "../services/auth.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
@@ -60,12 +67,12 @@ export async function verifyOtp(req: Request, res: Response) {
   const cleanPhone = sanitizePhone(phone);
 
   try {
-    const authData = await verifyOtpService(cleanPhone, token);
+    await verifyOtpService(cleanPhone, token);
 
     // Check user in DB using the standardized number
     const { data: userProfile, error } = await supabase
       .from('users')
-      .select('id, phone, first_name, last_name, email, profile_completed, created_at, plan, plan_activated_at')
+      .select('id, phone, first_name, last_name, email, profile_completed, email_verified, created_at, plan, plan_activated_at')
       .eq('phone', cleanPhone)
       .single();
 
@@ -95,6 +102,7 @@ export async function verifyOtp(req: Request, res: Response) {
         email: userProfile.email,
         createdAt: userProfile.created_at,
         profileCompleted: userProfile.profile_completed,
+        emailVerified: userProfile.email_verified ?? false,
         plan: userProfile.plan ?? 'free',
         planActivatedAt: userProfile.plan_activated_at ?? null,
       },
@@ -104,5 +112,58 @@ export async function verifyOtp(req: Request, res: Response) {
   } catch (err) {
     console.error('OTP verification error:', err);
     return res.status(500).json({ error: "Verification failed" });
+  }
+}
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  try {
+    await requestPasswordReset(email.trim());
+    return res.json({ message: 'Reset link sent! Check your inbox.' });
+  } catch (err: any) {
+    return res.status(err.status || 500).json({ error: err.message || 'Failed to send reset email' });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Token and new password are required' });
+  }
+  try {
+    await confirmPasswordReset(token, password);
+    return res.json({ message: 'Password updated successfully' });
+  } catch (err: any) {
+    return res.status(err.status || 400).json({ error: err.message });
+  }
+}
+
+export async function sendVerifyEmail(req: Request, res: Response) {
+  const userId = (req as any).user?.id;
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  try {
+    await requestEmailVerification(userId, email.trim());
+    return res.json({ message: 'Verification email sent' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to send verification email' });
+  }
+}
+
+export async function verifyEmail(req: Request, res: Response) {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+  try {
+    const { email } = await confirmEmailVerification(token);
+    return res.json({ message: 'Email verified successfully', email });
+  } catch (err: any) {
+    return res.status(err.status || 400).json({ error: err.message });
   }
 }

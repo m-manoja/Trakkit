@@ -93,6 +93,13 @@ export default function RemindersScreen() {
       return;
     }
 
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (reminder_date < todayStart) {
+      Alert.alert("Invalid Date", "Reminder date cannot be in the past. Please choose today or a future date.");
+      return;
+    }
+
     setIsActionLoading(true);
     try {
       const payload = {
@@ -253,6 +260,7 @@ export default function RemindersScreen() {
               </View>
             )}
           </View>
+          {item.description ? <Text style={styles.cardDescription}>{item.description}</Text> : null}
         </View>
       </View>
     );
@@ -411,6 +419,7 @@ export default function RemindersScreen() {
           <DateTimePicker
             value={formData.reminder_date}
             mode="date"
+            minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
             onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, reminder_date: d }); }}
           />
         )}
@@ -459,6 +468,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a1a1a', flex: 1, marginRight: 12 },
   cardActions: { flexDirection: 'row' },
   cardContent: { marginTop: 8 },
+  cardDescription: { fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 18 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   dateText: { fontSize: 15, fontWeight: '600', color: '#2c3e50' },
   statusBadge: { backgroundColor: '#27ae60', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },

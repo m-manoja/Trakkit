@@ -51,20 +51,14 @@
   margin-bottom: 2rem;
 }
 
-.logoRing {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(185, 55, 93, 0.15), rgba(210, 93, 93, 0.1));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.logoImg {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
   margin-bottom: 0.75rem;
-  box-shadow: 0 8px 24px rgba(185, 55, 93, 0.18);
-}
-
-.logoEmoji {
-  font-size: 2.2rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .appName {
@@ -264,6 +258,17 @@
   text-align: center;
   margin: 0.75rem 0 0;
   line-height: 1.5;
+}
+
+.lostPhoneLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
 }
 
 @keyframes slideUp {

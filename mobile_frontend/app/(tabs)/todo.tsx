@@ -80,6 +80,15 @@ export default function TodoScreen() {
       return;
     }
 
+    if (formData.has_reminder) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (formData.reminder_date < todayStart) {
+        Alert.alert("Invalid Date", "Reminder date cannot be in the past. Please choose today or a future date.");
+        return;
+      }
+    }
+
     setIsActionLoading(true);
     try {
       const payload = {
@@ -303,6 +312,7 @@ export default function TodoScreen() {
               <DateTimePicker
                 value={formData.reminder_date}
                 mode="date"
+                minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
                 onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, reminder_date: d }); }}
               />
             )}

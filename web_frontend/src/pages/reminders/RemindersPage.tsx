@@ -52,7 +52,7 @@ export default function RemindersPage() {
       const data = await fetchReminders(user.id, user.token);
       setReminders(data || []);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load reminders:", err);
       setError("Failed to load reminders. Please try again.");
     } finally {
@@ -62,6 +62,7 @@ export default function RemindersPage() {
 
   useEffect(() => {
     loadReminders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function RemindersPage() {
     }
   };
 
-  const handleSaveReminder = async (formData: any, editId: string | null) => {
+  const handleSaveReminder = async (formData: Record<string, unknown>, editId: string | null) => {
     if (!user?.token) return;
 
     try {
@@ -105,9 +106,9 @@ export default function RemindersPage() {
       await saveReminder(editId, formData, user.token);
       handleCloseModal();
       loadReminders();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Save error:", err);
-      alert(err.message || "Failed to save reminder");
+      alert(err instanceof Error ? err.message : "Failed to save reminder");
     } finally {
       setIsSaving(false);
     }
@@ -172,7 +173,7 @@ export default function RemindersPage() {
                   <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
                     <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
                   </button>
-                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                  <button type="button" className={`${styles.addButton} ${styles.addButtonGray}`} onClick={exitBulkMode}>Cancel</button>
                 </>
               ) : (
                 <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
@@ -187,7 +188,7 @@ export default function RemindersPage() {
           </div>
         </header>
 
-        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>{shareNotice}</div>}
+        {shareNotice && <div className={styles.shareNotice}>{shareNotice}</div>}
         {isFree && (
           <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share reminders with other Trakkit users." />
         )}
@@ -223,9 +224,9 @@ export default function RemindersPage() {
             {filteredReminders.map((rem) => (
               <div key={rem.id} className={styles.reminderCard}>
                 <div className={styles.cardHeader}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div className={styles.cardTitleRow}>
                     {bulkShareMode && isPremium && (
-                      <input type="checkbox" checked={selectedIds.has(rem.id)} onChange={() => toggleSelect(rem.id)} style={{ marginTop: 4 }} />
+                      <input type="checkbox" checked={selectedIds.has(rem.id)} onChange={() => toggleSelect(rem.id)} className={styles.bulkCheckbox} />
                     )}
                     <div>
                       <h3 className={styles.cardTitle}>{rem.title}</h3>
@@ -238,10 +239,10 @@ export default function RemindersPage() {
                         <Share2 size={18} />
                       </button>
                     )}
-                    <button className={styles.iconButton} onClick={() => handleOpenModal(rem)}>
+                    <button className={styles.iconButton} title="Edit" onClick={() => handleOpenModal(rem)}>
                       <Edit2 size={18} />
                     </button>
-                    <button className={styles.iconButton} onClick={() => handleDelete(rem.id)}>
+                    <button className={styles.iconButton} title="Delete" onClick={() => handleDelete(rem.id)}>
                       <Trash2 size={18} color="#EF4444" />
                     </button>
                   </div>
@@ -271,6 +272,9 @@ export default function RemindersPage() {
                       Active
                     </span>
                   </div>
+                  {rem.description && (
+                    <p className={styles.cardDescription}>{rem.description}</p>
+                  )}
                 </div>
               </div>
             ))}

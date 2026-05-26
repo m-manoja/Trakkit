@@ -1,6 +1,8 @@
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { supabase } from "../config/supabaseClient.js";
+import { sendPasswordResetEmail, sendEmailVerificationEmail } from "./email.service.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const TEXTLK_API_URL = "https://app.text.lk/api/http/sms/send";
@@ -179,6 +181,104 @@ export async function dismissBackupPrompt(userId: string) {
   if (error) throw new AuthServiceError(error.message, 500);
 }
 
+// ─── PASSWORD RESET ───────────────────────────────────────────────────────────
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, password_hash')
+    .eq('backup_email', email.toLowerCase())
+    .maybeSingle();
+
+  if (!user || !user.password_hash) {
+    throw new AuthServiceError(
+      'This email is not registered as a backup email. Please use the email you set up for account recovery.',
+      404
+    );
+  }
+
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const token = jwt.sign(
+    { userId: user.id, type: 'password-reset', fp: (user.password_hash as string).slice(-8) },
+    secret,
+    { expiresIn: '1h' }
+  );
+
+  await sendPasswordResetEmail(email, `${appUrl}/reset-password?token=${token}`);
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  let payload: any;
+  try {
+    payload = jwt.verify(token, secret);
+  } catch {
+    throw new AuthServiceError('Reset link is invalid or expired', 400);
+  }
+
+  if (payload.type !== 'password-reset') {
+    throw new AuthServiceError('Invalid token', 400);
+  }
+
+  if (newPassword.length < 8) {
+    throw new AuthServiceError('Password must be at least 8 characters', 400);
+  }
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, password_hash')
+    .eq('id', payload.userId)
+    .maybeSingle();
+
+  if (!user || !user.password_hash) {
+    throw new AuthServiceError('User not found', 404);
+  }
+
+  if ((user.password_hash as string).slice(-8) !== payload.fp) {
+    throw new AuthServiceError('Reset link has already been used', 400);
+  }
+
+  const hash = await bcrypt.hash(newPassword, 12);
+  const { error } = await supabase.from('users').update({ password_hash: hash }).eq('id', user.id);
+  if (error) throw new AuthServiceError(error.message, 500);
+}
+
+// ─── EMAIL VERIFICATION ───────────────────────────────────────────────────────
+
+export async function requestEmailVerification(userId: string, email: string): Promise<void> {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const token = jwt.sign(
+    { userId, email, type: 'email-verify' },
+    secret,
+    { expiresIn: '24h' }
+  );
+
+  await sendEmailVerificationEmail(email, `${appUrl}/verify-email?token=${token}`);
+}
+
+export async function confirmEmailVerification(token: string): Promise<{ email: string }> {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  let payload: any;
+  try {
+    payload = jwt.verify(token, secret);
+  } catch {
+    throw new AuthServiceError('Verification link is invalid or expired', 400);
+  }
+
+  if (payload.type !== 'email-verify') {
+    throw new AuthServiceError('Invalid token', 400);
+  }
+
+  await supabase
+    .from('users')
+    .update({ email_verified: true })
+    .eq('id', payload.userId);
+
+  return { email: payload.email };
+}
+
 /**
  * Log in using backup email + password.
  * Returns the full user row on success.
@@ -186,7 +286,7 @@ export async function dismissBackupPrompt(userId: string) {
 export async function loginWithEmail(email: string, password: string) {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown, plan, plan_activated_at')
+    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown, email_verified, plan, plan_activated_at')
     .eq('backup_email', email.toLowerCase())
     .maybeSingle();
 

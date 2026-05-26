@@ -34,6 +34,7 @@ function FieldRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderFields(type: string, detail: any) {
   if (!detail) return null;
   switch (type) {
@@ -92,9 +93,11 @@ export default function NotificationsPage() {
 
   // Detail modal
   const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [itemDetail, setItemDetail] = useState<any>(null);
   const [itemLoading, setItemLoading] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadNotifications(); }, [user]);
 
   // Fetch linked item when a notification is selected
@@ -224,23 +227,27 @@ export default function NotificationsPage() {
                 className={`${styles.notificationCard} ${
                   notif.status === "pending" || notif.status === "notified" ? styles.unread : ""
                 }`}
-                onClick={() => setSelectedNotif(notif)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === "Enter" && setSelectedNotif(notif)}
               >
-                <div className={styles.notificationIconContainer}>
-                  {notif.reference_type === "warranty"     ? <CheckCircle size={20} className={styles.iconWarranty} />    :
-                   notif.reference_type === "subscription" ? <Clock size={20} className={styles.iconSubscription} />       :
-                   notif.reference_type === "todo"         ? <CheckCircle size={20} className={styles.iconTodo} />         :
-                   <Bell size={20} className={styles.iconDefault} />}
-                </div>
-                <div className={styles.notificationContent}>
-                  <h3 className={styles.notificationTitle}>{notif.title}</h3>
-                  <p className={styles.notificationBody}>{notif.body}</p>
-                  <p className={styles.notificationDate}>
-                    {new Date(notif.scheduled_for).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                  </p>
+                <div
+                  className={styles.notificationClickable}
+                  onClick={() => setSelectedNotif(notif)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === "Enter" && setSelectedNotif(notif)}
+                >
+                  <div className={styles.notificationIconContainer}>
+                    {notif.reference_type === "warranty"     ? <CheckCircle size={20} className={styles.iconWarranty} />    :
+                     notif.reference_type === "subscription" ? <Clock size={20} className={styles.iconSubscription} />       :
+                     notif.reference_type === "todo"         ? <CheckCircle size={20} className={styles.iconTodo} />         :
+                     <Bell size={20} className={styles.iconDefault} />}
+                  </div>
+                  <div className={styles.notificationContent}>
+                    <h3 className={styles.notificationTitle}>{notif.title}</h3>
+                    <p className={styles.notificationBody}>{notif.body}</p>
+                    <p className={styles.notificationDate}>
+                      {new Date(notif.scheduled_for).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  </div>
                 </div>
                 <button
                   className={styles.deleteBtn}
@@ -268,7 +275,7 @@ export default function NotificationsPage() {
               <div className={styles.modalIconCircle}>
                 <meta.Icon size={26} />
               </div>
-              <div style={{ flex: 1 }} />
+              <div className={styles.flexSpacer} />
               <button
                 className={styles.modalCloseBtn}
                 onClick={() => setSelectedNotif(null)}

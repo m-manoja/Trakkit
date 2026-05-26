@@ -24,7 +24,7 @@ export async function toggleTodo(id: string, token: string): Promise<void> {
 
 export async function saveTodo(
   id: string | null,
-  data: any,
+  data: Record<string, unknown>,
   token: string
 ): Promise<Todo> {
   const endpoint = id ? `/api/todos/${id}` : "/api/todos/add";

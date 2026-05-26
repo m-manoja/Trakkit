@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { sendOTP } from "../../api/auth";
 import styles from "./LoginPage.module.css";
+import logo from "../../assets/icon.png";
 
 // Simple international phone input with country code select
 const POPULAR_COUNTRIES = [
@@ -61,9 +62,7 @@ export default function LoginPage() {
       <div className={styles.card}>
         {/* Brand */}
         <div className={styles.brand}>
-          <div className={styles.logoRing}>
-            <span className={styles.logoEmoji}>📋</span>
-          </div>
+          <img src={logo} alt="Trakkit" className={styles.logoImg} />
           <h1 className={styles.appName}>Trakkit</h1>
           <p className={styles.tagline}>Your personal life manager</p>
         </div>
@@ -119,24 +118,10 @@ export default function LoginPage() {
             {loading ? "Sending…" : "Send Verification Code"}
           </button>
 
-          <div className={styles.divider}>
-            <span>or</span>
-          </div>
-
-          <button
-            id="email-login-btn"
-            className={styles.secondaryBtn}
-            onClick={() => navigate("/login/email")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            Login with Email instead
-          </button>
-
           <p className={styles.hint}>
-            Lost your SIM? Use your backup email &amp; password to sign in.
+            <button type="button" className={styles.lostPhoneLink} onClick={() => navigate("/login/email")}>
+              Lost your phone number?
+            </button>
           </p>
         </div>
       </div>

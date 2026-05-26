@@ -81,6 +81,8 @@ export default function OTPVerificationPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
+        profileCompleted: user.profileCompleted ?? false,
+        emailVerified: user.emailVerified ?? false,
         plan: normalizePlan(user.plan),
       });
 
@@ -149,6 +151,8 @@ export default function OTPVerificationPage() {
               inputMode="numeric"
               maxLength={2}
               value={d}
+              title={`OTP digit ${i + 1}`}
+              placeholder="·"
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
               onPaste={handlePaste}
@@ -160,6 +164,7 @@ export default function OTPVerificationPage() {
         {error && <p className={styles.error}>{error}</p>}
 
         <button
+          type="button"
           className={styles.verifyBtn}
           onClick={handleVerify}
           disabled={loading || code.length < OTP_LENGTH}
@@ -168,6 +173,7 @@ export default function OTPVerificationPage() {
         </button>
 
         <button
+          type="button"
           className={`${styles.resendBtn} ${canResend ? styles.resendActive : ""}`}
           onClick={handleResend}
           disabled={!canResend || loading}
@@ -176,6 +182,7 @@ export default function OTPVerificationPage() {
         </button>
 
         <button
+          type="button"
           className={styles.backBtn}
           onClick={() => navigate("/login")}
         >

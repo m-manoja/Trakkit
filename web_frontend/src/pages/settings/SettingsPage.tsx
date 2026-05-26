@@ -7,33 +7,37 @@ import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgra
 import GoogleCalendarSync from "../../components/GoogleCalendarSync/GoogleCalendarSync";
 import SharingSettings from "../../components/SharingSettings/SharingSettings";
 import { Zap, Users } from "lucide-react";
-import { 
-  getProfile, 
-  updateProfile, 
-  getNotificationSettings, 
+import {
+  getProfile,
+  updateProfile,
+  getNotificationSettings,
   updateNotificationSettings,
   initiatePhoneChange,
   verifyPhoneChange,
   uploadProfileImage,
+  setBackupPassword as apiSetBackupPassword,
   type UserProfile,
   type NotificationSettings
 } from "../../api/users";
-import { 
-  User, 
-  Bell, 
-  Save, 
-  Loader2, 
-  Mail, 
-  MessageSquare, 
+import {
+  User,
+  Bell,
+  Save,
+  Loader2,
+  Mail,
+  MessageSquare,
   Smartphone,
   Calendar,
-  X
+  X,
+  Shield,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
   const { isPremium } = usePlan();
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium" | "security">("profile");
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -68,6 +72,15 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
+  // Backup login state
+  const [backupEmail, setBackupEmail] = useState("");
+  const [backupPassword, setBackupPassword] = useState("");
+  const [backupConfirm, setBackupConfirm] = useState("");
+  const [showBackupPassword, setShowBackupPassword] = useState(false);
+  const [backupSaving, setBackupSaving] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [backupSuccess, setBackupSuccess] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadData() {
       if (!user?.id || !user?.token) return;
@@ -96,7 +109,7 @@ export default function SettingsPage() {
           setSchedule(notifData.reminder_schedule || "7,3,1");
         }
         
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to load settings:", err);
         setError("Failed to load settings. Please try again later.");
       } finally {
@@ -127,8 +140,8 @@ export default function SettingsPage() {
       
       setSuccess("Profile updated successfully");
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to update profile");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -163,10 +176,51 @@ export default function SettingsPage() {
       
       setSuccess("Notification preferences updated");
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to update notification settings");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update notification settings");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+
+  const handleSaveBackupLogin = async () => {
+    if (!user?.token) return;
+    if (!backupEmail.trim()) {
+      setBackupError("Please enter an email address.");
+      return;
+    }
+    if (!isValidEmail(backupEmail.trim())) {
+      setBackupError("Please enter a valid email address.");
+      return;
+    }
+    if (!backupPassword) {
+      setBackupError("Please enter a password.");
+      return;
+    }
+    if (backupPassword.length < 8) {
+      setBackupError("Password must be at least 8 characters.");
+      return;
+    }
+    if (backupPassword !== backupConfirm) {
+      setBackupError("Passwords do not match.");
+      return;
+    }
+
+    setBackupSaving(true);
+    setBackupError(null);
+    setBackupSuccess(null);
+    try {
+      await apiSetBackupPassword(backupEmail.trim(), backupPassword, user.token);
+      setBackupSuccess("Backup login set up successfully.");
+      setBackupPassword("");
+      setBackupConfirm("");
+      setTimeout(() => setBackupSuccess(null), 4000);
+    } catch (err) {
+      setBackupError(err instanceof Error ? err.message : "Failed to set up backup login.");
+    } finally {
+      setBackupSaving(false);
     }
   };
 
@@ -182,8 +236,8 @@ export default function SettingsPage() {
       setPhoneError(null);
       await initiatePhoneChange(newPhone, user.token);
       setPhoneModalStep(2);
-    } catch (err: any) {
-      setPhoneError(err.message || "Failed to initiate phone change.");
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : "Failed to initiate phone change.");
     } finally {
       setPhoneLoading(false);
     }
@@ -213,8 +267,8 @@ export default function SettingsPage() {
       setIsPhoneModalOpen(false);
       setSuccess("Phone number updated successfully");
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setPhoneError(err.message || "Verification failed. Check your OTP.");
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : "Verification failed. Check your OTP.");
     } finally {
       setPhoneLoading(false);
     }
@@ -243,8 +297,8 @@ export default function SettingsPage() {
       
       setSuccess("Profile picture updated");
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to upload image");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload image");
     } finally {
       setImageUploading(false);
     }
@@ -302,11 +356,17 @@ export default function SettingsPage() {
           >
             <Users size={18} /> Sharing
           </button>
-          <button 
+          <button
             className={`${styles.tab} ${activeTab === 'premium' ? styles.active : ''}`}
             onClick={() => { setActiveTab('premium'); setError(null); setSuccess(null); }}
           >
             <Zap size={18} /> Premium
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 'security' ? styles.active : ''}`}
+            onClick={() => { setActiveTab('security'); setBackupError(null); setBackupSuccess(null); }}
+          >
+            <Shield size={18} /> Security
           </button>
         </div>
 
@@ -325,19 +385,21 @@ export default function SettingsPage() {
                   <div className={styles.avatar}>{userInitials}</div>
                 )}
                 <div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    style={{ display: 'none' }} 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className={styles.fileInputHidden}
+                    accept="image/*"
                     onChange={handleImageChange}
+                    aria-hidden="true"
+                    tabIndex={-1}
                   />
                   <button 
                     className={styles.avatarBtn} 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={imageUploading}
                   >
-                    {imageUploading ? <Loader2 size={14} className={styles.spinner} style={{marginBottom:0, marginRight: '4px'}} /> : null}
+                    {imageUploading ? <Loader2 size={14} className={styles.avatarSpinner} /> : null}
                     {imageUploading ? "Uploading..." : "Change Avatar"}
                   </button>
                 </div>
@@ -380,12 +442,12 @@ export default function SettingsPage() {
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Phone Number</label>
                   <div className={styles.phoneFieldWrapper}>
-                    <input 
-                      type="tel" 
-                      className={styles.input} 
+                    <input
+                      type="tel"
+                      className={`${styles.input} ${styles.phoneInputFlex}`}
                       value={phone}
                       disabled
-                      style={{ flex: 1 }}
+                      title="Phone number"
                     />
                     <button 
                       className={styles.changePhoneBtn}
@@ -400,11 +462,12 @@ export default function SettingsPage() {
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Date of Birth</label>
-                  <input 
-                    type="date" 
-                    className={styles.input} 
+                  <input
+                    type="date"
+                    className={styles.input}
                     value={dob}
                     onChange={(e) => setDob(e.target.value)}
+                    title="Date of birth"
                   />
                 </div>
                 <div className={styles.formGroup}>
@@ -419,7 +482,7 @@ export default function SettingsPage() {
                 onClick={handleSaveProfile}
                 disabled={saving}
               >
-                {saving ? <Loader2 size={16} className={styles.spinner} style={{marginBottom:0}} /> : <Save size={16} />}
+                {saving ? <Loader2 size={16} className={styles.btnSpinner} /> : <Save size={16} />}
                 Save Changes
               </button>
             </div>
@@ -525,8 +588,8 @@ export default function SettingsPage() {
                 </label>
               </div>
 
-              <div style={{ marginTop: '24px', borderTop: '1px solid #E5E7EB', paddingTop: '24px' }}>
-                <div className={styles.preferenceInfo} style={{ marginBottom: '16px' }}>
+              <div className={styles.notifScheduleSection}>
+                <div className={`${styles.preferenceInfo} ${styles.notifScheduleHeader}`}>
                   <Calendar size={20} color="#6B7280" />
                   <div className={styles.preferenceText}>
                     <h4>Reminder Schedule</h4>
@@ -541,7 +604,7 @@ export default function SettingsPage() {
                     onChange={(e) => setSchedule(e.target.value)}
                     placeholder="e.g., 30,7,3,1"
                   />
-                  <small style={{ color: '#6B7280', fontSize: '13px', marginTop: '4px' }}>
+                  <small className={styles.notifHint}>
                     Current schedule: {notifSettings?.reminder_schedule || "7,3,1"}
                   </small>
                 </div>
@@ -554,8 +617,86 @@ export default function SettingsPage() {
                 onClick={handleSaveNotifications}
                 disabled={saving}
               >
-                {saving ? <Loader2 size={16} className={styles.spinner} style={{marginBottom:0}} /> : <Save size={16} />}
+                {saving ? <Loader2 size={16} className={styles.btnSpinner} /> : <Save size={16} />}
                 Save Preferences
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Backup Login</h2>
+              <p className={styles.cardSubtitle}>
+                Set up an email and password so you can sign in if you lose access to your phone number.
+              </p>
+            </div>
+
+            <div className={styles.cardBody}>
+              {backupError && <p className={styles.inlineError}>{backupError}</p>}
+              {backupSuccess && <p className={styles.inlineSuccess}>{backupSuccess}</p>}
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Backup Email</label>
+                  <input
+                    type="email"
+                    className={styles.input}
+                    value={backupEmail}
+                    onChange={(e) => setBackupEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Password</label>
+                  <div className={styles.passwordWrapper}>
+                    <input
+                      type={showBackupPassword ? "text" : "password"}
+                      className={styles.passwordInput}
+                      value={backupPassword}
+                      onChange={(e) => setBackupPassword(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      className={styles.eyeBtn}
+                      onClick={() => setShowBackupPassword((v) => !v)}
+                      aria-label={showBackupPassword ? "Hide password" : "Show password"}
+                    >
+                      {showBackupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Confirm Password</label>
+                  <div className={styles.passwordWrapper}>
+                    <input
+                      type={showBackupPassword ? "text" : "password"}
+                      className={styles.passwordInput}
+                      value={backupConfirm}
+                      onChange={(e) => setBackupConfirm(e.target.value)}
+                      placeholder="Re-enter password"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.cardFooter}>
+              <button
+                className={styles.btnPrimary}
+                onClick={handleSaveBackupLogin}
+                disabled={backupSaving}
+              >
+                {backupSaving ? <Loader2 size={16} className={styles.btnSpinner} /> : <Shield size={16} />}
+                Save Backup Login
               </button>
             </div>
           </div>
@@ -568,17 +709,13 @@ export default function SettingsPage() {
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
               <h3>Change Phone Number</h3>
-              <button className={styles.closeModalBtn} onClick={closePhoneModal}>
+              <button className={styles.closeModalBtn} onClick={closePhoneModal} aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             
             <div className={styles.modalBody}>
-              {phoneError && (
-                <div className={styles.errorBanner} style={{ padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
-                  <span>{phoneError}</span>
-                </div>
-              )}
+              {phoneError && <p className={styles.inlineError}>{phoneError}</p>}
               
               {phoneModalStep === 1 ? (
                 <div className={styles.formGroup}>
@@ -591,7 +728,7 @@ export default function SettingsPage() {
                     placeholder="e.g. 0771234567"
                     autoFocus
                   />
-                  <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '8px', marginBottom: 0 }}>
+                  <p className={styles.modalHint}>
                     We'll send an OTP to this new number to verify.
                   </p>
                 </div>
@@ -606,7 +743,7 @@ export default function SettingsPage() {
                     placeholder="Enter 4-digit code"
                     autoFocus
                   />
-                  <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '8px', marginBottom: 0 }}>
+                  <p className={styles.modalHint}>
                     Code sent to {newPhone}.
                   </p>
                 </div>
@@ -619,11 +756,11 @@ export default function SettingsPage() {
               </button>
               {phoneModalStep === 1 ? (
                 <button className={styles.btnPrimary} onClick={handleInitiatePhoneChange} disabled={phoneLoading}>
-                  {phoneLoading ? <Loader2 size={16} className={styles.spinner} style={{marginBottom:0}} /> : "Send OTP"}
+                  {phoneLoading ? <Loader2 size={16} className={styles.btnSpinner} /> : "Send OTP"}
                 </button>
               ) : (
                 <button className={styles.btnPrimary} onClick={handleVerifyPhoneChange} disabled={phoneLoading}>
-                  {phoneLoading ? <Loader2 size={16} className={styles.spinner} style={{marginBottom:0}} /> : "Verify & Save"}
+                  {phoneLoading ? <Loader2 size={16} className={styles.btnSpinner} /> : "Verify & Save"}
                 </button>
               )}
             </div>

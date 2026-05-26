@@ -209,7 +209,7 @@ export default function WarrantiesPage() {
                       <Share2 size={20} />
                       <span>Share selected ({selectedIds.size})</span>
                     </button>
-                    <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>
+                    <button type="button" className={`${styles.addButton} ${styles.addButtonGray}`} onClick={exitBulkMode}>
                       Cancel
                     </button>
                   </>
@@ -229,7 +229,7 @@ export default function WarrantiesPage() {
         </header>
 
         {shareNotice && (
-          <div className={styles.premiumBanner} style={{ marginBottom: 12 }}>
+          <div className={`${styles.premiumBanner} ${styles.shareNotice}`}>
             {shareNotice}
           </div>
         )}
@@ -289,13 +289,13 @@ export default function WarrantiesPage() {
             {filteredWarranties.map((warranty) => (
               <div key={warranty.id} className={styles.warrantyCard}>
                 <div className={styles.cardHeader}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div className={styles.cardTitleRow}>
                     {bulkShareMode && isPremium && (
                       <input
                         type="checkbox"
                         checked={selectedIds.has(warranty.id)}
                         onChange={() => toggleSelect(warranty.id)}
-                        style={{ marginTop: 4 }}
+                        className={styles.bulkCheckbox}
                       />
                     )}
                     <div>
@@ -322,10 +322,10 @@ export default function WarrantiesPage() {
                         <Share2 size={18} />
                       </button>
                     )}
-                    <button className={styles.iconButton} onClick={() => handleOpenModal(warranty)}>
+                    <button className={styles.iconButton} title="Edit" onClick={() => handleOpenModal(warranty)}>
                       <Edit2 size={18} />
                     </button>
-                    <button className={styles.iconButton} onClick={() => handleDelete(warranty.id)}>
+                    <button className={styles.iconButton} title="Delete" onClick={() => handleDelete(warranty.id)}>
                       <Trash2 size={18} color="#EF4444" />
                     </button>
                   </div>
@@ -353,7 +353,7 @@ export default function WarrantiesPage() {
                         </a>
                       </div>
                     ) : (
-                      <span className={styles.infoValue} style={{ color: '#9CA3AF', fontStyle: 'italic' }}>No file</span>
+                      <span className={styles.infoValueEmpty}>No file</span>
                     )}
                   </div>
 
@@ -367,6 +367,9 @@ export default function WarrantiesPage() {
                       {warranty.status || 'Active'}
                     </span>
                   </div>
+                  {warranty.description && (
+                    <p className={styles.cardDescription}>{warranty.description}</p>
+                  )}
                 </div>
 
                 <button 

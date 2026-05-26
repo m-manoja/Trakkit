@@ -451,3 +451,107 @@ input:checked + .slider:before {
   background-color: #E5E7EB;
 }
 
+.fileInputHidden {
+  display: none;
+}
+
+.phoneInputFlex {
+  flex: 1;
+}
+
+.notifScheduleSection {
+  margin-top: 24px;
+  border-top: 1px solid #E5E7EB;
+  padding-top: 24px;
+}
+
+.notifScheduleHeader {
+  margin-bottom: 16px;
+}
+
+.notifHint {
+  color: #6B7280;
+  font-size: 13px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.modalHint {
+  font-size: 13px;
+  color: #6B7280;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.btnSpinner {
+  animation: spin 1s linear infinite;
+  margin: 0;
+  color: inherit;
+}
+
+.avatarSpinner {
+  animation: spin 1s linear infinite;
+  margin: 0 4px 0 0;
+  color: inherit;
+}
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #111827;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(185, 55, 93, 0.1);
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #6B7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.eyeBtn:hover {
+  color: #374151;
+}
+
+.inlineError {
+  font-size: 13px;
+  color: #DC2626;
+  background-color: #FEF2F2;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.inlineSuccess {
+  font-size: 13px;
+  color: #065F46;
+  background-color: #ECFDF5;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 0;
+}
+

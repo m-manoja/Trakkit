@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { updateProfile, setBackupPassword } from "../../api/users";
+import { sendEmailVerification } from "../../api/auth";
 import { Eye, EyeOff } from "lucide-react";
 import styles from "./ProfileSetupPage.module.css";
 
@@ -20,10 +21,21 @@ export default function ProfileSetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+  const isValidName = (v: string) => v.trim().length >= 2 && /^[A-Za-z\s'-]+$/.test(v.trim());
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
       setError("Please enter both first and last name.");
+      return;
+    }
+    if (!isValidName(firstName)) {
+      setError("First name must be at least 2 characters and contain only letters.");
+      return;
+    }
+    if (!isValidName(lastName)) {
+      setError("Last name must be at least 2 characters and contain only letters.");
       return;
     }
     if (!user?.id || !user?.token) {
@@ -34,6 +46,10 @@ export default function ProfileSetupPage() {
     if (isFirstSetup) {
       if (!email.trim()) {
         setError("Email is required for account recovery.");
+        return;
+      }
+      if (!isValidEmail(email.trim())) {
+        setError("Please enter a valid email address.");
         return;
       }
       if (!password) {
@@ -65,10 +81,15 @@ export default function ProfileSetupPage() {
         await setBackupPassword(email.trim(), password, user.token);
       }
 
-      setUser({ ...user, firstName, lastName, email });
-      navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      setError(err.message || "Failed to update profile");
+      setUser({ ...user, firstName, lastName, email, profileCompleted: true, emailVerified: false });
+
+      if (email.trim()) {
+        sendEmailVerification(user.token, email.trim()).catch(() => {});
+      }
+
+      navigate("/verify-email-pending", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setLoading(false);
     }

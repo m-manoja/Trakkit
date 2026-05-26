@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 interface TodoFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (formData: any) => void;
+  onSubmit: (formData: Record<string, unknown>) => void;
   isSaving: boolean;
 }
 
@@ -31,7 +31,7 @@ export default function TodoFormModal({
 
   useEffect(() => {
     if (token) {
-      getNotificationSettings(token).then((res: any) => {
+      getNotificationSettings(token).then((res) => {
         if (res.data?.reminder_schedule) {
           const globalSchedule = res.data.reminder_schedule;
           setDefaultReminderSchedule(globalSchedule);
@@ -40,7 +40,7 @@ export default function TodoFormModal({
             reminder_schedule: prev.reminder_schedule === '7,3,1' ? globalSchedule : prev.reminder_schedule
           }));
         }
-      }).catch((err: any) => console.log('Failed to fetch default settings:', err));
+      }).catch((err) => console.log('Failed to fetch default settings:', err));
     }
   }, [token]);
 
@@ -57,10 +57,16 @@ export default function TodoFormModal({
 
   if (!isOpen) return null;
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.task_name.trim()) {
       alert("Please enter a task name.");
+      return;
+    }
+    if (formData.has_reminder && formData.reminder_date < today) {
+      alert("Reminder date cannot be in the past. Please choose today or a future date.");
       return;
     }
     
@@ -79,7 +85,7 @@ export default function TodoFormModal({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>Add Todo List</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
@@ -117,6 +123,7 @@ export default function TodoFormModal({
                   <input
                     type="date"
                     required
+                    min={today}
                     className={styles.formInput}
                     value={formData.reminder_date}
                     onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}

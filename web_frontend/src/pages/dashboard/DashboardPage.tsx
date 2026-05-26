@@ -61,7 +61,7 @@ export default function DashboardPage() {
         setReminders(rData || []);
         setUnreadNotifications(notifResponse?.count || 0);
         setError(null);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Dashboard Load Error:", err);
         setError("Failed to load dashboard data. Please try again later.");
       } finally {
@@ -78,10 +78,10 @@ export default function DashboardPage() {
   const pendingTodos = todos.filter(t => !t.is_completed).length;
 
   const stats = [
-    { label: "Active Warranties", value: activeWarranties.toString(), icon: ShieldCheck, color: "#B9375D", path: "/warranties" },
-    { label: "Subscriptions", value: activeSubs.toString(), icon: CreditCard, color: "#D25D5D", path: "/subscriptions" },
-    { label: "Pending Tasks", value: pendingTodos.toString(), icon: CheckSquare, color: "#2ECC71", path: "/todos" },
-    { label: "Notifications", value: unreadNotifications.toString(), icon: Bell, color: "#F1C40F", path: "/notifications" },
+    { label: "Active Warranties", value: activeWarranties.toString(), icon: ShieldCheck, type: "warranty",     path: "/warranties" },
+    { label: "Subscriptions",     value: activeSubs.toString(),       icon: CreditCard,  type: "subscription", path: "/subscriptions" },
+    { label: "Pending Tasks",     value: pendingTodos.toString(),     icon: CheckSquare, type: "todo",         path: "/todos" },
+    { label: "Notifications",     value: unreadNotifications.toString(), icon: Bell,     type: "notification", path: "/notifications" },
   ];
 
   // Helper to calculate days remaining
@@ -116,16 +116,16 @@ export default function DashboardPage() {
   const allSearchResults = searchQuery ? [
     ...warranties
       .filter(w => (w.product_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (w.category || "").toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(w => ({ id: w.id, name: w.product_name, type: "Warranty", sub: w.category, path: "/warranties", icon: ShieldCheck, color: "#B9375D" })),
+      .map(w => ({ id: w.id, name: w.product_name, type: "Warranty", sub: w.category, path: "/warranties", icon: ShieldCheck, colorKey: "warranty" })),
     ...subscriptions
       .filter(s => (s.service_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (s.category || "").toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(s => ({ id: s.id, name: s.service_name, type: "Subscription", sub: s.category, path: "/subscriptions", icon: CreditCard, color: "#D25D5D" })),
+      .map(s => ({ id: s.id, name: s.service_name, type: "Subscription", sub: s.category, path: "/subscriptions", icon: CreditCard, colorKey: "subscription" })),
     ...todos
       .filter(t => (t.task_name || "").toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(t => ({ id: t.id, name: t.task_name, type: "To-Do", sub: t.is_completed ? "Completed" : "Pending", path: "/todos", icon: CheckSquare, color: "#2ECC71" })),
+      .map(t => ({ id: t.id, name: t.task_name, type: "To-Do", sub: t.is_completed ? "Completed" : "Pending", path: "/todos", icon: CheckSquare, colorKey: "todo" })),
     ...reminders
       .filter(r => (r.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (r.type || "").toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(r => ({ id: r.id, name: r.title, type: "Reminder", sub: r.type, path: "/reminders", icon: BellRing, color: "#8B5CF6" }))
+      .map(r => ({ id: r.id, name: r.title, type: "Reminder", sub: r.type, path: "/reminders", icon: BellRing, colorKey: "reminder" }))
   ] : [];
 
   // Calculate all events for the Calendar
@@ -184,7 +184,7 @@ export default function DashboardPage() {
       <div className={styles.statsGrid}>
         {stats.map((stat, i) => (
           <div key={i} className={styles.statCard} onClick={() => navigate(stat.path)}>
-            <div className={styles.statIcon} style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
+            <div className={styles.statIcon} data-type={stat.type}>
               <stat.icon size={24} />
             </div>
             <div className={styles.statInfo}>
@@ -200,25 +200,25 @@ export default function DashboardPage() {
 
       <div className={styles.quickGrid}>
         <div className={styles.quickActionCard} onClick={() => navigate('/warranties', { state: { openModal: true, returnTo: '/dashboard' } })}>
-          <div className={styles.quickActionIcon} style={{ backgroundColor: '#B9375D15', color: '#B9375D' }}>
+          <div className={styles.quickActionIcon} data-type="warranty">
             <ShieldCheck size={24} />
           </div>
           <span className={styles.quickActionLabel}>Add Warranty</span>
         </div>
         <div className={styles.quickActionCard} onClick={() => navigate('/subscriptions', { state: { openModal: true, returnTo: '/dashboard' } })}>
-          <div className={styles.quickActionIcon} style={{ backgroundColor: '#D25D5D15', color: '#D25D5D' }}>
+          <div className={styles.quickActionIcon} data-type="subscription">
             <CreditCard size={24} />
           </div>
           <span className={styles.quickActionLabel}>Add Subscription</span>
         </div>
         <div className={styles.quickActionCard} onClick={() => navigate('/reminders', { state: { openModal: true, returnTo: '/dashboard' } })}>
-          <div className={styles.quickActionIcon} style={{ backgroundColor: '#8B5CF615', color: '#8B5CF6' }}>
+          <div className={styles.quickActionIcon} data-type="reminder">
             <BellRing size={24} />
           </div>
           <span className={styles.quickActionLabel}>Add Reminder</span>
         </div>
         <div className={styles.quickActionCard} onClick={() => navigate('/todos', { state: { openModal: true, returnTo: '/dashboard' } })}>
-          <div className={styles.quickActionIcon} style={{ backgroundColor: '#2ECC7115', color: '#2ECC71' }}>
+          <div className={styles.quickActionIcon} data-type="todo">
             <CheckSquare size={24} />
           </div>
           <span className={styles.quickActionLabel}>Add To-Do</span>
@@ -227,28 +227,27 @@ export default function DashboardPage() {
 
       <div className={styles.mainGrid}>
         {searchQuery ? (
-          <section className={styles.section} style={{ gridColumn: '1 / -1' }}>
+          <section className={`${styles.section} ${styles.sectionFullWidth}`}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Search Results for "{searchQuery}"</h2>
-              <span className={styles.badge} style={{ background: 'var(--primary)', color: 'white' }}>{allSearchResults.length} found</span>
+              <span className={styles.badgePrimary}>{allSearchResults.length} found</span>
             </div>
             <div className={styles.list}>
               {allSearchResults.length > 0 ? (
                 allSearchResults.map((item) => (
-                  <div 
-                    key={`${item.type}-${item.id}`} 
-                    className={styles.listItem} 
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className={`${styles.listItem} ${styles.listItemClickable}`}
                     onClick={() => navigate(item.path)}
-                    style={{ cursor: 'pointer' }}
                   >
-                    <div className={styles.itemIcon} style={{ color: item.color, backgroundColor: `${item.color}15` }}>
+                    <div className={styles.itemIcon} data-type={item.colorKey}>
                       <item.icon size={18} />
                     </div>
                     <div className={styles.itemContent}>
                       <p className={styles.itemName}>{item.name}</p>
                       <p className={styles.itemSub}>{item.type} • {item.sub}</p>
                     </div>
-                    <div className={styles.badge} style={{ backgroundColor: '#f3f4f6', color: '#4b5563' }}>
+                    <div className={styles.badgeGray}>
                       View
                     </div>
                   </div>

@@ -64,8 +64,8 @@ export default function PricingPage() {
       setTimeout(() => {
         formRef.current?.submit();
       }, 100);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

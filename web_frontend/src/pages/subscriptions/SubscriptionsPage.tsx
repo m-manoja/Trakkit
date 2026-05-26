@@ -54,7 +54,7 @@ export default function SubscriptionsPage() {
       const data = await fetchSubscriptions(user.id, user.token);
       setSubscriptions(data || []);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load subscriptions:", err);
       setError("Failed to load subscriptions. Please try again.");
     } finally {
@@ -64,6 +64,7 @@ export default function SubscriptionsPage() {
 
   useEffect(() => {
     loadSubscriptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function SubscriptionsPage() {
     }
   };
 
-  const handleSaveSubscription = async (formData: any, editId: string | null) => {
+  const handleSaveSubscription = async (formData: Record<string, unknown>, editId: string | null) => {
     if (!user?.token) return;
 
     try {
@@ -121,9 +122,9 @@ export default function SubscriptionsPage() {
       await saveSubscription(editId, formData, user.token);
       handleCloseModal();
       loadSubscriptions();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Save error:", err);
-      alert(err.response?.data?.message || "Failed to save subscription");
+      alert(err instanceof Error ? err.message : "Failed to save subscription");
     } finally {
       setIsSaving(false);
     }
@@ -189,7 +190,7 @@ export default function SubscriptionsPage() {
                   <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
                     <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
                   </button>
-                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                  <button type="button" className={`${styles.addButton} ${styles.addButtonGray}`} onClick={exitBulkMode}>Cancel</button>
                 </>
               ) : (
                 <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
@@ -204,7 +205,7 @@ export default function SubscriptionsPage() {
           </div>
         </header>
 
-        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46' }}>{shareNotice}</div>}
+        {shareNotice && <div className={styles.shareNotice}>{shareNotice}</div>}
         {isFree && (
           <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share subscription reminders with other Trakkit users." />
         )}
@@ -240,9 +241,9 @@ export default function SubscriptionsPage() {
             {filteredSubscriptions.map((sub) => (
               <div key={sub.id} className={styles.subscriptionCard}>
                 <div className={styles.cardHeader}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div className={styles.cardTitleRow}>
                     {bulkShareMode && isPremium && (
-                      <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelect(sub.id)} style={{ marginTop: 4 }} />
+                      <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelect(sub.id)} className={styles.bulkCheckbox} />
                     )}
                     <div>
                       <h3 className={styles.cardTitle}>{sub.service_name}</h3>
@@ -255,10 +256,10 @@ export default function SubscriptionsPage() {
                         <Share2 size={18} />
                       </button>
                     )}
-                    <button className={styles.iconButton} onClick={() => handleOpenModal(sub)}>
+                    <button className={styles.iconButton} title="Edit" onClick={() => handleOpenModal(sub)}>
                       <Edit2 size={18} />
                     </button>
-                    <button className={styles.iconButton} onClick={() => handleDelete(sub.id)}>
+                    <button className={styles.iconButton} title="Delete" onClick={() => handleDelete(sub.id)}>
                       <Trash2 size={18} color="#EF4444" />
                     </button>
                   </div>
@@ -279,13 +280,16 @@ export default function SubscriptionsPage() {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>Status</span>
                     <span className={`${styles.statusBadge} ${
-                      sub.status?.toLowerCase() === 'active' ? styles.statusActive : 
-                      sub.status?.toLowerCase() === 'due soon' ? styles.statusWarning : 
+                      sub.status?.toLowerCase() === 'active' ? styles.statusActive :
+                      sub.status?.toLowerCase() === 'due soon' ? styles.statusWarning :
                       styles.statusExpired
                     }`}>
                       {sub.status || 'Active'}
                     </span>
                   </div>
+                  {sub.description && (
+                    <p className={styles.cardDescription}>{sub.description}</p>
+                  )}
                 </div>
 
                 <button 

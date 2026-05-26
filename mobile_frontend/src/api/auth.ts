@@ -25,6 +25,31 @@ export async function sendOTP(phone: string) {
   return true;
 }
 
+export async function forgotPassword(email: string) {
+  const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to send reset email");
+  return true;
+}
+
+export async function sendEmailVerification(token: string, email: string) {
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || "Failed to send verification email");
+  return true;
+}
+
 export async function verifyOTP(phone: string, token: string) {
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
     method: "POST",

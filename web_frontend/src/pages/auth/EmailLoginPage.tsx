@@ -15,9 +15,15 @@ export default function EmailLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       setError("Please enter your email and password.");
+      return;
+    }
+    if (!isValidEmail(email.trim())) {
+      setError("Please enter a valid email address.");
       return;
     }
     setError("");
@@ -34,6 +40,8 @@ export default function EmailLoginPage() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
+        profileCompleted: true,
+        emailVerified: user.emailVerified ?? true,
         plan: normalizePlan(user.plan),
       });
 
@@ -58,7 +66,7 @@ export default function EmailLoginPage() {
 
       <div className={styles.card}>
         {/* Back */}
-        <button className={styles.backRow} onClick={() => navigate("/login")}>
+        <button type="button" className={styles.backRow} onClick={() => navigate("/login")}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
@@ -143,6 +151,7 @@ export default function EmailLoginPage() {
           {error && <p className={styles.error}>{error}</p>}
 
           <button
+            type="button"
             id="email-signin-btn"
             className={styles.loginBtn}
             onClick={handleLogin}
@@ -151,6 +160,16 @@ export default function EmailLoginPage() {
             {loading ? <span className={styles.spinner} /> : null}
             {loading ? "Signing in…" : "Sign In"}
           </button>
+
+          <div className={styles.forgotWrap}>
+            <button
+              type="button"
+              className={styles.forgotLink}
+              onClick={() => navigate("/forgot-password")}
+            >
+              Forgot password?
+            </button>
+          </div>
         </div>
 
         <p className={styles.hint}>

@@ -115,3 +115,9 @@
 .docLink {
   color: var(--primary, #b9375d);
 }
+
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

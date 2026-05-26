@@ -41,8 +41,8 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
       await setBackupPassword(email.trim(), password, token);
       alert("✅ Backup login set! You can now log in with your email & password if you lose access to your phone.");
       onDone();
-    } catch (err: any) {
-      alert(err.message || "Failed to save backup login.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save backup login.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
     setDismissing(true);
     try {
       await dismissBackupPrompt(token);
-    } catch (err) {
+    } catch {
       // silent
     } finally {
       setDismissing(false);

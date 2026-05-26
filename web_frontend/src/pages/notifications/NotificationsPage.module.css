@@ -207,7 +207,19 @@
 
 /* ── Detail prompt modal ─────────────────────────────────────────── */
 .notificationCard {
+  cursor: default;
+}
+
+.notificationClickable {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
   cursor: pointer;
+}
+
+.flexSpacer {
+  flex: 1;
 }
 
 .modalOverlay {

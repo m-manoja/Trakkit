@@ -108,7 +108,13 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
+  background-color: #999;
 }
+
+.dot[data-type="subscription"] { background-color: var(--primary); }
+.dot[data-type="warranty"]     { background-color: #F97316; }
+.dot[data-type="reminder"]     { background-color: #8B5CF6; }
+.dot[data-type="todo"]         { background-color: #10B981; }
 
 .legend {
   display: flex;
@@ -131,6 +137,11 @@
   height: 8px;
   border-radius: 50%;
 }
+
+.legendDot[data-type="subscription"] { background-color: var(--primary); }
+.legendDot[data-type="warranty"]     { background-color: #F97316; }
+.legendDot[data-type="reminder"]     { background-color: #8B5CF6; }
+.legendDot[data-type="todo"]         { background-color: #10B981; }
 
 .legendLabel {
   font-size: 0.75rem;
@@ -197,6 +208,11 @@
   justify-content: center;
 }
 
+.eventIcon[data-type="subscription"] { background-color: rgba(185, 55, 93, 0.125);  color: var(--primary); }
+.eventIcon[data-type="warranty"]     { background-color: rgba(249, 115, 22, 0.125); color: #F97316; }
+.eventIcon[data-type="reminder"]     { background-color: rgba(139, 92, 246, 0.125); color: #8B5CF6; }
+.eventIcon[data-type="todo"]         { background-color: rgba(16, 185, 129, 0.125); color: #10B981; }
+
 .eventInfo {
   flex: 1;
 }
@@ -217,3 +233,8 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+.eventType[data-type="subscription"] { color: var(--primary); background-color: rgba(185, 55, 93, 0.082); }
+.eventType[data-type="warranty"]     { color: #F97316;        background-color: rgba(249, 115, 22, 0.082); }
+.eventType[data-type="reminder"]     { color: #8B5CF6;        background-color: rgba(139, 92, 246, 0.082); }
+.eventType[data-type="todo"]         { color: #10B981;        background-color: rgba(16, 185, 129, 0.082); }

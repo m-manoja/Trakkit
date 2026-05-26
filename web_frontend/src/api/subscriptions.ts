@@ -24,7 +24,7 @@ export async function deleteSubscription(id: string, token: string): Promise<voi
 
 export async function saveSubscription(
   id: string | null,
-  data: any,
+  data: Record<string, unknown>,
   token: string
 ): Promise<Subscription> {
   const endpoint = id ? `/api/subscriptions/${id}` : "/api/subscriptions/add";

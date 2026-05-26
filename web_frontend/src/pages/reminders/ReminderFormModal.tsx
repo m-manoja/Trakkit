@@ -7,7 +7,7 @@ interface ReminderFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: Reminder | null;
-  onSubmit: (formData: any, editId: string | null) => void;
+  onSubmit: (formData: Record<string, unknown>, editId: string | null) => void;
   isSaving: boolean;
 }
 
@@ -59,13 +59,19 @@ export default function ReminderFormModal({
 
   if (!isOpen) return null;
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.type) {
       alert("Please enter a Name and Type (*)");
       return;
     }
-    
+    if (formData.reminder_date < today) {
+      alert("Reminder date cannot be in the past. Please choose today or a future date.");
+      return;
+    }
+
     // Convert logic to match backend expectations
     const payload = {
       title: formData.title.trim(),
@@ -87,7 +93,7 @@ export default function ReminderFormModal({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>{initialData ? "Edit Reminder" : "Add Reminder"}</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
@@ -112,6 +118,7 @@ export default function ReminderFormModal({
                 <select
                   required
                   className={styles.formSelect}
+                  title="Reminder type"
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
                 >
@@ -124,6 +131,7 @@ export default function ReminderFormModal({
                 <input
                   type="date"
                   required
+                  min={today}
                   className={styles.formInput}
                   value={formData.reminder_date}
                   onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}

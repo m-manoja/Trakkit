@@ -182,7 +182,7 @@ export default function TodosPage() {
                   <button type="button" className={styles.addButton} onClick={handleBulkShare} disabled={selectedIds.size === 0}>
                     <Share2 size={20} /><span>Share selected ({selectedIds.size})</span>
                   </button>
-                  <button type="button" className={styles.addButton} style={{ background: '#6B7280' }} onClick={exitBulkMode}>Cancel</button>
+                  <button type="button" className={`${styles.addButton} ${styles.addButtonGray}`} onClick={exitBulkMode}>Cancel</button>
                 </>
               ) : (
                 <button type="button" className={styles.addButton} onClick={() => setBulkShareMode(true)}>
@@ -197,7 +197,7 @@ export default function TodosPage() {
           </div>
         </header>
 
-        {shareNotice && <div className={styles.errorBanner} style={{ background: '#ecfdf5', color: '#065f46' }}>{shareNotice}</div>}
+        {shareNotice && <div className={styles.shareNotice}>{shareNotice}</div>}
         {isFree && (
           <PremiumUpgradeCard title="Sharing mode" description="Upgrade to Premium to share to-do reminders with other Trakkit users." />
         )}
@@ -255,13 +255,13 @@ export default function TodosPage() {
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div className={styles.itemActions}>
                   {isPremium && !bulkShareMode && (
                     <button type="button" className={styles.deleteButton} title="Share" onClick={() => openShare([{ itemType: 'todo', itemId: todo.id, label: todo.task_name }])}>
                       <Share2 size={20} />
                     </button>
                   )}
-                  <button className={styles.deleteButton} onClick={() => handleDelete(todo.id)}>
+                  <button className={styles.deleteButton} title="Delete" onClick={() => handleDelete(todo.id)}>
                     <Trash2 size={20} />
                   </button>
                 </div>

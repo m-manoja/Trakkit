@@ -18,6 +18,8 @@ export type AuthUser = {
   lastName?: string;
   email?: string;
   profilePicture?: string;
+  profileCompleted?: boolean;
+  emailVerified?: boolean;
   token: string;
   plan?: UserPlan;
 } | null;
@@ -136,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");

@@ -13,6 +13,7 @@ import { CustomInput } from '../../src/components/Input';
 import { PrimaryButton } from '../../src/components/Button';
 import { useAuth } from '../../src/context/AuthContext';
 import { updateProfile, getProfile, uploadProfileImage, setBackupPassword } from '../../src/api/users';
+import { sendEmailVerification } from '../../src/api/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -125,17 +126,24 @@ export default function ProfileSetupScreen() {
         await setBackupPassword(form.email.trim(), form.password, user.token);
       }
 
-      // Update the local auth context so profile page immediately reflects new name
-      await setUser({
+      const updatedUser = {
         ...user,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-      } as any);
+      };
 
-      Alert.alert('✓ Saved', 'Your profile has been updated.', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      if (!isEditing) {
+        // First-time setup: mark profile complete, trigger email verification
+        await setUser({ ...updatedUser, profileCompleted: true, emailVerified: false });
+        sendEmailVerification(user.token, form.email.trim()).catch(() => {});
+        router.replace('/verify-email-pending' as any);
+      } else {
+        await setUser(updatedUser);
+        Alert.alert('✓ Saved', 'Your profile has been updated.', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      }
     } catch (error: any) {
       Alert.alert('Save Failed', error.message || 'Something went wrong. Please try again.');
     } finally {
@@ -187,10 +195,14 @@ export default function ProfileSetupScreen() {
 
       {/* Fixed Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        {isEditing ? (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
+        <Text style={styles.headerTitle}>{isEditing ? 'Edit Profile' : 'Complete Your Profile'}</Text>
         <View style={{ width: 36 }} />
       </View>
 

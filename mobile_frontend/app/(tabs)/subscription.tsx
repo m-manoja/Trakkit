@@ -259,6 +259,7 @@ export default function SubscriptionInitial() {
               <Text style={[styles.statusText, { color: status.text }]}>{item.status || 'Active'}</Text>
             </View>
           </View>
+          {item.description ? <Text style={styles.cardDescription}>{item.description}</Text> : null}
         </View>
 
         <TouchableOpacity
@@ -446,6 +447,7 @@ const styles = StyleSheet.create({
   cardActions: { flexDirection: 'row' },
   actionIcon: { marginLeft: 15 },
   cardContent: { marginVertical: 12 },
+  cardDescription: { fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 18 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   infoLabel: { fontSize: 13, color: '#7F8C8D' },
   infoValue: { fontSize: 13, fontWeight: '600', color: '#2C3E50' },

@@ -3,7 +3,7 @@ import { API_BASE_URL } from "./config";
 export async function apiRequest<T>(
   endpoint: string,
   method: string = "GET",
-  body?: any,
+  body?: Record<string, unknown>,
   token?: string
 ): Promise<T> {
   const headers: Record<string, string> = {

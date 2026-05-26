@@ -123,6 +123,7 @@ export default function SharingSettings() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.token, isPremium]);
 
   const handleRevoke = async (shareId: string) => {
@@ -140,7 +141,7 @@ export default function SharingSettings() {
 
   if (loading) {
     return (
-      <p style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <p className={styles.loadingRow}>
         <Loader2 size={18} className="spin" /> Loading sharing…
       </p>
     );

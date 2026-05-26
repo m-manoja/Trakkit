@@ -139,6 +139,13 @@ export default function WarrantyScreen() {
       return;
     }
 
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    if (purchase_date > todayEnd) {
+      Alert.alert("Invalid Date", "Purchase date cannot be in the future. Please enter the actual purchase date.");
+      return;
+    }
+
     setIsActionLoading(true);
     const data = new FormData();
     data.append('product_name', product_name);
@@ -451,6 +458,7 @@ export default function WarrantyScreen() {
               <Text style={[styles.statusText, { color: statusTextColor }]}>{item.status || 'Active'}</Text>
             </View>
           </View>
+          {item.description ? <Text style={styles.cardDescription}>{item.description}</Text> : null}
         </View>
 
         <TouchableOpacity
@@ -623,7 +631,7 @@ export default function WarrantyScreen() {
                 </TouchableOpacity>
               </View>
 
-              {showDatePicker && <DateTimePicker value={formData.purchase_date} mode="date" onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, purchase_date: d }); }} />}
+              {showDatePicker && <DateTimePicker value={formData.purchase_date} mode="date" maximumDate={new Date()} onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, purchase_date: d }); }} />}
             </ScrollView>
           </View>
         </View>
@@ -711,6 +719,7 @@ const styles = StyleSheet.create({
   catBadgeText: { fontSize: 11, fontWeight: 'bold' },
   cardActions: { flexDirection: 'row' },
   cardContent: { marginVertical: 12 },
+  cardDescription: { fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 18 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' },
   infoLabel: { fontSize: 13, color: '#555' },
   infoValue: { fontSize: 13, fontWeight: '600' },

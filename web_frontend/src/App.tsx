@@ -5,6 +5,10 @@ import LoginPage from "./pages/auth/LoginPage";
 import EmailLoginPage from "./pages/auth/EmailLoginPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ProfileSetupPage from "./pages/auth/ProfileSetupPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
+import VerifyEmailPendingPage from "./pages/auth/VerifyEmailPendingPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
 import SubscriptionsPage from "./pages/subscriptions/SubscriptionsPage";
@@ -25,6 +29,17 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/login/email" element={<EmailLoginPage />} />
           <Route path="/verify-otp" element={<OTPVerificationPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route
+            path="/verify-email-pending"
+            element={
+              <ProtectedRoute>
+                <VerifyEmailPendingPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Protected routes */}
           <Route

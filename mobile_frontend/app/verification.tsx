@@ -70,7 +70,6 @@ export default function VerificationScreen() {
 
       // 1. Call API to verify OTP
       const response = await verifyOTP(phone, code);
-      console.log("OTP Response Received:", response);
 
       // 2. CORRECT EXTRACTION: Pulling from the nested 'user' object
       const token = response.token;
@@ -82,8 +81,9 @@ export default function VerificationScreen() {
 
       // 3. Update Auth Context
       if (userId && token) {
-        // We cast the object to 'any' here to stop the "Property does not exist" error
-        // while you wait for the AuthContext types to refresh in VS Code
+        const profileCompleted = backendUser?.profileCompleted ?? false;
+        const emailVerified = backendUser?.emailVerified ?? false;
+
         await setUser({
           id: userId,
           phone: phone,
@@ -91,31 +91,30 @@ export default function VerificationScreen() {
           firstName: firstName,
           lastName: lastName,
           email: backendUser?.email || '',
-          createdAt: backendUser?.createdAt || '',
-          name: `${firstName} ${lastName}`.trim()
-        } as any);
-
-        console.log("✅ AUTH SUCCESS: User saved and persisted");
+          name: `${firstName} ${lastName}`.trim(),
+          profileCompleted,
+          emailVerified,
+        });
       } else {
-        console.log("Missing data check:", { userId, token });
         throw new Error("Authentication failed: Missing User ID or Token from server response");
       }
 
-      // 4. Show backup prompt or navigate
-      const backupPromptShown = (response as any).user?.backupPromptShown ?? true;
-      const target = (() => {
-        let t = (response as any).nextScreen;
-        if (!t || t === '/dashboard' || t === '/index' || t === '/(tabs)') return '/(tabs)';
-        if (t === '/profile_setup') return '/(tabs)/profile_setup?isFirstSetup=true';
-        return t;
-      })();
+      // 4. Navigate based on profile/verification state
+      const profileCompleted = backendUser?.profileCompleted ?? false;
+      const emailVerified = backendUser?.emailVerified ?? false;
 
-      if (!backupPromptShown) {
-        // Show nudge first; navigate after they finish
-        setPendingRoute(target);
-        setShowBackupPrompt(true);
+      if (!profileCompleted) {
+        router.replace('/(tabs)/profile_setup?isFirstSetup=true' as any);
+      } else if (!emailVerified) {
+        router.replace('/verify-email-pending' as any);
       } else {
-        router.replace(target as any);
+        const backupPromptShown = backendUser?.backupPromptShown ?? true;
+        if (!backupPromptShown) {
+          setPendingRoute('/(tabs)');
+          setShowBackupPrompt(true);
+        } else {
+          router.replace('/(tabs)');
+        }
       }
 
     } catch (e: any) {
