@@ -15,6 +15,7 @@ export interface NotificationSettings {
   sms_notification: boolean;
   push_notification: boolean;
   reminder_schedule: string;
+  [key: string]: unknown;
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {

@@ -32,8 +32,8 @@ export default function TodoFormModal({
   useEffect(() => {
     if (token) {
       getNotificationSettings(token).then((res) => {
-        if (res.data?.reminder_schedule) {
-          const globalSchedule = res.data.reminder_schedule;
+        if (res.reminder_schedule) {
+          const globalSchedule = res.reminder_schedule;
           setDefaultReminderSchedule(globalSchedule);
           setFormData(prev => ({
             ...prev,

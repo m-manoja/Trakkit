@@ -25,6 +25,7 @@ export type VerifyOTPResponse = {
     lastName?: string;
     email?: string;
     profileCompleted?: boolean;
+    emailVerified?: boolean;
     plan?: string;
     backupPromptShown?: boolean;
   };
@@ -62,6 +63,7 @@ export type EmailLoginResponse = {
     email?: string;
     backupEmail?: string;
     backupPromptShown?: boolean;
+    emailVerified?: boolean;
     plan?: string;
   };
   nextScreen: string;

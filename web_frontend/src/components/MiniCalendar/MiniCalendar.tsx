@@ -147,7 +147,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
 
       {/* Legend */}
       <div className={styles.legend}>
-        {Object.entries(TYPE_COLORS).map(([type, color]) => (
+        {Object.entries(TYPE_COLORS).map(([type]) => (
           <div key={type} className={styles.legendItem}>
             <span className={styles.legendDot} data-type={type} />
             <span className={styles.legendLabel}>
