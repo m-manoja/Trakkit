@@ -97,14 +97,6 @@ export default function ProfileScreen() {
             bgColor: `${COLORS.primary}18`,
         },
         {
-            icon: 'shield-checkmark-outline',
-            label: 'Privacy & Security',
-            subtitle: 'Control your data & account',
-            onPress: () => Alert.alert('Privacy', 'Coming soon!'),
-            color: '#34C759',
-            bgColor: '#34C75918',
-        },
-        {
             icon: 'help-circle-outline',
             label: 'Help & Support',
             subtitle: 'Get help or contact us',

@@ -6,13 +6,10 @@ import { CustomInput } from '../src/components/Input';
 import { PrimaryButton } from '../src/components/Button';
 import { verifyOTP, sendOTP } from '../src/api/auth';
 import { useAuth } from '../src/context/AuthContext';
-import BackupPasswordPrompt from '../src/components/BackupPasswordPrompt';
 
 export default function VerificationScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
-  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
 
   // Timer state
   const [timer, setTimer] = useState(30);
@@ -108,13 +105,7 @@ export default function VerificationScreen() {
       } else if (!emailVerified) {
         router.replace('/verify-email-pending' as any);
       } else {
-        const backupPromptShown = backendUser?.backupPromptShown ?? true;
-        if (!backupPromptShown) {
-          setPendingRoute('/(tabs)');
-          setShowBackupPrompt(true);
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace('/(tabs)');
       }
 
     } catch (e: any) {
@@ -127,8 +118,7 @@ export default function VerificationScreen() {
   };
 
   return (
-    <>
-      <View style={styles.container}>
+    <View style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.title}>Verify Phone</Text>
           <Text style={styles.subtitle}>Sent to {phone || "your phone"}</Text>
@@ -163,17 +153,7 @@ export default function VerificationScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-
-      {/* One-time backup login nudge */}
-      <BackupPasswordPrompt
-        visible={showBackupPrompt}
-        onDone={() => {
-          setShowBackupPrompt(false);
-          if (pendingRoute) router.replace(pendingRoute as any);
-        }}
-      />
-    </>
+    </View>
   );
 }
 

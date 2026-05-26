@@ -15,7 +15,6 @@ import {
   initiatePhoneChange,
   verifyPhoneChange,
   uploadProfileImage,
-  setBackupPassword as apiSetBackupPassword,
   type UserProfile,
   type NotificationSettings
 } from "../../api/users";
@@ -29,15 +28,12 @@ import {
   Smartphone,
   Calendar,
   X,
-  Shield,
-  Eye,
-  EyeOff
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
   const { isPremium } = usePlan();
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium" | "security">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium">("profile");
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -71,15 +67,6 @@ export default function SettingsPage() {
   // Avatar upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUploading, setImageUploading] = useState(false);
-
-  // Backup login state
-  const [backupEmail, setBackupEmail] = useState("");
-  const [backupPassword, setBackupPassword] = useState("");
-  const [backupConfirm, setBackupConfirm] = useState("");
-  const [showBackupPassword, setShowBackupPassword] = useState(false);
-  const [backupSaving, setBackupSaving] = useState(false);
-  const [backupError, setBackupError] = useState<string | null>(null);
-  const [backupSuccess, setBackupSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -180,47 +167,6 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : "Failed to update notification settings");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
-
-  const handleSaveBackupLogin = async () => {
-    if (!user?.token) return;
-    if (!backupEmail.trim()) {
-      setBackupError("Please enter an email address.");
-      return;
-    }
-    if (!isValidEmail(backupEmail.trim())) {
-      setBackupError("Please enter a valid email address.");
-      return;
-    }
-    if (!backupPassword) {
-      setBackupError("Please enter a password.");
-      return;
-    }
-    if (backupPassword.length < 8) {
-      setBackupError("Password must be at least 8 characters.");
-      return;
-    }
-    if (backupPassword !== backupConfirm) {
-      setBackupError("Passwords do not match.");
-      return;
-    }
-
-    setBackupSaving(true);
-    setBackupError(null);
-    setBackupSuccess(null);
-    try {
-      await apiSetBackupPassword(backupEmail.trim(), backupPassword, user.token);
-      setBackupSuccess("Backup login set up successfully.");
-      setBackupPassword("");
-      setBackupConfirm("");
-      setTimeout(() => setBackupSuccess(null), 4000);
-    } catch (err) {
-      setBackupError(err instanceof Error ? err.message : "Failed to set up backup login.");
-    } finally {
-      setBackupSaving(false);
     }
   };
 
@@ -361,12 +307,6 @@ export default function SettingsPage() {
             onClick={() => { setActiveTab('premium'); setError(null); setSuccess(null); }}
           >
             <Zap size={18} /> Premium
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'security' ? styles.active : ''}`}
-            onClick={() => { setActiveTab('security'); setBackupError(null); setBackupSuccess(null); }}
-          >
-            <Shield size={18} /> Security
           </button>
         </div>
 
@@ -624,83 +564,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'security' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Backup Login</h2>
-              <p className={styles.cardSubtitle}>
-                Set up an email and password so you can sign in if you lose access to your phone number.
-              </p>
-            </div>
-
-            <div className={styles.cardBody}>
-              {backupError && <p className={styles.inlineError}>{backupError}</p>}
-              {backupSuccess && <p className={styles.inlineSuccess}>{backupSuccess}</p>}
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Backup Email</label>
-                  <input
-                    type="email"
-                    className={styles.input}
-                    value={backupEmail}
-                    onChange={(e) => setBackupEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Password</label>
-                  <div className={styles.passwordWrapper}>
-                    <input
-                      type={showBackupPassword ? "text" : "password"}
-                      className={styles.passwordInput}
-                      value={backupPassword}
-                      onChange={(e) => setBackupPassword(e.target.value)}
-                      placeholder="Min. 8 characters"
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      className={styles.eyeBtn}
-                      onClick={() => setShowBackupPassword((v) => !v)}
-                      aria-label={showBackupPassword ? "Hide password" : "Show password"}
-                    >
-                      {showBackupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Confirm Password</label>
-                  <div className={styles.passwordWrapper}>
-                    <input
-                      type={showBackupPassword ? "text" : "password"}
-                      className={styles.passwordInput}
-                      value={backupConfirm}
-                      onChange={(e) => setBackupConfirm(e.target.value)}
-                      placeholder="Re-enter password"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.cardFooter}>
-              <button
-                className={styles.btnPrimary}
-                onClick={handleSaveBackupLogin}
-                disabled={backupSaving}
-              >
-                {backupSaving ? <Loader2 size={16} className={styles.btnSpinner} /> : <Shield size={16} />}
-                Save Backup Login
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Phone Change Modal */}
