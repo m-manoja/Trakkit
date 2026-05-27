@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import CheckoutLayout from '../../components/CheckoutLayout';
 import styles from './PricingPage.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -39,10 +40,16 @@ const PREMIUM_FEATURES = [
 
 export default function PricingPage() {
   const { user, refreshPlan } = useAuth();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (user?.token) refreshPlan();
-  }, [user?.token, refreshPlan]);
+    if (searchParams.get('source') === 'mobile') {
+      sessionStorage.setItem('trakkit_payment_source', 'mobile');
+    } else {
+      sessionStorage.removeItem('trakkit_payment_source');
+    }
+  }, [user?.token, refreshPlan, searchParams]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentInitData | null>(null);

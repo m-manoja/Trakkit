@@ -5,7 +5,7 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL as string;
 
 const rawWebUrl = (process.env.EXPO_PUBLIC_WEB_URL as string | undefined)?.replace(/\/$/, '');
 export const WEB_BASE_URL = rawWebUrl || '';
-export const WEB_PRICING_URL = WEB_BASE_URL ? `${WEB_BASE_URL}/pricing` : '';
+export const WEB_PRICING_URL = WEB_BASE_URL ? `${WEB_BASE_URL}/pricing?source=mobile` : '';
 
 if (!API_BASE_URL) {
   console.error(

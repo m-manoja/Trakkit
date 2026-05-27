@@ -15,6 +15,7 @@ export default function PaymentSuccessPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [activationNote, setActivationNote] = useState<string | null>(null);
   const ranRef = useRef(false);
+  const isFromMobile = sessionStorage.getItem('trakkit_payment_source') === 'mobile';
 
   useEffect(() => {
     if (ranRef.current) return;
@@ -95,6 +96,7 @@ export default function PaymentSuccessPage() {
 
         if (resolvedPlan === 'premium') {
           sessionStorage.removeItem(PENDING_ORDER_KEY);
+          sessionStorage.removeItem('trakkit_payment_source');
         }
       } finally {
         setRefreshing(false);
@@ -124,12 +126,14 @@ export default function PaymentSuccessPage() {
               Welcome, <strong>{user?.firstName || 'Trakkit user'}</strong>! Your Premium features are now active.
             </p>
 
-            <div className={styles.appNote}>
-              <Smartphone size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>
-                Close this browser and return to the Trakkit app. Your account will update automatically.
-              </span>
-            </div>
+            {isFromMobile ? (
+              <div className={styles.appNote}>
+                <Smartphone size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>
+                  Close this browser and return to the Trakkit app. Your account will update automatically.
+                </span>
+              </div>
+            ) : null}
 
             <ul className={styles.featureList}>
               {[
