@@ -185,13 +185,15 @@ export default function PricingPage() {
           Secured by PayHere · Safe &amp; encrypted checkout
         </div>
 
-        <div className={styles.mobileNote}>
-          <Smartphone size={16} />
-          <p>
-            Opened from the Trakkit app? After payment, close this browser and return to the app —
-            Premium updates automatically.
-          </p>
-        </div>
+        {searchParams.get('source') === 'mobile' && (
+          <div className={styles.mobileNote}>
+            <Smartphone size={16} />
+            <p>
+              Opened from the Trakkit app? After payment, close this browser and return to the app —
+              Premium updates automatically.
+            </p>
+          </div>
+        )}
 
         {/* ── Hidden PayHere Form ── */}
         {/* PayHere works by submitting a standard HTML form to their URL.

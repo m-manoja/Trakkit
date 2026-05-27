@@ -148,9 +148,15 @@ export default function PaymentSuccessPage() {
               ))}
             </ul>
 
-            <button type="button" className={styles.primaryBtn} onClick={() => navigate('/pricing')}>
-              Done
-            </button>
+            {isFromMobile ? (
+              <button type="button" className={styles.primaryBtn} onClick={() => navigate('/pricing')}>
+                Done
+              </button>
+            ) : (
+              <button type="button" className={styles.primaryBtn} onClick={() => navigate('/dashboard')}>
+                Go to Dashboard
+              </button>
+            )}
           </>
         ) : (
           <>
