@@ -15,7 +15,7 @@ export default function PaymentSuccessPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [activationNote, setActivationNote] = useState<string | null>(null);
   const ranRef = useRef(false);
-  const isFromMobile = sessionStorage.getItem('trakkit_payment_source') === 'mobile';
+  const isFromMobile = useRef(sessionStorage.getItem('trakkit_payment_source') === 'mobile').current;
 
   useEffect(() => {
     if (ranRef.current) return;

@@ -3,14 +3,31 @@
     "version": ">= 16.0.0"
   },
   "build": {
+    "development": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.8.101:5000",
+        "EXPO_PUBLIC_WEB_URL": "http://192.168.8.101:5173"
+      }
+    },
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://trakkit-five.vercel.app",
+        "EXPO_PUBLIC_WEB_URL": "https://trakkit.site"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://trakkit-five.vercel.app",
+        "EXPO_PUBLIC_WEB_URL": "https://trakkit.site"
       }
     }
   },
