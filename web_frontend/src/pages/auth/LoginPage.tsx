@@ -71,7 +71,7 @@ export default function LoginPage() {
         <div className={styles.formSection}>
           <h2 className={styles.title}>Welcome Back</h2>
           <p className={styles.subtitle}>
-            {returnTo === '/pricing'
+            {returnTo?.startsWith('/pricing')
               ? 'Sign in with the same phone number as the Trakkit app to continue checkout.'
               : 'Enter your phone number to receive a verification code'}
           </p>

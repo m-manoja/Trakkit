@@ -86,6 +86,12 @@ export default function OTPVerificationPage() {
         plan: normalizePlan(user.plan),
       });
 
+      // Mark that the user has freshly authenticated for the mobile upgrade flow.
+      // ProtectedRoute checks this flag to prevent stale web sessions from bypassing login.
+      if (returnTo?.includes('source=mobile')) {
+        sessionStorage.setItem('trakkit_mobile_login_done', '1');
+      }
+
       const backupPromptShown = user.backupPromptShown ?? true;
       let target = returnTo || response.nextScreen;
       

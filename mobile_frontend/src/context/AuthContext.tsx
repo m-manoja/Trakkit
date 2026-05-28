@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const json = await res.json();
       if (json.success && json.data?.plan) {
-        const plan = json.data.plan === 'premium' ? 'premium' : 'free';
+        const plan: 'free' | 'premium' = json.data.plan === 'premium' ? 'premium' : 'free';
         const next = { ...current, plan };
         setUserState(next);
         await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
