@@ -229,7 +229,8 @@ async function buildRecipientQueueItems(
         title,
         body,
         scheduled_for: toScheduledFor(date, reminderTime, tz),
-      }));
+      }))
+      .filter((item): item is typeof item & { scheduled_for: string } => item.scheduled_for !== null);
 
   switch (itemType) {
     case 'warranty': {

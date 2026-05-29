@@ -46,16 +46,24 @@ export default function TodoFormModal({
   }, [token]);
 
   useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        task_name: "",
-        has_reminder: false,
-        reminder_date: new Date().toISOString().split('T')[0],
-        reminder_time: "08:00",
-        reminder_schedule: defaultReminderSchedule,
-      });
-    }
-  }, [isOpen, defaultReminderSchedule]);
+    if (!isOpen) return;
+    setFormData({
+      task_name: "",
+      has_reminder: false,
+      reminder_date: new Date().toISOString().split('T')[0],
+      reminder_time: "08:00",
+      reminder_schedule: defaultReminderSchedule,
+    });
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData((prev) => ({
+      ...prev,
+      reminder_schedule:
+        prev.reminder_schedule === "7,3,1" ? defaultReminderSchedule : prev.reminder_schedule,
+    }));
+  }, [defaultReminderSchedule, isOpen]);
 
   if (!isOpen) return null;
 

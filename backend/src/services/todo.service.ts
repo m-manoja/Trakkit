@@ -1,10 +1,12 @@
 import { supabase } from '../config/supabaseClient.js';
 import { scheduleTodoReminder, removeScheduledReminders } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
+import { normalizeReminderTime } from '../utils/timezone.js';
 
 export const createTodo = async (todoData: any) => {
     console.log('createTodo called with:', todoData);
     const { userId, task_name, has_reminder, reminder_date, reminder_time } = todoData;
+    const normalizedTime = has_reminder ? normalizeReminderTime(reminder_time) : null;
 
     try {
         // First verify user exists in public.users
@@ -26,7 +28,7 @@ export const createTodo = async (todoData: any) => {
                 has_reminder,
                 reminder_date: has_reminder ? reminder_date : null,
                 reminder_schedule: todoData.reminder_schedule,
-                reminder_time: has_reminder ? (reminder_time || '08:00') : null
+                reminder_time: normalizedTime
             }])
             .select();
 
@@ -45,7 +47,14 @@ export const createTodo = async (todoData: any) => {
         const todo = data[0];
         if (todo.has_reminder && todo.reminder_date) {
             try {
-                await scheduleTodoReminder(userId, todo.id, todo.task_name, todo.reminder_date, todo.reminder_schedule, todo.reminder_time);
+                await scheduleTodoReminder(
+                    userId,
+                    todo.id,
+                    todo.task_name,
+                    todo.reminder_date,
+                    todo.reminder_schedule,
+                    normalizedTime ?? undefined
+                );
             } catch (e) {
                 console.error("Failed to schedule todo reminder:", e);
             }
@@ -111,9 +120,16 @@ export const toggleCompletion = async (id: string) => {
 };
 
 export const updateTodo = async (id: string, updateData: any) => {
+    const payload = { ...updateData };
+    if ('reminder_time' in payload) {
+        payload.reminder_time = payload.has_reminder === false
+            ? null
+            : normalizeReminderTime(payload.reminder_time);
+    }
+
     const { data, error } = await supabase
         .from('todos')
-        .update(updateData)
+        .update(payload)
         .eq('id', id)
         .select();
 

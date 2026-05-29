@@ -1,5 +1,15 @@
 export const DEFAULT_TIMEZONE = 'Asia/Colombo';
 
+/** Normalize "HH:MM" or "HH:MM:SS" to "HH:MM". Defaults to 08:00 when empty. */
+export function normalizeReminderTime(time: string | null | undefined): string {
+  if (!time || !String(time).trim()) return '08:00';
+  const parts = String(time).trim().split(':');
+  const h = Math.min(23, Math.max(0, Number(parts[0] ?? 8)));
+  const m = Math.min(59, Math.max(0, Number((parts[1] ?? '0').replace(/\D/g, '') || 0)));
+  if (Number.isNaN(h) || Number.isNaN(m)) return '08:00';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export function isValidTimezone(tz: string): boolean {
   try {
     Intl.DateTimeFormat(undefined, { timeZone: tz });

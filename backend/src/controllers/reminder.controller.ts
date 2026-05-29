@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as reminderService from '../services/reminder.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
+import { normalizeReminderTime } from '../utils/timezone.js';
 
 function userIdFromRequest(req: Request): string | undefined {
     const user = (req as any).user;
@@ -41,7 +42,7 @@ export const addReminder = async (req: Request, res: Response) => {
             repeat_cycle: type === 'repeat' ? (repeat_cycle || 'Every week') : null,
             remind_time: remind_time || 'On the day',
             reminder_schedule,
-            reminder_time: reminder_time || '08:00',
+            reminder_time: normalizeReminderTime(reminder_time),
             description
         };
 
@@ -74,7 +75,7 @@ export const updateReminder = async (req: Request, res: Response) => {
             repeat_cycle: type === 'repeat' ? repeat_cycle : null,
             remind_time,
             reminder_schedule,
-            reminder_time: reminder_time || '08:00',
+            reminder_time: normalizeReminderTime(reminder_time),
             description,
             updated_at: new Date().toISOString()
         };

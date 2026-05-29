@@ -1,11 +1,15 @@
 import { supabase } from '../config/supabaseClient.js';
 import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence, getUserTimezone } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
+import { normalizeReminderTime } from '../utils/timezone.js';
 
 export const createReminder = async (reminderData: any) => {
+    const reminderTime = normalizeReminderTime(reminderData.reminder_time);
+    const insertPayload = { ...reminderData, reminder_time: reminderTime };
+
     const { data, error } = await supabase
         .from('manual_reminders')
-        .insert([reminderData])
+        .insert([insertPayload])
         .select();
 
     if (error) throw error;
@@ -20,7 +24,7 @@ export const createReminder = async (reminderData: any) => {
                 data[0].remind_time,
                 data[0].reminder_schedule,
                 data[0].repeat_cycle,
-                data[0].reminder_time
+                reminderTime
             );
         } catch(e) { console.error("Failed to schedule reminder:", e); }
     }
@@ -61,9 +65,12 @@ export const getReminderById = async (id: string) => {
 
 
 export const updateReminder = async (id: string, reminderData: any) => {
+    const reminderTime = normalizeReminderTime(reminderData.reminder_time);
+    const updatePayload = { ...reminderData, reminder_time: reminderTime };
+
     const { data, error } = await supabase
         .from('manual_reminders')
-        .update(reminderData)
+        .update(updatePayload)
         .eq('id', id)
         .select();
 
@@ -79,7 +86,7 @@ export const updateReminder = async (id: string, reminderData: any) => {
                 data[0].remind_time,
                 data[0].reminder_schedule,
                 data[0].repeat_cycle,
-                data[0].reminder_time
+                reminderTime
             );
         } catch(e) { console.error("Failed to restructure reminder:", e); }
     }

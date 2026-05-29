@@ -2,6 +2,7 @@ import { supabase } from '../config/supabaseClient.js';
 import {
   DEFAULT_TIMEZONE,
   dateToYmdInTz,
+  normalizeReminderTime,
   normalizeTimezone,
   todayYmdInTz,
   zonedDateTimeToUtc,
@@ -127,24 +128,29 @@ export function calculateReminderDates(
 }
 
 /**
- * Returns the ISO string for scheduled_for.
+ * Returns the ISO string for scheduled_for, or null if the time is already in the past.
  * reminderTime is "HH:MM" in the user's timezone. Defaults to "08:00".
  */
 export function toScheduledFor(
   date: Date,
   reminderTime: string = '08:00',
   timezone: string = DEFAULT_TIMEZONE
-): string {
+): string | null {
   const dateStr = toLocalDateStr(date);
-  const schedDate = zonedDateTimeToUtc(dateStr, reminderTime, timezone);
-  if (schedDate <= new Date()) return new Date().toISOString();
+  const time = normalizeReminderTime(reminderTime);
+  const schedDate = zonedDateTimeToUtc(dateStr, time, timezone);
+  if (schedDate <= new Date()) return null;
   return schedDate.toISOString();
 }
 
-async function insertQueueItems(items: Array<{ user_id: string; reference_id: string } & Record<string, unknown>>) {
-  if (items.length === 0) return;
+async function insertQueueItems(items: Array<{ user_id: string; reference_id: string; scheduled_for: string | null } & Record<string, unknown>>) {
+  const futureItems = items.filter(
+    (item): item is typeof item & { scheduled_for: string } =>
+      typeof item.scheduled_for === 'string' && item.scheduled_for.length > 0
+  );
+  if (futureItems.length === 0) return;
 
-  const first = items[0];
+  const first = futureItems[0];
   if (!first) return;
   const refId = first.reference_id;
   const userId = first.user_id;
@@ -156,7 +162,7 @@ async function insertQueueItems(items: Array<{ user_id: string; reference_id: st
     .eq('user_id', userId)
     .eq('status', 'pending');
 
-  const { error } = await supabase.from('scheduled_notifications').insert(items);
+  const { error } = await supabase.from('scheduled_notifications').insert(futureItems);
 
   if (error) {
     console.error('Error inserting scheduled notifications:', error);
@@ -241,7 +247,7 @@ export const scheduleTodoReminder = async (
 ) => {
   const tz = await getUserTimezone(userId);
   const exactDate = parseLocalDate(reminderDateStr.split('T')[0] ?? reminderDateStr);
-  const time = reminderTime || '08:00';
+  const time = normalizeReminderTime(reminderTime);
 
   const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
   const beforeDates = calculateReminderDates(exactDate, finalSchedule, undefined, tz);
@@ -314,7 +320,7 @@ export const scheduleManualReminder = async (
   reminderTime?: string
 ) => {
   const tz = await getUserTimezone(userId);
-  const time = reminderTime || '08:00';
+  const time = normalizeReminderTime(reminderTime);
   const exactDate = repeatCycle
     ? getNextOccurrence(reminderDateStr, repeatCycle, tz)
     : parseLocalDate(reminderDateStr.split('T')[0] ?? reminderDateStr);

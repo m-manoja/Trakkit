@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { formatDate as formatLKDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl
+  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -423,30 +423,47 @@ export default function RemindersScreen() {
             </ScrollView>
           </View>
         </View>
-        {showDatePicker && (
-          <DateTimePicker
-            value={formData.reminder_date}
-            mode="date"
-            minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
-            onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, reminder_date: d }); }}
-          />
-        )}
-        {showTimePicker && (
-          <DateTimePicker
-            value={(() => { const [h, m] = formData.reminder_time.split(':').map(Number); const d = new Date(); d.setHours(h ?? 8, m ?? 0, 0, 0); return d; })()}
-            mode="time"
-            is24Hour={true}
-            onChange={(e, d) => {
-              setShowTimePicker(false);
-              if (d) {
-                const hh = String(d.getHours()).padStart(2, '0');
-                const mm = String(d.getMinutes()).padStart(2, '0');
-                setFormData({ ...formData, reminder_time: `${hh}:${mm}` });
-              }
-            }}
-          />
-        )}
       </Modal>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={formData.reminder_date}
+          mode="date"
+          minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+          onChange={(event, selectedDate) => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
+              if (event.type !== 'set' || !selectedDate) return;
+            }
+            if (selectedDate) {
+              setFormData((prev) => ({ ...prev, reminder_date: selectedDate }));
+            }
+          }}
+        />
+      )}
+      {showTimePicker && (
+        <DateTimePicker
+          value={(() => {
+            const [h, m] = formData.reminder_time.split(':').map(Number);
+            const d = new Date();
+            d.setHours(h ?? 8, m ?? 0, 0, 0);
+            return d;
+          })()}
+          mode="time"
+          is24Hour={true}
+          onChange={(event, selectedDate) => {
+            if (Platform.OS === 'android') {
+              setShowTimePicker(false);
+              if (event.type !== 'set' || !selectedDate) return;
+            }
+            if (selectedDate) {
+              const hh = String(selectedDate.getHours()).padStart(2, '0');
+              const mm = String(selectedDate.getMinutes()).padStart(2, '0');
+              setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+            }
+          }}
+        />
+      )}
 
       {/* Picker Modal for Types */}
       <Modal visible={pickerVisible} transparent={true} animationType="fade">

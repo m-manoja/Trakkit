@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as todoService from '../services/todo.service.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
+import { normalizeReminderTime } from '../utils/timezone.js';
 
 function userIdFromRequest(req: Request): string | undefined {
     const user = (req as AuthRequest).user;
@@ -33,7 +34,7 @@ export const addTodo = async (req: AuthRequest, res: Response) => {
             has_reminder: has_reminder || false,
             reminder_date: has_reminder ? reminder_date : null,
             reminder_schedule: has_reminder ? (reminder_schedule || null) : null,
-            reminder_time: has_reminder ? (reminder_time || '08:00') : null,
+            reminder_time: has_reminder ? normalizeReminderTime(reminder_time) : null,
         };
 
         console.log('Creating todo with data:', todoData);
