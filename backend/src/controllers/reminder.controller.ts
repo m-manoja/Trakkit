@@ -23,7 +23,7 @@ export const getReminder = async (req: Request, res: Response) => {
 export const addReminder = async (req: Request, res: Response) => {
     try {
         console.log('Request body:', req.body);
-        const { title, type, reminder_date, repeat_cycle, remind_time, description, userId, reminder_schedule } = req.body;
+        const { title, type, reminder_date, repeat_cycle, remind_time, description, userId, reminder_schedule, reminder_time } = req.body;
 
         // Validate required fields
         if (!title || !type || !reminder_date || !userId) {
@@ -41,6 +41,7 @@ export const addReminder = async (req: Request, res: Response) => {
             repeat_cycle: type === 'repeat' ? (repeat_cycle || 'Every week') : null,
             remind_time: remind_time || 'On the day',
             reminder_schedule,
+            reminder_time: reminder_time || '08:00',
             description
         };
 
@@ -60,7 +61,7 @@ export const addReminder = async (req: Request, res: Response) => {
 export const updateReminder = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, type, reminder_date, repeat_cycle, remind_time, description, reminder_schedule } = req.body;
+        const { title, type, reminder_date, repeat_cycle, remind_time, description, reminder_schedule, reminder_time } = req.body;
 
         if (!id) {
             return res.status(400).json({ success: false, message: "Reminder ID is required" });
@@ -73,6 +74,7 @@ export const updateReminder = async (req: Request, res: Response) => {
             repeat_cycle: type === 'repeat' ? repeat_cycle : null,
             remind_time,
             reminder_schedule,
+            reminder_time: reminder_time || '08:00',
             description,
             updated_at: new Date().toISOString()
         };

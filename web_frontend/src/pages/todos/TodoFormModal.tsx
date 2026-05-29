@@ -25,6 +25,7 @@ export default function TodoFormModal({
     task_name: "",
     has_reminder: false,
     reminder_date: new Date().toISOString().split('T')[0],
+    reminder_time: "08:00",
     reminder_schedule: "7,3,1",
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState("7,3,1");
@@ -50,6 +51,7 @@ export default function TodoFormModal({
         task_name: "",
         has_reminder: false,
         reminder_date: new Date().toISOString().split('T')[0],
+        reminder_time: "08:00",
         reminder_schedule: defaultReminderSchedule,
       });
     }
@@ -74,6 +76,7 @@ export default function TodoFormModal({
       ...formData,
       task_name: formData.task_name.trim(),
       reminder_date: formData.has_reminder ? new Date(formData.reminder_date).toISOString() : null,
+      reminder_time: formData.has_reminder ? formData.reminder_time : null,
       reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null
     };
     
@@ -127,6 +130,16 @@ export default function TodoFormModal({
                     className={styles.formInput}
                     value={formData.reminder_date}
                     onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Reminder Time</label>
+                  <input
+                    type="time"
+                    className={styles.formInput}
+                    value={formData.reminder_time}
+                    onChange={(e) => setFormData({...formData, reminder_time: e.target.value})}
                   />
                 </div>
 

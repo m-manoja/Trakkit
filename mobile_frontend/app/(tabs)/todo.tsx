@@ -30,11 +30,13 @@ export default function TodoScreen() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [formData, setFormData] = useState({
     task_name: '',
     has_reminder: false,
     reminder_date: new Date(),
+    reminder_time: '08:00',
     reminder_schedule: '7,3,1'  // will be updated once global settings load
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
@@ -95,7 +97,8 @@ export default function TodoScreen() {
         ...formData,
         userId: user?.id,
         reminder_date: formData.has_reminder ? formData.reminder_date.toISOString() : null,
-        reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null
+        reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null,
+        reminder_time: formData.has_reminder ? formData.reminder_time : null,
       };
 
       await axios.post(`${API_BASE_URL}/api/todos/add`, payload, {
@@ -103,7 +106,7 @@ export default function TodoScreen() {
       });
 
       setIsFormVisible(false);
-      setFormData({ task_name: '', has_reminder: false, reminder_date: new Date(), reminder_schedule: defaultReminderSchedule });
+      setFormData({ task_name: '', has_reminder: false, reminder_date: new Date(), reminder_time: '08:00', reminder_schedule: defaultReminderSchedule });
       fetchTodos();
     } catch (error) {
       Alert.alert("Error", "Failed to add task");
@@ -281,6 +284,15 @@ export default function TodoScreen() {
               <Ionicons name="calendar-outline" size={20} color="#666" />
             </TouchableOpacity>
 
+            <Text style={styles.inputLabel}>Reminder Time</Text>
+            <TouchableOpacity
+              style={[styles.dropdownTrigger, !formData.has_reminder && { opacity: 0.5 }]}
+              onPress={() => formData.has_reminder && setShowTimePicker(true)}
+            >
+              <Text>{formData.reminder_time}</Text>
+              <Ionicons name="time-outline" size={20} color="#666" />
+            </TouchableOpacity>
+
             {formData.has_reminder && (
               <View style={{ marginTop: 15 }}>
                 <Text style={styles.inputLabel}>Remind me (days before)</Text>
@@ -314,6 +326,21 @@ export default function TodoScreen() {
                 mode="date"
                 minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
                 onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, reminder_date: d }); }}
+              />
+            )}
+            {showTimePicker && (
+              <DateTimePicker
+                value={(() => { const [h, m] = formData.reminder_time.split(':').map(Number); const d = new Date(); d.setHours(h ?? 8, m ?? 0, 0, 0); return d; })()}
+                mode="time"
+                is24Hour={true}
+                onChange={(e, d) => {
+                  setShowTimePicker(false);
+                  if (d) {
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(d.getMinutes()).padStart(2, '0');
+                    setFormData({ ...formData, reminder_time: `${hh}:${mm}` });
+                  }
+                }}
               />
             )}
           </View>

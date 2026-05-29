@@ -4,7 +4,7 @@ import { removeSharesForItem } from './sharing.service.js';
 
 export const createTodo = async (todoData: any) => {
     console.log('createTodo called with:', todoData);
-    const { userId, task_name, has_reminder, reminder_date } = todoData;
+    const { userId, task_name, has_reminder, reminder_date, reminder_time } = todoData;
 
     try {
         // First verify user exists in public.users
@@ -25,7 +25,8 @@ export const createTodo = async (todoData: any) => {
                 task_name,
                 has_reminder,
                 reminder_date: has_reminder ? reminder_date : null,
-                reminder_schedule: todoData.reminder_schedule
+                reminder_schedule: todoData.reminder_schedule,
+                reminder_time: has_reminder ? (reminder_time || '08:00') : null
             }])
             .select();
 
@@ -44,7 +45,7 @@ export const createTodo = async (todoData: any) => {
         const todo = data[0];
         if (todo.has_reminder && todo.reminder_date) {
             try {
-                await scheduleTodoReminder(userId, todo.id, todo.task_name, todo.reminder_date, todo.reminder_schedule);
+                await scheduleTodoReminder(userId, todo.id, todo.task_name, todo.reminder_date, todo.reminder_schedule, todo.reminder_time);
             } catch (e) {
                 console.error("Failed to schedule todo reminder:", e);
             }
@@ -101,7 +102,7 @@ export const toggleCompletion = async (id: string) => {
     } else {
         if (current.has_reminder && current.reminder_date) {
             try {
-                await scheduleTodoReminder(current.user_id, current.id, current.task_name, current.reminder_date, current.reminder_schedule);
+                await scheduleTodoReminder(current.user_id, current.id, current.task_name, current.reminder_date, current.reminder_schedule, current.reminder_time);
             } catch (e) { console.error("Failed to reschedule todo reminder:", e); }
         }
     }
@@ -122,7 +123,7 @@ export const updateTodo = async (id: string, updateData: any) => {
     if (updated) {
         if (updated.has_reminder && updated.reminder_date && !updated.is_completed) {
             try {
-                await scheduleTodoReminder(updated.user_id, updated.id, updated.task_name, updated.reminder_date, updated.reminder_schedule);
+                await scheduleTodoReminder(updated.user_id, updated.id, updated.task_name, updated.reminder_date, updated.reminder_schedule, updated.reminder_time);
             } catch (e) { console.error("Failed to update todo schedule", e); }
         } else {
             await removeScheduledReminders(id);

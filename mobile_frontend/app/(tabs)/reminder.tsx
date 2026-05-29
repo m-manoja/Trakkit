@@ -31,6 +31,7 @@ export default function RemindersScreen() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -39,6 +40,7 @@ export default function RemindersScreen() {
     title: string;
     type: string;
     reminder_date: Date;
+    reminder_time: string;
     repeat_cycle: string | null;
     remind_time: string;
     description: string;
@@ -47,8 +49,9 @@ export default function RemindersScreen() {
     title: '',
     type: '',
     reminder_date: new Date(),
-    repeat_cycle: null, // No default - user must choose
-    remind_time: 'On the day',  // Default from screenshot
+    reminder_time: '08:00',
+    repeat_cycle: null,
+    remind_time: 'On the day',
     description: '',
     reminder_schedule: ''
   });
@@ -106,6 +109,7 @@ export default function RemindersScreen() {
         title: title.trim(),
         type,
         reminder_date: reminder_date.toISOString(),
+        reminder_time: formData.reminder_time,
         repeat_cycle: type === 'repeat' ? repeat_cycle : null,
         remind_time,
         reminder_schedule: (remind_time === 'Before the day' || remind_time === 'On and before') ? (reminder_schedule.trim() || defaultReminderSchedule) : null,
@@ -157,6 +161,7 @@ export default function RemindersScreen() {
       title: item.title,
       type: item.type,
       reminder_date: new Date(item.reminder_date),
+      reminder_time: item.reminder_time || '08:00',
       repeat_cycle: item.repeat_cycle,
       remind_time: item.remind_time,
       description: item.description || '',
@@ -167,7 +172,7 @@ export default function RemindersScreen() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ title: '', type: '', reminder_date: new Date(), repeat_cycle: null, remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
+    setFormData({ title: '', type: '', reminder_date: new Date(), reminder_time: '08:00', repeat_cycle: null, remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
   };
 
   const openPicker = (title: string, options: string[], field: string) => {
@@ -361,6 +366,12 @@ export default function RemindersScreen() {
                 <Ionicons name="calendar-outline" size={20} color="#666" />
               </TouchableOpacity>
 
+              <Text style={styles.inputLabel}>Reminder Time</Text>
+              <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowTimePicker(true)}>
+                <Text>{formData.reminder_time}</Text>
+                <Ionicons name="time-outline" size={20} color="#666" />
+              </TouchableOpacity>
+
               {/* Cycle Section - Only show for repeat type */}
               {formData.type === 'repeat' && (
                 <>
@@ -421,6 +432,21 @@ export default function RemindersScreen() {
             mode="date"
             minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
             onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, reminder_date: d }); }}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={(() => { const [h, m] = formData.reminder_time.split(':').map(Number); const d = new Date(); d.setHours(h ?? 8, m ?? 0, 0, 0); return d; })()}
+            mode="time"
+            is24Hour={true}
+            onChange={(e, d) => {
+              setShowTimePicker(false);
+              if (d) {
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                setFormData({ ...formData, reminder_time: `${hh}:${mm}` });
+              }
+            }}
           />
         )}
       </Modal>

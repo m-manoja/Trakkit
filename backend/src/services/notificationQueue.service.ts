@@ -124,6 +124,26 @@ export function calculateReminderDates(targetDate: Date, scheduleStr: string, cy
 }
 
 /**
+ * Returns the ISO string for a notification's scheduled_for field.
+ * reminderTime is "HH:MM" in Sri Lanka time (UTC+5:30). Defaults to "08:00".
+ * If the calculated UTC time has already passed, returns now so the worker
+ * sends it on its next run.
+ */
+export function toScheduledFor(date: Date, reminderTime: string = '08:00'): string {
+  const parts = reminderTime.split(':').map(Number);
+  const hours = parts[0] ?? 8;
+  const minutes = parts[1] ?? 0;
+  // Sri Lanka is UTC+5:30 (330 minutes ahead). Convert local → UTC.
+  const totalUtcMinutes = hours * 60 + minutes - 330;
+  const utcHour = Math.floor(totalUtcMinutes / 60);
+  const utcMin = totalUtcMinutes % 60;
+  const schedDate = new Date(date);
+  schedDate.setUTCHours(utcHour, utcMin, 0, 0);
+  if (schedDate <= new Date()) return new Date().toISOString();
+  return schedDate.toISOString();
+}
+
+/**
  * Schedules reminders in the database queue.
  * Replaces any existing pending reminders for this reference_id first.
  */
@@ -168,18 +188,14 @@ export const scheduleSubscriptionReminders = async (
   
   if (nextBillingDate > new Date()) reminderDates.push(nextBillingDate);
 
-  const queueItems = reminderDates.map(date => {
-    const schedDate = new Date(date);
-    schedDate.setHours(9, 0, 0, 0);
-    return {
-      user_id: userId,
-      reference_id: subscriptionId,
-      reference_type: 'subscription',
-      title: `Subscription Renewal: ${serviceName}`,
-      body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-      scheduled_for: schedDate.toISOString(),
-    };
-  });
+  const queueItems = reminderDates.map(date => ({
+    user_id: userId,
+    reference_id: subscriptionId,
+    reference_type: 'subscription',
+    title: `Subscription Renewal: ${serviceName}`,
+    body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
+    scheduled_for: toScheduledFor(date),
+  }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'subscription', subscriptionId);
@@ -205,18 +221,14 @@ export const scheduleSubscriptionRemindersForDate = async (
   startOfToday.setHours(0, 0, 0, 0);
   if (nextBillingDate >= startOfToday) reminderDates.push(nextBillingDate);
 
-  const queueItems = reminderDates.map(date => {
-    const schedDate = new Date(date);
-    schedDate.setHours(9, 0, 0, 0);
-    return {
-      user_id: userId,
-      reference_id: subscriptionId,
-      reference_type: 'subscription',
-      title: `Subscription Renewal: ${serviceName}`,
-      body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-      scheduled_for: schedDate.toISOString(),
-    };
-  });
+  const queueItems = reminderDates.map(date => ({
+    user_id: userId,
+    reference_id: subscriptionId,
+    reference_type: 'subscription',
+    title: `Subscription Renewal: ${serviceName}`,
+    body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
+    scheduled_for: toScheduledFor(date),
+  }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'subscription', subscriptionId);
@@ -227,7 +239,8 @@ export const scheduleTodoReminder = async (
   todoId: string,
   taskName: string,
   reminderDateStr: string,
-  reminderSchedule?: string
+  reminderSchedule?: string,
+  reminderTime?: string
 ) => {
   const exactDate = new Date(reminderDateStr);
 
@@ -235,20 +248,14 @@ export const scheduleTodoReminder = async (
   const beforeDates = calculateReminderDates(exactDate, finalSchedule);
   const dates = [...beforeDates, exactDate];
 
-  const queueItems = dates
-    .filter(date => date > new Date())
-    .map(date => {
-      const schedDate = new Date(date);
-      schedDate.setHours(9, 0, 0, 0);
-      return {
-        user_id: userId,
-        reference_id: todoId,
-        reference_type: 'todo',
-        title: `Todo Reminder: ${taskName}`,
-        body: `Don't forget to complete: ${taskName}`,
-        scheduled_for: schedDate.toISOString(),
-      };
-    });
+  const queueItems = dates.map(date => ({
+    user_id: userId,
+    reference_id: todoId,
+    reference_type: 'todo',
+    title: `Todo Reminder: ${taskName}`,
+    body: `Don't forget to complete: ${taskName}`,
+    scheduled_for: toScheduledFor(date, reminderTime),
+  }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'todo', todoId);
@@ -267,18 +274,14 @@ export const scheduleWarrantyReminders = async (
   
   if (expiryDate > new Date()) reminderDates.push(expiryDate);
 
-  const queueItems = reminderDates.map(date => {
-    const schedDate = new Date(date);
-    schedDate.setHours(9, 0, 0, 0);
-    return {
-      user_id: userId,
-      reference_id: warrantyId,
-      reference_type: 'warranty',
-      title: `Warranty Expiry: ${itemName}`,
-      body: `Your warranty for ${itemName} is expiring on ${expiryDate.toDateString()}.`,
-      scheduled_for: schedDate.toISOString(),
-    };
-  });
+  const queueItems = reminderDates.map(date => ({
+    user_id: userId,
+    reference_id: warrantyId,
+    reference_type: 'warranty',
+    title: `Warranty Expiry: ${itemName}`,
+    body: `Your warranty for ${itemName} is expiring on ${expiryDate.toDateString()}.`,
+    scheduled_for: toScheduledFor(date),
+  }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'warranty', warrantyId);
@@ -299,7 +302,8 @@ export const scheduleManualReminder = async (
   reminderDateStr: string,
   remindTime: string,
   reminderSchedule?: string,
-  repeatCycle?: string | null
+  repeatCycle?: string | null,
+  reminderTime?: string
 ) => {
   const exactDate = repeatCycle ? getNextOccurrence(reminderDateStr, repeatCycle) : new Date(reminderDateStr);
   let dates: Date[] = [];
@@ -308,28 +312,22 @@ export const scheduleManualReminder = async (
     dates.push(exactDate);
   } else {
     const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-    const beforeDates = calculateReminderDates(exactDate, finalSchedule, repeatCycle || undefined); // calculates days before
+    const beforeDates = calculateReminderDates(exactDate, finalSchedule, repeatCycle || undefined);
     dates.push(...beforeDates);
-    
+
     if (remindTime === 'On and before') {
       dates.push(exactDate);
     }
   }
 
-  const queueItems = dates
-    .filter(date => date > new Date()) // only future dates
-    .map(date => {
-      const schedDate = new Date(date);
-      schedDate.setHours(9, 0, 0, 0);
-      return {
-        user_id: userId,
-        reference_id: reminderId,
-        reference_type: 'manual_reminder',
-        title: `Reminder: ${title}`,
-        body: `You have a reminder scheduled: ${title}`,
-        scheduled_for: schedDate.toISOString(),
-      };
-    });
+  const queueItems = dates.map(date => ({
+    user_id: userId,
+    reference_id: reminderId,
+    reference_type: 'manual_reminder',
+    title: `Reminder: ${title}`,
+    body: `You have a reminder scheduled: ${title}`,
+    scheduled_for: toScheduledFor(date, reminderTime),
+  }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'reminder', reminderId);

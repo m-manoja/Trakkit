@@ -25,6 +25,7 @@ export default function ReminderFormModal({
     title: "",
     type: "",
     reminder_date: new Date().toISOString().split('T')[0],
+    reminder_time: "08:00",
     repeat_cycle: "",
     remind_time: "On the day",
     description: "",
@@ -38,6 +39,7 @@ export default function ReminderFormModal({
           title: initialData.title,
           type: initialData.type,
           reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
+          reminder_time: (initialData as any).reminder_time || "08:00",
           repeat_cycle: initialData.repeat_cycle || "",
           remind_time: initialData.remind_time || "On the day",
           description: initialData.description || "",
@@ -48,6 +50,7 @@ export default function ReminderFormModal({
           title: "",
           type: "",
           reminder_date: new Date().toISOString().split('T')[0],
+          reminder_time: "08:00",
           repeat_cycle: "",
           remind_time: "On the day",
           description: "",
@@ -77,10 +80,11 @@ export default function ReminderFormModal({
       title: formData.title.trim(),
       type: formData.type,
       reminder_date: new Date(formData.reminder_date).toISOString(),
+      reminder_time: formData.reminder_time,
       repeat_cycle: formData.type === 'repeat' ? formData.repeat_cycle : null,
       remind_time: formData.remind_time,
-      reminder_schedule: (formData.remind_time === 'Before the day' || formData.remind_time === 'On and before') 
-        ? formData.reminder_schedule 
+      reminder_schedule: (formData.remind_time === 'Before the day' || formData.remind_time === 'On and before')
+        ? formData.reminder_schedule
         : null,
       description: formData.description.trim()
     };
@@ -135,6 +139,15 @@ export default function ReminderFormModal({
                   className={styles.formInput}
                   value={formData.reminder_date}
                   onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Reminder Time</label>
+                <input
+                  type="time"
+                  className={styles.formInput}
+                  value={formData.reminder_time}
+                  onChange={(e) => setFormData({...formData, reminder_time: e.target.value})}
                 />
               </div>
             </div>

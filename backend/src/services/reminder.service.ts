@@ -13,13 +13,14 @@ export const createReminder = async (reminderData: any) => {
     if (data && data.length > 0) {
         try {
             await scheduleManualReminder(
-                reminderData.user_id, 
-                data[0].id, 
-                data[0].title, 
+                reminderData.user_id,
+                data[0].id,
+                data[0].title,
                 data[0].reminder_date,
                 data[0].remind_time,
                 data[0].reminder_schedule,
-                data[0].repeat_cycle
+                data[0].repeat_cycle,
+                data[0].reminder_time
             );
         } catch(e) { console.error("Failed to schedule reminder:", e); }
     }
@@ -69,13 +70,14 @@ export const updateReminder = async (id: string, reminderData: any) => {
     if (data && data.length > 0) {
         try {
             await scheduleManualReminder(
-                data[0].user_id, 
-                id, 
-                data[0].title, 
+                data[0].user_id,
+                id,
+                data[0].title,
                 data[0].reminder_date,
                 data[0].remind_time,
                 data[0].reminder_schedule,
-                data[0].repeat_cycle
+                data[0].repeat_cycle,
+                data[0].reminder_time
             );
         } catch(e) { console.error("Failed to restructure reminder:", e); }
     }
