@@ -2,6 +2,15 @@ import { supabase } from '../config/supabaseClient.js';
 import { scheduleTodoReminder, removeScheduledReminders } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
 import { normalizeReminderTime } from '../utils/timezone.js';
+import { processNotifications } from './notificationWorker.service.js';
+
+async function flushDueNotifications() {
+    try {
+        await processNotifications();
+    } catch (e) {
+        console.error('Failed to flush due notifications:', e);
+    }
+}
 
 export const createTodo = async (todoData: any) => {
     console.log('createTodo called with:', todoData);
@@ -58,6 +67,7 @@ export const createTodo = async (todoData: any) => {
             } catch (e) {
                 console.error("Failed to schedule todo reminder:", e);
             }
+            await flushDueNotifications();
         }
 
         return todo;

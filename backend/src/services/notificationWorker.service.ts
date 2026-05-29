@@ -47,8 +47,9 @@ async function releaseStaleLocks() {
   const staleBefore = new Date(Date.now() - STALE_LOCK_MS).toISOString();
   await supabase
     .from('scheduled_notifications')
-    .update({ status: 'pending', locked_at: null })
-    .eq('status', 'processing')
+    .update({ locked_at: null })
+    .eq('status', 'pending')
+    .not('locked_at', 'is', null)
     .lt('locked_at', staleBefore);
 }
 
@@ -56,9 +57,10 @@ async function claimNotification(id: string) {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('scheduled_notifications')
-    .update({ status: 'processing', locked_at: now })
+    .update({ locked_at: now })
     .eq('id', id)
     .eq('status', 'pending')
+    .is('locked_at', null)
     .select('*')
     .maybeSingle();
 
@@ -229,6 +231,7 @@ export async function processNotifications() {
     .from('scheduled_notifications')
     .select('id')
     .eq('status', 'pending')
+    .is('locked_at', null)
     .lte('scheduled_for', now)
     .limit(50);
 
@@ -253,9 +256,9 @@ export async function processNotifications() {
       console.error(`Error processing notification ${id}:`, err);
       await supabase
         .from('scheduled_notifications')
-        .update({ status: 'pending', locked_at: null })
+        .update({ locked_at: null })
         .eq('id', id)
-        .eq('status', 'processing');
+        .eq('status', 'pending');
     }
   }
 

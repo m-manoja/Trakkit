@@ -2,6 +2,15 @@ import { supabase } from '../config/supabaseClient.js';
 import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence, getUserTimezone } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
 import { normalizeReminderTime } from '../utils/timezone.js';
+import { processNotifications } from './notificationWorker.service.js';
+
+async function flushDueNotifications() {
+    try {
+        await processNotifications();
+    } catch (e) {
+        console.error('Failed to flush due notifications:', e);
+    }
+}
 
 export const createReminder = async (reminderData: any) => {
     const reminderTime = normalizeReminderTime(reminderData.reminder_time);
@@ -27,6 +36,7 @@ export const createReminder = async (reminderData: any) => {
                 reminderTime
             );
         } catch(e) { console.error("Failed to schedule reminder:", e); }
+        await flushDueNotifications();
     }
     return data[0];
 };
@@ -89,6 +99,7 @@ export const updateReminder = async (id: string, reminderData: any) => {
                 reminderTime
             );
         } catch(e) { console.error("Failed to restructure reminder:", e); }
+        await flushDueNotifications();
     }
     return data[0];
 };
