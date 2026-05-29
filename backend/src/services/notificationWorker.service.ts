@@ -83,12 +83,16 @@ export async function processNotifications() {
         console.log(`[Worker] Skipping email — email_notification: ${settings?.email_notification}, email: ${userData?.email}`);
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('scheduled_notifications')
         .update({ status: 'notified' })
         .eq('id', notification.id);
 
-      processed++;
+      if (updateError) {
+        console.error(`[Worker] Failed to update status for notification ${notification.id}:`, updateError.message);
+      } else {
+        processed++;
+      }
     } catch (err) {
       console.error(`Error processing notification ${notification.id}:`, err);
     }
