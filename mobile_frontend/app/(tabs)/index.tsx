@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatShortDate, formatMonthYear, formatWeekdayDate, formatWeekdayFull, isToday as isTodayLK } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, ActivityIndicator, RefreshControl, Modal,
@@ -27,8 +28,7 @@ interface DashboardData {
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatShortDate(dateStr);
 }
 
 function daysUntil(dateStr: string): number {
@@ -48,9 +48,7 @@ function isThisWeek(dateStr: string) {
 
 function isToday(dateStr: string) {
   if (!dateStr) return false;
-  const d = new Date(dateStr);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
+  return isTodayLK(dateStr);
 }
 
 function getMonthlySpend(subscriptions: any[]): number {
@@ -147,7 +145,7 @@ function MiniCalendar({ events }: { events: CalEvent[] }) {
     else setViewMonth(m => m + 1);
   };
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = formatMonthYear(viewYear, viewMonth);
   const weekDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   const eventMap: Record<number, CalEvent[]> = {};
@@ -173,7 +171,7 @@ function MiniCalendar({ events }: { events: CalEvent[] }) {
 
   const selectedEvents = selectedDay ? (eventMap[selectedDay] || []) : [];
   const selectedDateLabel = selectedDay
-    ? new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    ? formatWeekdayDate(viewYear, viewMonth, selectedDay)
     : '';
 
   return (
@@ -477,7 +475,7 @@ export default function DashboardHome() {
         </View>
 
         {/* ─── TODAY AT A GLANCE ─── */}
-        <SectionHeader title="Today at a Glance" subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} />
+        <SectionHeader title="Today at a Glance" subtitle={formatWeekdayFull(new Date())} />
         <View style={styles.card}>
           {todayEvents.length === 0 ? (
             <View style={styles.emptyState}>

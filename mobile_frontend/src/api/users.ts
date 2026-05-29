@@ -122,7 +122,35 @@ export async function getNotificationSettings(token: string) {
   return result;
 }
 
-export async function updateNotificationSettings(payload: { email_notification: boolean, sms_notification: boolean, push_notification: boolean, reminder_schedule: string }, token: string) {
+export async function registerPushToken(pushToken: string, token: string, platform?: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/push-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ token: pushToken, platform }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || 'Failed to register push token');
+  return result;
+}
+
+export async function removePushToken(pushToken: string, token: string) {
+  const response = await fetch(`${API_BASE_URL}/api/users/push-token`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ token: pushToken }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error || 'Failed to remove push token');
+  return result;
+}
+
+export async function updateNotificationSettings(payload: { email_notification: boolean, sms_notification: boolean, push_notification: boolean, reminder_schedule: string, timezone?: string }, token: string) {
   const response = await fetch(`${API_BASE_URL}/api/users/notification-settings`, {
     method: "PUT",
     headers: {

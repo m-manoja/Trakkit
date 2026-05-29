@@ -1,11 +1,18 @@
 import { Router } from "express";
 import { asyncHandler } from "../middlewares/async.middleware.js";
 import { protect } from "../middlewares/auth.middleware.js";
-import { getNotificationSettings, updateNotificationSettings } from "../controllers/settings.controller.js";
+import {
+  getNotificationSettings,
+  updateNotificationSettings,
+  savePushToken,
+  deletePushToken,
+} from "../controllers/settings.controller.js";
 
 const router = Router();
 
 router.get("/notification-settings", protect, asyncHandler(getNotificationSettings));
 router.put("/notification-settings", protect, asyncHandler(updateNotificationSettings));
+router.post("/push-token", protect, asyncHandler(savePushToken));
+router.delete("/push-token", protect, asyncHandler(deletePushToken));
 
 export default router;

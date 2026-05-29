@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { formatDate as formatLKDate } from '../utils/dateFormat';
 import {
   View,
   Text,
@@ -31,7 +32,7 @@ const TYPE_LABELS: Record<ShareItemType, string> = {
 function formatDate(value: unknown): string {
   if (!value || typeof value !== 'string') return '—';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? String(value) : formatLKDate(d);
 }
 
 function ItemDetails({ entry }: { entry: ShareListEntry }) {
@@ -181,7 +182,7 @@ export default function SharingSettings() {
                 </View>
                 <Text style={styles.meta}>
                   Shared with <Text style={styles.metaStrong}>{entry.otherUser.displayName}</Text> ·{' '}
-                  {new Date(entry.createdAt).toLocaleDateString()}
+                  {formatLKDate(entry.createdAt)}
                 </Text>
                 <TouchableOpacity
                   style={styles.revokeBtn}
@@ -221,7 +222,7 @@ export default function SharingSettings() {
               </View>
               <Text style={styles.meta}>
                 Shared by <Text style={styles.metaStrong}>{entry.otherUser.displayName}</Text> ·{' '}
-                {new Date(entry.createdAt).toLocaleDateString()}
+                {formatLKDate(entry.createdAt)}
               </Text>
               <TouchableOpacity
                 style={styles.detailBtn}

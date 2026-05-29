@@ -1,4 +1,13 @@
 import { supabase } from '../config/supabaseClient.js';
+import {
+  DEFAULT_TIMEZONE,
+  dateToYmdInTz,
+  normalizeTimezone,
+  todayYmdInTz,
+  zonedDateTimeToUtc,
+} from '../utils/timezone.js';
+
+export { DEFAULT_TIMEZONE };
 
 /**
  * Parses a YYYY-MM-DD string as LOCAL midnight (not UTC midnight).
@@ -6,33 +15,37 @@ import { supabase } from '../config/supabaseClient.js';
  * date back by 5.5 hours — causing toISOString() to show the previous day.
  */
 export function parseLocalDate(dateStr: string): Date {
-  const parts = dateStr.split('-');
-  const year = Number(parts[0]);
-  const month = Number(parts[1]); // 1-based
-  const day = Number(parts[2]);
-  return new Date(year, month - 1, day); // month is 0-indexed, creates LOCAL midnight
+  const parts = dateStr.split('T')[0]?.split('-') ?? [];
+  const year = Number(parts[0] ?? 0);
+  const month = Number(parts[1] ?? 1);
+  const day = Number(parts[2] ?? 1);
+  return new Date(year, month - 1, day);
 }
 
-/**
- * Calculates the FIRST billing date for a subscription, which is always at least one cycle
- * past its creation/start date. Fast-forwards past overdue cycles to the current active cycle.
- */
-export function getInitialSubscriptionDueDate(startDateStr: string, cycle: string): Date {
-  let next = advanceOneCycle(parseLocalDate(startDateStr), cycle);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // local midnight today
+export async function getUserTimezone(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('notification_settings')
+    .select('timezone')
+    .eq('user_id', userId)
+    .single();
+  if (error) return DEFAULT_TIMEZONE;
+  return normalizeTimezone(data?.timezone);
+}
 
-  // If the first real due date is still in the past, fast-forward to the current active cycle
-  while (next < today) {
+export function getInitialSubscriptionDueDate(
+  startDateStr: string,
+  cycle: string,
+  timezone: string = DEFAULT_TIMEZONE
+): Date {
+  let next = advanceOneCycle(parseLocalDate(startDateStr), cycle);
+  const todayYmd = todayYmdInTz(timezone);
+
+  while (dateToYmdInTz(next, timezone) < todayYmd) {
     next = advanceOneCycle(next, cycle);
   }
   return next;
 }
 
-/**
- * Formats a Date as YYYY-MM-DD using LOCAL date components.
- * Use this instead of toISOString().split('T')[0] when storing dates to DB.
- */
 export function toLocalDateStr(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -40,19 +53,16 @@ export function toLocalDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/**
- * Helper to calculate the next occurrence of a date based on a cycle.
- */
-export function getNextOccurrence(startDateStr: string, cycle: string): Date {
-  // Parse as LOCAL midnight to avoid UTC offset shifting the day.
-  const next = parseLocalDate(startDateStr);
+export function getNextOccurrence(
+  startDateStr: string,
+  cycle: string,
+  timezone: string = DEFAULT_TIMEZONE
+): Date {
+  const next = parseLocalDate(startDateStr.split('T')[0] ?? startDateStr);
   const normalizedCycle = cycle.toLowerCase();
+  const todayYmd = todayYmdInTz(timezone);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // local midnight today
-
-  // Advance until next >= today (billing date today = due today, not advanced)
-  while (next < today) {
+  while (dateToYmdInTz(next, timezone) < todayYmd) {
     if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
       next.setDate(next.getDate() + 7);
     } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
@@ -68,10 +78,6 @@ export function getNextOccurrence(startDateStr: string, cycle: string): Date {
   return next;
 }
 
-/**
- * Advances a given date by exactly one billing cycle.
- * Used by renewSubscription so the new start_date is always one full period ahead.
- */
 export function advanceOneCycle(date: Date, cycle: string): Date {
   const next = new Date(date);
   const normalizedCycle = cycle.toLowerCase();
@@ -89,33 +95,30 @@ export function advanceOneCycle(date: Date, cycle: string): Date {
   return next;
 }
 
-/**
- * Calculates reminder dates based on a schedule string like '7,3,1'
- * Filters out days that are too large for the cycle (e.g. 7 days before a weekly cycle).
- */
-export function calculateReminderDates(targetDate: Date, scheduleStr: string, cycle?: string): Date[] {
+export function calculateReminderDates(
+  targetDate: Date,
+  scheduleStr: string,
+  cycle?: string,
+  timezone: string = DEFAULT_TIMEZONE
+): Date[] {
   if (!scheduleStr) return [];
-  
-  let daysArray = scheduleStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d));
+
+  let daysArray = scheduleStr.split(',').map((d) => parseInt(d.trim(), 10)).filter((d) => !isNaN(d));
 
   const normalizedCycle = cycle?.toLowerCase();
   if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
-    // For weekly, only allow reminders < 7 days
-    daysArray = daysArray.filter(d => d < 7);
+    daysArray = daysArray.filter((d) => d < 7);
   } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
-    // For monthly, only allow reminders < 28 days
-    daysArray = daysArray.filter(d => d < 28);
+    daysArray = daysArray.filter((d) => d < 28);
   }
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
+  const todayYmd = todayYmdInTz(timezone);
   const dates: Date[] = [];
+
   for (const daysBefore of daysArray) {
     const reminderDate = new Date(targetDate);
     reminderDate.setDate(reminderDate.getDate() - daysBefore);
-    // Include reminders that fall on today or in the future.
-    if (reminderDate >= startOfToday) {
+    if (dateToYmdInTz(reminderDate, timezone) >= todayYmd) {
       dates.push(reminderDate);
     }
   }
@@ -124,45 +127,36 @@ export function calculateReminderDates(targetDate: Date, scheduleStr: string, cy
 }
 
 /**
- * Returns the ISO string for a notification's scheduled_for field.
- * reminderTime is "HH:MM" in Sri Lanka time (UTC+5:30). Defaults to "08:00".
- * If the calculated UTC time has already passed, returns now so the worker
- * sends it on its next run.
+ * Returns the ISO string for scheduled_for.
+ * reminderTime is "HH:MM" in the user's timezone. Defaults to "08:00".
  */
-export function toScheduledFor(date: Date, reminderTime: string = '08:00'): string {
-  const parts = reminderTime.split(':').map(Number);
-  const hours = parts[0] ?? 8;
-  const minutes = parts[1] ?? 0;
-  // Sri Lanka is UTC+5:30 (330 minutes ahead). Convert local → UTC.
-  const totalUtcMinutes = hours * 60 + minutes - 330;
-  const utcHour = Math.floor(totalUtcMinutes / 60);
-  const utcMin = totalUtcMinutes % 60;
-  const schedDate = new Date(date);
-  schedDate.setUTCHours(utcHour, utcMin, 0, 0);
+export function toScheduledFor(
+  date: Date,
+  reminderTime: string = '08:00',
+  timezone: string = DEFAULT_TIMEZONE
+): string {
+  const dateStr = toLocalDateStr(date);
+  const schedDate = zonedDateTimeToUtc(dateStr, reminderTime, timezone);
   if (schedDate <= new Date()) return new Date().toISOString();
   return schedDate.toISOString();
 }
 
-/**
- * Schedules reminders in the database queue.
- * Replaces any existing pending reminders for this reference_id first.
- */
-async function insertQueueItems(items: any[]) {
+async function insertQueueItems(items: Array<{ user_id: string; reference_id: string } & Record<string, unknown>>) {
   if (items.length === 0) return;
 
-  // Assume all items share the same reference_id
-  const refId = items[0].reference_id;
-  
-  // Clear any existing pending reminders for this item so we don't spam them if they edit it
+  const first = items[0];
+  if (!first) return;
+  const refId = first.reference_id;
+  const userId = first.user_id;
+
   await supabase
     .from('scheduled_notifications')
     .delete()
     .eq('reference_id', refId)
+    .eq('user_id', userId)
     .eq('status', 'pending');
 
-  const { error } = await supabase
-    .from('scheduled_notifications')
-    .insert(items);
+  const { error } = await supabase.from('scheduled_notifications').insert(items);
 
   if (error) {
     console.error('Error inserting scheduled notifications:', error);
@@ -170,42 +164,44 @@ async function insertQueueItems(items: any[]) {
 }
 
 export const getGlobalReminderSchedule = async (userId: string): Promise<string> => {
-  const { data } = await supabase.from('notification_settings').select('reminder_schedule').eq('user_id', userId).single();
+  const { data } = await supabase
+    .from('notification_settings')
+    .select('reminder_schedule')
+    .eq('user_id', userId)
+    .single();
   return data?.reminder_schedule || '7,3,1';
 };
 
 export const scheduleSubscriptionReminders = async (
-  userId: string, 
-  subscriptionId: string, 
-  serviceName: string, 
-  startDate: string, 
-  billingCycle: string, 
+  userId: string,
+  subscriptionId: string,
+  serviceName: string,
+  startDate: string,
+  billingCycle: string,
   reminderSchedule?: string
 ) => {
-  const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-  const nextBillingDate = getInitialSubscriptionDueDate(startDate, billingCycle);
-  const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle);
-  
-  if (nextBillingDate > new Date()) reminderDates.push(nextBillingDate);
+  const tz = await getUserTimezone(userId);
+  const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
+  const nextBillingDate = getInitialSubscriptionDueDate(startDate, billingCycle, tz);
+  const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle, tz);
 
-  const queueItems = reminderDates.map(date => ({
+  if (dateToYmdInTz(nextBillingDate, tz) > todayYmdInTz(tz)) {
+    reminderDates.push(nextBillingDate);
+  }
+
+  const queueItems = reminderDates.map((date) => ({
     user_id: userId,
     reference_id: subscriptionId,
     reference_type: 'subscription',
     title: `Subscription Renewal: ${serviceName}`,
     body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date),
+    scheduled_for: toScheduledFor(date, '08:00', tz),
   }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'subscription', subscriptionId);
 };
 
-/**
- * Like scheduleSubscriptionReminders, but accepts a pre-computed nextBillingDate
- * so getNextOccurrence is NOT called again (avoids advancing by an extra cycle).
- * Use this after renewal where the next billing date is already known.
- */
 export const scheduleSubscriptionRemindersForDate = async (
   userId: string,
   subscriptionId: string,
@@ -214,20 +210,21 @@ export const scheduleSubscriptionRemindersForDate = async (
   billingCycle: string,
   reminderSchedule?: string
 ) => {
-  const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-  const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle);
+  const tz = await getUserTimezone(userId);
+  const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
+  const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle, tz);
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  if (nextBillingDate >= startOfToday) reminderDates.push(nextBillingDate);
+  if (dateToYmdInTz(nextBillingDate, tz) >= todayYmdInTz(tz)) {
+    reminderDates.push(nextBillingDate);
+  }
 
-  const queueItems = reminderDates.map(date => ({
+  const queueItems = reminderDates.map((date) => ({
     user_id: userId,
     reference_id: subscriptionId,
     reference_type: 'subscription',
     title: `Subscription Renewal: ${serviceName}`,
     body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date),
+    scheduled_for: toScheduledFor(date, '08:00', tz),
   }));
 
   await insertQueueItems(queueItems);
@@ -242,19 +239,21 @@ export const scheduleTodoReminder = async (
   reminderSchedule?: string,
   reminderTime?: string
 ) => {
-  const exactDate = new Date(reminderDateStr);
+  const tz = await getUserTimezone(userId);
+  const exactDate = parseLocalDate(reminderDateStr.split('T')[0] ?? reminderDateStr);
+  const time = reminderTime || '08:00';
 
-  const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-  const beforeDates = calculateReminderDates(exactDate, finalSchedule);
+  const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
+  const beforeDates = calculateReminderDates(exactDate, finalSchedule, undefined, tz);
   const dates = [...beforeDates, exactDate];
 
-  const queueItems = dates.map(date => ({
+  const queueItems = dates.map((date) => ({
     user_id: userId,
     reference_id: todoId,
     reference_type: 'todo',
     title: `Todo Reminder: ${taskName}`,
     body: `Don't forget to complete: ${taskName}`,
-    scheduled_for: toScheduledFor(date, reminderTime),
+    scheduled_for: toScheduledFor(date, time, tz),
   }));
 
   await insertQueueItems(queueItems);
@@ -268,31 +267,40 @@ export const scheduleWarrantyReminders = async (
   expiryDateStr: string,
   reminderSchedule?: string
 ) => {
-  const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-  const expiryDate = new Date(expiryDateStr);
-  const reminderDates = calculateReminderDates(expiryDate, finalSchedule);
-  
-  if (expiryDate > new Date()) reminderDates.push(expiryDate);
+  const tz = await getUserTimezone(userId);
+  const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
+  const expiryDate = parseLocalDate(expiryDateStr.split('T')[0] ?? expiryDateStr);
+  const reminderDates = calculateReminderDates(expiryDate, finalSchedule, undefined, tz);
 
-  const queueItems = reminderDates.map(date => ({
+  if (dateToYmdInTz(expiryDate, tz) > todayYmdInTz(tz)) {
+    reminderDates.push(expiryDate);
+  }
+
+  const queueItems = reminderDates.map((date) => ({
     user_id: userId,
     reference_id: warrantyId,
     reference_type: 'warranty',
     title: `Warranty Expiry: ${itemName}`,
     body: `Your warranty for ${itemName} is expiring on ${expiryDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date),
+    scheduled_for: toScheduledFor(date, '08:00', tz),
   }));
 
   await insertQueueItems(queueItems);
   await notifyShareRecipients(userId, 'warranty', warrantyId);
 };
 
-export const removeScheduledReminders = async (referenceId: string) => {
-  await supabase
+export const removeScheduledReminders = async (referenceId: string, userId?: string) => {
+  let query = supabase
     .from('scheduled_notifications')
     .delete()
     .eq('reference_id', referenceId)
     .eq('status', 'pending');
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  await query;
 };
 
 export const scheduleManualReminder = async (
@@ -305,14 +313,19 @@ export const scheduleManualReminder = async (
   repeatCycle?: string | null,
   reminderTime?: string
 ) => {
-  const exactDate = repeatCycle ? getNextOccurrence(reminderDateStr, repeatCycle) : new Date(reminderDateStr);
+  const tz = await getUserTimezone(userId);
+  const time = reminderTime || '08:00';
+  const exactDate = repeatCycle
+    ? getNextOccurrence(reminderDateStr, repeatCycle, tz)
+    : parseLocalDate(reminderDateStr.split('T')[0] ?? reminderDateStr);
+
   let dates: Date[] = [];
 
   if (remindTime === 'On the day') {
     dates.push(exactDate);
   } else {
-    const finalSchedule = reminderSchedule || await getGlobalReminderSchedule(userId);
-    const beforeDates = calculateReminderDates(exactDate, finalSchedule, repeatCycle || undefined);
+    const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
+    const beforeDates = calculateReminderDates(exactDate, finalSchedule, repeatCycle || undefined, tz);
     dates.push(...beforeDates);
 
     if (remindTime === 'On and before') {
@@ -320,13 +333,13 @@ export const scheduleManualReminder = async (
     }
   }
 
-  const queueItems = dates.map(date => ({
+  const queueItems = dates.map((date) => ({
     user_id: userId,
     reference_id: reminderId,
     reference_type: 'manual_reminder',
     title: `Reminder: ${title}`,
     body: `You have a reminder scheduled: ${title}`,
-    scheduled_for: toScheduledFor(date, reminderTime),
+    scheduled_for: toScheduledFor(date, time, tz),
   }));
 
   await insertQueueItems(queueItems);
@@ -335,11 +348,7 @@ export const scheduleManualReminder = async (
 
 type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
 
-async function notifyShareRecipients(
-  ownerUserId: string,
-  itemType: ShareItemType,
-  itemId: string
-) {
+async function notifyShareRecipients(ownerUserId: string, itemType: ShareItemType, itemId: string) {
   try {
     const { syncShareNotificationsForItem } = await import('./sharing.service.js');
     await syncShareNotificationsForItem(ownerUserId, itemType, itemId);

@@ -28,7 +28,11 @@ import {
   Smartphone,
   Calendar,
   X,
+  Globe,
 } from "lucide-react";
+import { useTimezone } from "../../context/TimezoneContext";
+import { COMMON_TIMEZONES, formatTimezoneLabel } from "../../utils/timezones";
+import { getDetectedTimezone } from "../../utils/dateFormat";
 
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
@@ -49,6 +53,8 @@ export default function SettingsPage() {
   const [smsNotif, setSmsNotif] = useState(false);
   const [pushNotif, setPushNotif] = useState(true);
   const [schedule, setSchedule] = useState("7,3,1");
+  const [timezone, setTimezone] = useState("Asia/Colombo");
+  const { setTimezone: setGlobalTimezone } = useTimezone();
   
   // UI state
   const [loading, setLoading] = useState(true);
@@ -94,6 +100,7 @@ export default function SettingsPage() {
           setSmsNotif(notifData.sms_notification);
           setPushNotif(notifData.push_notification);
           setSchedule(notifData.reminder_schedule || "7,3,1");
+          setTimezone(notifData.timezone || getDetectedTimezone());
         }
         
       } catch (err) {
@@ -151,14 +158,17 @@ export default function SettingsPage() {
         email_notification: emailNotif,
         sms_notification: smsNotif,
         push_notification: pushNotif,
-        reminder_schedule: schedule
+        reminder_schedule: schedule,
+        timezone,
       }, user.token);
       
+      setGlobalTimezone(timezone);
       setNotifSettings({
         email_notification: emailNotif,
         sms_notification: smsNotif,
         push_notification: pushNotif,
-        reminder_schedule: schedule
+        reminder_schedule: schedule,
+        timezone,
       });
       
       setSuccess("Notification preferences updated");
@@ -515,7 +525,7 @@ export default function SettingsPage() {
                   <Smartphone size={20} color="#6B7280" />
                   <div className={styles.preferenceText}>
                     <h4>Push Notifications</h4>
-                    <p>Get alerts on your mobile device.</p>
+                    <p>Get alerts on the Trakkit mobile app (register token on device login).</p>
                   </div>
                 </div>
                 <label className={styles.switch}>
@@ -526,6 +536,26 @@ export default function SettingsPage() {
                   />
                   <span className={styles.slider}></span>
                 </label>
+              </div>
+
+              <div className={styles.preferenceRow}>
+                <div className={styles.preferenceInfo}>
+                  <Globe size={20} color="#6B7280" />
+                  <div className={styles.preferenceText}>
+                    <h4>Timezone</h4>
+                    <p>Reminder alerts fire at 8:00 AM in this timezone (or your per-item time).</p>
+                  </div>
+                </div>
+                <select
+                  className={styles.input}
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  style={{ maxWidth: 220 }}
+                >
+                  {[...new Set([timezone, getDetectedTimezone(), ...COMMON_TIMEZONES])].map((tz) => (
+                    <option key={tz} value={tz}>{formatTimezoneLabel(tz)}</option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.notifScheduleSection}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatDate, formatTime12h, todayLK, getDisplayTimezone } from "../../utils/dateFormat";
 import { useNavigate } from "react-router-dom";
 import { 
   ShieldCheck, 
@@ -77,6 +78,7 @@ export default function DashboardPage() {
   const activeSubs = subscriptions.length;
   const pendingTodos = todos.filter(t => !t.is_completed).length;
 
+
   const stats = [
     { label: "Active Warranties", value: activeWarranties.toString(), icon: ShieldCheck, type: "warranty",     path: "/warranties" },
     { label: "Subscriptions",     value: activeSubs.toString(),       icon: CreditCard,  type: "subscription", path: "/subscriptions" },
@@ -136,6 +138,20 @@ export default function DashboardPage() {
     ...reminders.filter(r => r.reminder_date).map(r => ({ date: r.reminder_date, type: "reminder", label: r.title }))
   ];
 
+  const todayStr = todayLK();
+  const upcomingTodos = todos
+    .filter(t => {
+      if (t.is_completed) return false;
+      if (!t.reminder_date) return true;
+      const lkDate = new Date(t.reminder_date).toLocaleDateString('en-CA', { timeZone: getDisplayTimezone() });
+      return lkDate >= todayStr;
+    })
+    .sort((a, b) => {
+      if (!a.reminder_date) return 1;
+      if (!b.reminder_date) return -1;
+      return new Date(a.reminder_date).getTime() - new Date(b.reminder_date).getTime();
+    });
+
   const displayName = user?.firstName || user?.phone || "User";
 
   if (loading) {
@@ -168,7 +184,7 @@ export default function DashboardPage() {
           </div>
           <div className={styles.dateDisplay}>
             <Clock size={16} />
-            <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span>{formatDate(new Date())}</span>
           </div>
         </div>
       </header>
@@ -274,7 +290,7 @@ export default function DashboardPage() {
                       </div>
                       <div className={styles.itemContent}>
                         <p className={styles.itemName}>{item.name}</p>
-                        <p className={styles.itemSub}>{item.type} • {new Date(item.date).toLocaleDateString()}</p>
+                        <p className={styles.itemSub}>{item.type} • {formatDate(item.date)}</p>
                       </div>
                       <div className={item.days <= 3 ? styles.badgeUrgent : styles.badge}>
                         {item.days} days left
@@ -294,13 +310,13 @@ export default function DashboardPage() {
                 <button className={styles.viewAll} onClick={() => navigate('/todos')}>View All</button>
               </div>
               <div className={styles.list}>
-                {todos.filter(t => !t.is_completed).length > 0 ? (
-                  todos.filter(t => !t.is_completed).slice(0, 5).map((todo) => (
+                {upcomingTodos.length > 0 ? (
+                  upcomingTodos.slice(0, 5).map((todo) => (
                     <div key={todo.id} className={styles.listItem}>
                       <div className={styles.todoCheckbox}></div>
                       <div className={styles.itemContent}>
                         <p className={styles.itemName}>{todo.task_name}</p>
-                        <p className={styles.itemSub}>{todo.has_reminder ? `Reminder: ${new Date(todo.reminder_date!).toLocaleString()}` : 'No reminder set'}</p>
+                        <p className={styles.itemSub}>{todo.has_reminder ? `Reminder: ${formatDate(todo.reminder_date!)}${todo.reminder_time ? `, ${formatTime12h(todo.reminder_time)}` : ''}` : 'No reminder set'}</p>
                       </div>
                     </div>
                   ))

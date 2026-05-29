@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatDate, formatDateTime, formatDateMedium } from "../../utils/dateFormat";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import {
@@ -41,7 +42,7 @@ function renderFields(type: string, detail: any) {
     case "manual_reminder":
       return (
         <>
-          {detail.reminder_date && <FieldRow label="Date"   value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          {detail.reminder_date && <FieldRow label="Date"   value={formatDate(detail.reminder_date)} />}
           {detail.type          && <FieldRow label="Type"   value={detail.type} />}
           {detail.remind_time   && <FieldRow label="Remind" value={detail.remind_time} />}
           {detail.repeat_cycle  && <FieldRow label="Repeat" value={detail.repeat_cycle} />}
@@ -53,7 +54,7 @@ function renderFields(type: string, detail: any) {
         <>
           {detail.amount            && <FieldRow label="Amount"       value={`Rs. ${detail.amount} / ${detail.billing_cycle}`} />}
           {detail.category          && <FieldRow label="Category"     value={detail.category} />}
-          {detail.next_billing_date && <FieldRow label="Next Billing" value={new Date(detail.next_billing_date).toLocaleDateString()} />}
+          {detail.next_billing_date && <FieldRow label="Next Billing" value={formatDate(detail.next_billing_date)} />}
           {detail.status            && <FieldRow label="Status"       value={detail.status} />}
           {detail.description       && <FieldRow label="Notes"        value={detail.description} />}
         </>
@@ -63,8 +64,8 @@ function renderFields(type: string, detail: any) {
         <>
           {detail.purchase_place && <FieldRow label="Purchased From" value={detail.purchase_place} />}
           {detail.category       && <FieldRow label="Category"       value={detail.category} />}
-          {detail.purchase_date  && <FieldRow label="Purchase Date"  value={new Date(detail.purchase_date).toLocaleDateString()} />}
-          {detail.expiry_date    && <FieldRow label="Expiry Date"    value={new Date(detail.expiry_date).toLocaleDateString()} />}
+          {detail.purchase_date  && <FieldRow label="Purchase Date"  value={formatDate(detail.purchase_date)} />}
+          {detail.expiry_date    && <FieldRow label="Expiry Date"    value={formatDate(detail.expiry_date)} />}
           {detail.status         && <FieldRow label="Status"         value={detail.status} />}
           {detail.description    && <FieldRow label="Notes"          value={detail.description} />}
         </>
@@ -72,7 +73,7 @@ function renderFields(type: string, detail: any) {
     case "todo":
       return (
         <>
-          {detail.reminder_date && <FieldRow label="Due Date" value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          {detail.reminder_date && <FieldRow label="Due Date" value={formatDate(detail.reminder_date)} />}
           <FieldRow label="Status" value={detail.is_completed ? "Completed ✓" : "Pending"} />
         </>
       );
@@ -127,7 +128,7 @@ export default function NotificationsPage() {
       const data = await fetchNotifications(user.token);
       setNotifications(data || []);
       const newIds = (data || [])
-        .filter(n => n.status === "pending" || n.status === "notified")
+        .filter(n => n.status === "notified" || n.status === "failed")
         .map(n => n.id);
       if (newIds.length > 0) markNotificationsRead(newIds, user.token).catch(() => {});
     } catch (err) {
@@ -225,7 +226,7 @@ export default function NotificationsPage() {
               <div
                 key={notif.id}
                 className={`${styles.notificationCard} ${
-                  notif.status === "pending" || notif.status === "notified" ? styles.unread : ""
+                  notif.status === "notified" || notif.status === "failed" ? styles.unread : ""
                 }`}
               >
                 <div
@@ -242,10 +243,15 @@ export default function NotificationsPage() {
                      <Bell size={20} className={styles.iconDefault} />}
                   </div>
                   <div className={styles.notificationContent}>
-                    <h3 className={styles.notificationTitle}>{notif.title}</h3>
+                    <h3 className={styles.notificationTitle}>
+                      {notif.title}
+                      {notif.status === "failed" && (
+                        <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>Delivery failed</span>
+                      )}
+                    </h3>
                     <p className={styles.notificationBody}>{notif.body}</p>
                     <p className={styles.notificationDate}>
-                      {new Date(notif.scheduled_for).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                      {formatDateMedium(notif.scheduled_for)}
                     </p>
                   </div>
                 </div>
@@ -304,10 +310,7 @@ export default function NotificationsPage() {
               {/* Scheduled time */}
               <p className={styles.modalTime}>
                 🕐&nbsp;
-                {new Date(selectedNotif.scheduled_for).toLocaleString("en-US", {
-                  weekday: "short", month: "short", day: "numeric",
-                  hour: "2-digit", minute: "2-digit",
-                })}
+                {formatDateTime(selectedNotif.scheduled_for)}
               </p>
 
               {/* Item-specific fields */}

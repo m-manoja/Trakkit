@@ -5,11 +5,15 @@ import {
   calculateReminderDates,
   getNextOccurrence,
   getInitialSubscriptionDueDate,
+  getUserTimezone,
+  toScheduledFor,
+  parseLocalDate,
   scheduleWarrantyReminders,
   scheduleSubscriptionRemindersForDate,
   scheduleTodoReminder,
   scheduleManualReminder,
 } from './notificationQueue.service.js';
+import { todayYmdInTz, dateToYmdInTz } from '../utils/timezone.js';
 
 export type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
 
@@ -214,25 +218,26 @@ async function buildRecipientQueueItems(
   item: any
 ): Promise<Array<{ title: string; body: string; scheduled_for: string }>> {
   const schedule = await getGlobalReminderSchedule(recipientUserId);
+  const tz = await getUserTimezone(recipientUserId);
   const prefix = `Shared by ${ownerName}`;
-  const refType = REFERENCE_TYPE_MAP[itemType];
-  const results: Array<{ title: string; body: string; scheduled_for: string }> = [];
+  const todayYmd = todayYmdInTz(tz);
 
-  const mapDates = (dates: Date[], title: string, body: string) =>
+  const mapDates = (dates: Date[], title: string, body: string, reminderTime = '08:00') =>
     dates
-      .filter((d) => d > new Date())
-      .map((date) => {
-        const schedDate = new Date(date);
-        schedDate.setHours(9, 0, 0, 0);
-        return { title, body, scheduled_for: schedDate.toISOString() };
-      });
+      .filter((d) => dateToYmdInTz(d, tz) >= todayYmd)
+      .map((date) => ({
+        title,
+        body,
+        scheduled_for: toScheduledFor(date, reminderTime, tz),
+      }));
 
   switch (itemType) {
     case 'warranty': {
       if (item.status === 'Claimed') return [];
-      const expiryDate = new Date(item.expiry_date);
-      const dates = calculateReminderDates(expiryDate, schedule);
-      if (expiryDate > new Date()) dates.push(expiryDate);
+      const expiryStr = String(item.expiry_date);
+      const expiryDate = parseLocalDate(expiryStr.split('T')[0] ?? expiryStr);
+      const dates = calculateReminderDates(expiryDate, schedule, undefined, tz);
+      if (dateToYmdInTz(expiryDate, tz) > todayYmd) dates.push(expiryDate);
       return mapDates(
         dates,
         `${prefix}: Warranty Expiry — ${item.product_name}`,
@@ -240,14 +245,11 @@ async function buildRecipientQueueItems(
       );
     }
     case 'subscription': {
-      const nextBillingStr =
-        item.next_billing_date ||
-        getInitialSubscriptionDueDate(item.start_date, item.billing_cycle).toISOString().split('T')[0];
-      const nextBillingDate = new Date(nextBillingStr);
-      const dates = calculateReminderDates(nextBillingDate, schedule, item.billing_cycle);
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      if (nextBillingDate >= startOfToday) dates.push(nextBillingDate);
+      const nextBillingDate = item.next_billing_date
+        ? parseLocalDate((String(item.next_billing_date).split('T')[0] ?? String(item.next_billing_date)))
+        : getInitialSubscriptionDueDate(item.start_date, item.billing_cycle, tz);
+      const dates = calculateReminderDates(nextBillingDate, schedule, item.billing_cycle, tz);
+      if (dateToYmdInTz(nextBillingDate, tz) >= todayYmd) dates.push(nextBillingDate);
       return mapDates(
         dates,
         `${prefix}: Subscription — ${item.service_name}`,
@@ -256,13 +258,13 @@ async function buildRecipientQueueItems(
     }
     case 'reminder': {
       const exactDate = item.repeat_cycle
-        ? getNextOccurrence(item.reminder_date, item.repeat_cycle)
-        : new Date(item.reminder_date);
+        ? getNextOccurrence(item.reminder_date, item.repeat_cycle, tz)
+        : parseLocalDate(String(item.reminder_date).split('T')[0] ?? String(item.reminder_date));
       let dates: Date[] = [];
       if (item.remind_time === 'On the day') {
         dates.push(exactDate);
       } else {
-        const beforeDates = calculateReminderDates(exactDate, schedule, item.repeat_cycle || undefined);
+        const beforeDates = calculateReminderDates(exactDate, schedule, item.repeat_cycle || undefined, tz);
         dates.push(...beforeDates);
         if (item.remind_time === 'On and before') dates.push(exactDate);
       }
@@ -271,18 +273,21 @@ async function buildRecipientQueueItems(
         `${prefix}: Reminder — ${item.title}`,
         item.description
           ? `${item.title}: ${item.description}`
-          : `Reminder: ${item.title} on ${exactDate.toDateString()}.`
+          : `Reminder: ${item.title} on ${exactDate.toDateString()}.`,
+        item.reminder_time || '08:00'
       );
     }
     case 'todo': {
       if (!item.has_reminder || !item.reminder_date || item.is_completed) return [];
-      const exactDate = new Date(item.reminder_date);
-      const beforeDates = calculateReminderDates(exactDate, schedule);
+      const reminderStr = String(item.reminder_date);
+      const exactDate = parseLocalDate(reminderStr.split('T')[0] ?? reminderStr);
+      const beforeDates = calculateReminderDates(exactDate, schedule, undefined, tz);
       const dates = [...beforeDates, exactDate];
       return mapDates(
         dates,
         `${prefix}: To-do — ${item.task_name}`,
-        `To-do reminder: ${item.task_name} on ${exactDate.toDateString()}.`
+        `To-do reminder: ${item.task_name} on ${exactDate.toDateString()}.`,
+        item.reminder_time || '08:00'
       );
     }
     default:
@@ -352,9 +357,11 @@ export async function rescheduleOwnerAndShares(
       );
       break;
     case 'subscription': {
+      const ownerTz = await getUserTimezone(ownerUserId);
+      const billingStr = String(item.next_billing_date);
       const nextDate = item.next_billing_date
-        ? new Date(item.next_billing_date)
-        : getInitialSubscriptionDueDate(item.start_date, item.billing_cycle);
+        ? parseLocalDate(billingStr.split('T')[0] ?? billingStr)
+        : getInitialSubscriptionDueDate(item.start_date, item.billing_cycle, ownerTz);
       await scheduleSubscriptionRemindersForDate(
         ownerUserId,
         itemId,
@@ -373,7 +380,8 @@ export async function rescheduleOwnerAndShares(
         item.reminder_date,
         item.remind_time,
         item.reminder_schedule,
-        item.repeat_cycle
+        item.repeat_cycle,
+        item.reminder_time
       );
       break;
     case 'todo':
@@ -383,7 +391,8 @@ export async function rescheduleOwnerAndShares(
           itemId,
           item.task_name,
           item.reminder_date,
-          item.reminder_schedule
+          item.reminder_schedule,
+          item.reminder_time
         );
       }
       break;

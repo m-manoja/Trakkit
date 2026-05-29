@@ -27,6 +27,7 @@ export type Todo = {
   is_completed: boolean;
   has_reminder: boolean;
   reminder_date: string | null;
+  reminder_time: string | null;
 };
 
 export type Reminder = {

@@ -10,8 +10,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,         // Allows default imports from CommonJS
     "allowSyntheticDefaultImports": true, // Treats non-default exports as default
-    "skipLibCheck": true,            // Ignores type errors in external libraries
-    "ignoreDeprecations": "6.0"    // Silence deprecation message for moduleResolution node10
+    "skipLibCheck": true
   },
   "include": [
     "src"

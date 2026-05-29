@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Platform
@@ -252,7 +253,7 @@ export default function SubscriptionInitial() {
 
         <View style={styles.cardContent}>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Amount</Text><Text style={styles.infoValue}>Rs. {item.amount} / {item.billing_cycle}</Text></View>
-          <View style={styles.infoRow}><Text style={styles.infoLabel}>Next Billing</Text><Text style={styles.infoValue}>{new Date(item.next_billing_date || item.start_date).toLocaleDateString()}</Text></View>
+          <View style={styles.infoRow}><Text style={styles.infoLabel}>Next Billing</Text><Text style={styles.infoValue}>{formatDate(item.next_billing_date || item.start_date)}</Text></View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Status</Text>
             <View style={[styles.statusBox, { backgroundColor: status.bg }]}>
@@ -374,7 +375,7 @@ export default function SubscriptionInitial() {
               </TouchableOpacity>
               <Text style={styles.inputLabel}>First Billing Date</Text>
               <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowDatePicker(true)}>
-                <Text>{formData.start_date.toLocaleDateString()}</Text>
+                <Text>{formatDate(formData.start_date)}</Text>
                 <Ionicons name="calendar-outline" size={18} color="#666" />
               </TouchableOpacity>
               {showDatePicker && <DateTimePicker value={formData.start_date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, start_date: d }); }} />}

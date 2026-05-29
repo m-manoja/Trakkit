@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatMonthYear, formatWeekdayDate } from "../../utils/dateFormat";
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, Bell } from "lucide-react";
 import styles from "./MiniCalendar.module.css";
 
@@ -45,10 +46,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
     }
   };
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = formatMonthYear(viewYear, viewMonth);
   const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
   const eventMap = useMemo(() => {
@@ -76,11 +74,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
 
   const selectedEvents = selectedDay ? eventMap[selectedDay] || [] : [];
   const selectedDateLabel = selectedDay
-    ? new Date(viewYear, viewMonth, selectedDay).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
+    ? formatWeekdayDate(viewYear, viewMonth, selectedDay)
     : "";
 
   return (

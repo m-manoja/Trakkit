@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { formatDate, formatDateTime } from '../utils/dateFormat';
 import {
   View, Text, StyleSheet, TouchableOpacity, AppState,
   Modal, ScrollView, ActivityIndicator, Alert, Image
@@ -25,13 +26,6 @@ const TYPE_META: Record<string, { label: string; route: string; icon: string }> 
   manual_reminder: { label: 'Reminder',      route: '/(tabs)/reminder',     icon: 'alarm-outline'            },
 };
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
-}
 
 // ─── LIST VIEW ──────────────────────────────────────────────────────────────
 
@@ -163,7 +157,7 @@ function renderItemFields(type: string, detail: any) {
     case 'manual_reminder':
       return (
         <>
-          {detail.reminder_date && <DetailRow label="Date" value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          {detail.reminder_date && <DetailRow label="Date" value={formatDate(detail.reminder_date)} />}
           {detail.type && <DetailRow label="Type" value={detail.type} />}
           {detail.remind_time && <DetailRow label="Remind" value={detail.remind_time} />}
           {detail.repeat_cycle && <DetailRow label="Repeat" value={detail.repeat_cycle} />}
@@ -175,7 +169,7 @@ function renderItemFields(type: string, detail: any) {
         <>
           {detail.amount && <DetailRow label="Amount" value={`Rs. ${detail.amount} / ${detail.billing_cycle}`} />}
           {detail.category && <DetailRow label="Category" value={detail.category} />}
-          {detail.next_billing_date && <DetailRow label="Next Billing" value={new Date(detail.next_billing_date).toLocaleDateString()} />}
+          {detail.next_billing_date && <DetailRow label="Next Billing" value={formatDate(detail.next_billing_date)} />}
           {detail.status && <DetailRow label="Status" value={detail.status} />}
           {detail.description ? <DetailRow label="Notes" value={detail.description} /> : null}
         </>
@@ -185,8 +179,8 @@ function renderItemFields(type: string, detail: any) {
         <>
           {detail.purchase_place && <DetailRow label="Purchased From" value={detail.purchase_place} />}
           {detail.category && <DetailRow label="Category" value={detail.category} />}
-          {detail.purchase_date && <DetailRow label="Purchase Date" value={new Date(detail.purchase_date).toLocaleDateString()} />}
-          {detail.expiry_date && <DetailRow label="Expiry Date" value={new Date(detail.expiry_date).toLocaleDateString()} />}
+          {detail.purchase_date && <DetailRow label="Purchase Date" value={formatDate(detail.purchase_date)} />}
+          {detail.expiry_date && <DetailRow label="Expiry Date" value={formatDate(detail.expiry_date)} />}
           {detail.status && <DetailRow label="Status" value={detail.status} />}
           {detail.description ? <DetailRow label="Notes" value={detail.description} /> : null}
         </>
@@ -194,7 +188,7 @@ function renderItemFields(type: string, detail: any) {
     case 'todo':
       return (
         <>
-          {detail.reminder_date && <DetailRow label="Due Date" value={new Date(detail.reminder_date).toLocaleDateString()} />}
+          {detail.reminder_date && <DetailRow label="Due Date" value={formatDate(detail.reminder_date)} />}
           <DetailRow label="Status" value={detail.is_completed ? 'Completed ✓' : 'Pending'} />
         </>
       );
@@ -247,10 +241,7 @@ function DetailView({ item, itemDetail, itemLoading, onBack, onClose, onNavigate
         <View style={styles.detailTimeRow}>
           <Ionicons name="time-outline" size={13} color="#AAA" />
           <Text style={styles.detailTimeText}>
-            {new Date(item.scheduled_for).toLocaleString('en-US', {
-              weekday: 'short', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })}
+            {formatDateTime(item.scheduled_for)}
           </Text>
         </View>
 

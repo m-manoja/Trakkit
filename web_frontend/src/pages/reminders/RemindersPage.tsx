@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDate } from "../../utils/dateFormat";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   BellRing, 
@@ -252,7 +253,7 @@ export default function RemindersPage() {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>Date</span>
                     <span className={styles.infoValue}>
-                      {new Date(rem.reminder_date).toLocaleDateString()}
+                      {formatDate(rem.reminder_date)}
                     </span>
                   </div>
                   <div className={styles.infoRow}>

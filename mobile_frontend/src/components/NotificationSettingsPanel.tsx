@@ -8,15 +8,21 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { COLORS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTimezone } from '../context/TimezoneContext';
 import { getNotificationSettings, updateNotificationSettings } from '../api/users';
+import { getDetectedTimezone } from '../utils/dateFormat';
+import { COMMON_TIMEZONES, formatTimezoneLabel } from '../utils/timezones';
 
 export default function NotificationSettingsPanel() {
   const { user } = useAuth();
+  const { setTimezone: setGlobalTimezone } = useTimezone();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [emailNotif, setEmailNotif] = useState(true);
@@ -24,6 +30,10 @@ export default function NotificationSettingsPanel() {
   const [pushNotif, setPushNotif] = useState(true);
   const [schedule, setSchedule] = useState('7,3,1');
   const [currentSchedule, setCurrentSchedule] = useState('7,3,1');
+  const [timezone, setTimezone] = useState('Asia/Colombo');
+  const [tzPickerVisible, setTzPickerVisible] = useState(false);
+
+  const timezoneOptions = [...new Set([timezone, getDetectedTimezone(), ...COMMON_TIMEZONES])];
 
   const loadSettings = useCallback(async () => {
     if (!user?.token) return;
@@ -36,6 +46,7 @@ export default function NotificationSettingsPanel() {
         setPushNotif(res.data.push_notification);
         setSchedule(res.data.reminder_schedule);
         setCurrentSchedule(res.data.reminder_schedule);
+        setTimezone(res.data.timezone || getDetectedTimezone());
       }
     } catch (e) {
       console.error(e);
@@ -64,11 +75,13 @@ export default function NotificationSettingsPanel() {
           sms_notification: smsNotif,
           push_notification: pushNotif,
           reminder_schedule: schedule,
+          timezone,
         },
         user!.token!
       );
       if (res?.success) {
         setCurrentSchedule(schedule);
+        setGlobalTimezone(timezone);
         Alert.alert('Saved', 'Notification settings updated.');
       }
     } catch (e: any) {
@@ -109,10 +122,17 @@ export default function NotificationSettingsPanel() {
       <View style={styles.preferenceRow}>
         <View style={styles.preferenceLeft}>
           <Ionicons name="notifications-outline" size={20} color="#555" />
-          <Text style={styles.preferenceText}>Push notification</Text>
+          <Text style={styles.preferenceText}>Push notification (mobile)</Text>
         </View>
         <Switch value={pushNotif} onValueChange={setPushNotif} trackColor={{ false: '#ccc', true: COLORS.primary }} />
       </View>
+
+      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Timezone</Text>
+      <Text style={styles.sectionSubtitle}>Reminders fire at 8:00 AM in this timezone</Text>
+      <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setTzPickerVisible(true)}>
+        <Text style={styles.dropdownText}>{formatTimezoneLabel(timezone)}</Text>
+        <Ionicons name="chevron-down" size={18} color="#666" />
+      </TouchableOpacity>
 
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Reminder schedule</Text>
       <Text style={styles.sectionSubtitle}>(days before expiration, e.g. 30,7,3,1)</Text>
@@ -131,6 +151,28 @@ export default function NotificationSettingsPanel() {
           <Text style={styles.saveButtonText}>Save notifications</Text>
         )}
       </TouchableOpacity>
+
+      <Modal visible={tzPickerVisible} transparent animationType="slide">
+        <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setTzPickerVisible(false)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>Select timezone</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {timezoneOptions.map((tz) => (
+                <TouchableOpacity
+                  key={tz}
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setTimezone(tz);
+                    setTzPickerVisible(false);
+                  }}
+                >
+                  <Text style={styles.pickerItemText}>{formatTimezoneLabel(tz)}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -154,6 +196,18 @@ const styles = StyleSheet.create({
   },
   preferenceLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   preferenceText: { fontSize: 15, color: '#111' },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+  },
+  dropdownText: { fontSize: 16, color: '#111', flex: 1 },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -171,4 +225,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  pickerTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#111' },
+  pickerItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  pickerItemText: { fontSize: 16, color: '#111' },
 });

@@ -1,5 +1,15 @@
 import { supabase } from '../config/supabaseClient.js';
-import { scheduleSubscriptionReminders, scheduleSubscriptionRemindersForDate, removeScheduledReminders, getInitialSubscriptionDueDate, advanceOneCycle, toLocalDateStr } from './notificationQueue.service.js';
+import {
+  scheduleSubscriptionReminders,
+  scheduleSubscriptionRemindersForDate,
+  removeScheduledReminders,
+  getInitialSubscriptionDueDate,
+  advanceOneCycle,
+  toLocalDateStr,
+  getUserTimezone,
+  parseLocalDate,
+} from './notificationQueue.service.js';
+import { dateToYmdInTz, todayYmdInTz } from '../utils/timezone.js';
 import { removeSharesForItem } from './sharing.service.js';
 
 export const createSubscription = async (userId: string, data: any) => {
@@ -12,7 +22,8 @@ export const createSubscription = async (userId: string, data: any) => {
     description
   } = data;
 
-  const next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(start_date, billing_cycle));
+  const tz = await getUserTimezone(userId);
+  const next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(start_date, billing_cycle, tz));
 
   const { data: result, error } = await supabase
     .from('subscriptions')
@@ -62,23 +73,21 @@ export const getSubscriptionsByUserId = async (userId: string) => {
 
   if (error) throw error;
 
+  const tz = await getUserTimezone(userId);
+
   const augmentedData = data.map(item => {
     // If next_billing_date is missing (e.g., from old items), calculate it dynamically
     let nextDateStr = item.next_billing_date;
     if (!nextDateStr) {
-      nextDateStr = toLocalDateStr(getInitialSubscriptionDueDate(item.start_date, item.billing_cycle));
+      nextDateStr = toLocalDateStr(getInitialSubscriptionDueDate(item.start_date, item.billing_cycle, tz));
       item.next_billing_date = nextDateStr;
     }
     
-    const nextDate = new Date(nextDateStr);
-       
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    const dateComp = new Date(nextDate);
-    dateComp.setHours(0,0,0,0);
-    
-    const diffTime = dateComp.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const nextYmd = dateToYmdInTz(parseLocalDate(String(nextDateStr).split('T')[0] ?? nextDateStr), tz);
+    const todayYmd = todayYmdInTz(tz);
+    const diffDays = Math.round(
+      (new Date(nextYmd).getTime() - new Date(todayYmd).getTime()) / (1000 * 60 * 60 * 24)
+    );
        
     if (diffDays < 0) {
       item.status = 'Overdue';
@@ -116,9 +125,11 @@ export const updateSubscription = async (id: string, userId: string, updateData:
 
   if (fetchErr) throw fetchErr;
 
+  const tz = await getUserTimezone(userId);
+
   let next_billing_date = current.next_billing_date;
   if (!next_billing_date || updateData.start_date !== current.start_date || updateData.billing_cycle !== current.billing_cycle) {
-    next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(updateData.start_date, updateData.billing_cycle));
+    next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(updateData.start_date, updateData.billing_cycle, tz));
   }
 
   const { data, error } = await supabase
@@ -142,11 +153,11 @@ export const updateSubscription = async (id: string, userId: string, updateData:
   if (data && data.length > 0) {
     try {
       await scheduleSubscriptionRemindersForDate(
-        userId, 
-        id, 
-        updateData.service_name, 
-        new Date(next_billing_date), 
-        updateData.billing_cycle, 
+        userId,
+        id,
+        updateData.service_name,
+        parseLocalDate(String(next_billing_date).split('T')[0] ?? next_billing_date),
+        updateData.billing_cycle,
         updateData.reminder_schedule
       );
     } catch (e) { console.error("Failed to update schedule:", e); }
@@ -183,11 +194,15 @@ export const renewSubscription = async (id: string, userId: string) => {
     
   if (fetchErr) throw fetchErr;
 
+  const tz = await getUserTimezone(userId);
+
   let currentNextBillingDateStr = current.next_billing_date;
   if (!currentNextBillingDateStr) {
-    currentNextBillingDateStr = toLocalDateStr(getInitialSubscriptionDueDate(current.start_date, current.billing_cycle));
+    currentNextBillingDateStr = toLocalDateStr(getInitialSubscriptionDueDate(current.start_date, current.billing_cycle, tz));
   }
-  const currentNextBillingDate = new Date(currentNextBillingDateStr);
+  const currentNextBillingDate = parseLocalDate(
+    currentNextBillingDateStr.split('T')[0] ?? currentNextBillingDateStr
+  );
 
   // The next_billing_date is advanced by one full cycle. The original start_date is preserved.
   const newNextBillingDate = advanceOneCycle(currentNextBillingDate, current.billing_cycle);

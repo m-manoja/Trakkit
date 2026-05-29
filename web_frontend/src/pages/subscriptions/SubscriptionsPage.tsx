@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDate } from "../../utils/dateFormat";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   CreditCard, 
@@ -273,7 +274,7 @@ export default function SubscriptionsPage() {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>Next Billing</span>
                     <span className={styles.infoValue}>
-                      {new Date(sub.next_billing_date || sub.start_date).toLocaleDateString()}
+                      {formatDate(sub.next_billing_date || sub.start_date)}
                     </span>
                   </div>
                   

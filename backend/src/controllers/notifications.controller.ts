@@ -1,11 +1,12 @@
 import type { Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient.js';
 
+/** In-app inbox: only after outbound delivery attempted (or in-app-only with no channels). */
+const INBOX_STATUSES = ['notified', 'sent', 'failed'];
+
 /**
  * GET /api/notifications
- * Returns all due notifications for the user (pending, notified, sent).
- * Does NOT auto-mark status — status is only changed via markAsRead or the worker.
- * 'newIds' = IDs of notifications that are 'pending' or 'notified' (not yet seen in-app).
+ * Returns due notifications that have been processed by the worker (not raw pending).
  */
 export async function getNotifications(req: Request, res: Response) {
   const userId = (req as any).user?.id;
@@ -17,12 +18,12 @@ export async function getNotifications(req: Request, res: Response) {
   try {
     const now = new Date().toISOString();
 
-    // Fetch all due notifications for display in the in-app inbox
     const { data, error } = await supabase
       .from('scheduled_notifications')
       .select('*')
       .eq('user_id', userId)
-      .lte('scheduled_for', now)  // only those that are due
+      .in('status', INBOX_STATUSES)
+      .lte('scheduled_for', now)
       .order('scheduled_for', { ascending: false })
       .limit(50);
 
@@ -31,10 +32,9 @@ export async function getNotifications(req: Request, res: Response) {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // 'newIds' = notifications the worker has processed but the user hasn't dismissed yet
     const newIds = (data || [])
-      .filter((n: any) => n.status === 'pending' || n.status === 'notified')
-      .map((n: any) => n.id);
+      .filter((n: { status: string }) => n.status === 'notified' || n.status === 'failed')
+      .map((n: { id: string }) => n.id);
 
     return res.json({ success: true, data: data || [], newIds });
   } catch (err) {
@@ -43,11 +43,6 @@ export async function getNotifications(req: Request, res: Response) {
   }
 }
 
-/**
- * PATCH /api/notifications/mark-read
- * Marks the given notification IDs as 'sent' (read/seen in-app).
- * Body: { ids: string[] }
- */
 export async function markNotificationsRead(req: Request, res: Response) {
   const userId = (req as any).user?.id;
   const { ids } = req.body as { ids: string[] };
@@ -65,7 +60,8 @@ export async function markNotificationsRead(req: Request, res: Response) {
       .from('scheduled_notifications')
       .update({ status: 'sent' })
       .in('id', ids)
-      .eq('user_id', userId); // safety: only mark own notifications
+      .eq('user_id', userId)
+      .in('status', ['notified', 'failed']);
 
     if (error) {
       console.error('Error marking notifications as read:', error);
@@ -80,9 +76,7 @@ export async function markNotificationsRead(req: Request, res: Response) {
 }
 
 /**
- * GET /api/notifications/unread-count
- * Returns count of pending notifications due now or in the past.
- * Used for the bell badge.
+ * Badge count: unread in-app (notified + failed delivery, not yet dismissed).
  */
 export async function getUnreadCount(req: Request, res: Response) {
   const userId = (req as any).user?.id;
@@ -98,7 +92,7 @@ export async function getUnreadCount(req: Request, res: Response) {
       .from('scheduled_notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .in('status', ['pending', 'notified'])
+      .in('status', ['notified', 'failed'])
       .lte('scheduled_for', now);
 
     if (error) {
@@ -113,10 +107,6 @@ export async function getUnreadCount(req: Request, res: Response) {
   }
 }
 
-/**
- * DELETE /api/notifications/:id
- * Removes a single notification from the inbox.
- */
 export async function deleteNotification(req: Request, res: Response) {
   const userId = (req as any).user?.id;
   const { id } = req.params;
@@ -130,7 +120,7 @@ export async function deleteNotification(req: Request, res: Response) {
       .from('scheduled_notifications')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId); // safety: only delete own notifications
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error deleting notification:', error);
@@ -144,10 +134,6 @@ export async function deleteNotification(req: Request, res: Response) {
   }
 }
 
-/**
- * DELETE /api/notifications/clear-all
- * Clears all delivered (sent) notifications for the user.
- */
 export async function clearAllNotifications(req: Request, res: Response) {
   const userId = (req as any).user?.id;
 

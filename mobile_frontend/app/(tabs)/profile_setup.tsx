@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, Alert, TouchableOpacity,
   Platform, ScrollView, Dimensions, StatusBar, ActivityIndicator, KeyboardAvoidingView
@@ -290,7 +291,7 @@ export default function ProfileSetupScreen() {
               <TouchableOpacity style={styles.dateField} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
                 <Text style={[styles.dateFieldText, !form.dob && styles.datePlaceholder]}>
-                  {form.dob ? new Date(form.dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Select date of birth'}
+                  {form.dob ? formatDate(form.dob) : 'Select date of birth'}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
               </TouchableOpacity>

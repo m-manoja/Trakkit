@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatDate, formatDateTime, isToday, isYesterday } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, StatusBar, Animated, Modal,
@@ -45,7 +46,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
+  return formatDate(date);
 }
 
 function groupNotificationsByDate(notifications: AppNotification[]): { title: string; data: AppNotification[] }[] {
@@ -58,12 +59,12 @@ function groupNotificationsByDate(notifications: AppNotification[]): { title: st
     yesterday.setDate(today.getDate() - 1);
 
     let key: string;
-    if (d.toDateString() === today.toDateString()) {
+    if (isToday(d)) {
       key = 'Today';
-    } else if (d.toDateString() === yesterday.toDateString()) {
+    } else if (isYesterday(d)) {
       key = 'Yesterday';
     } else {
-      key = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      key = formatDateTime(d);
     }
 
     if (!groups[key]) groups[key] = [];
@@ -170,7 +171,10 @@ export default function NotificationsScreen() {
             </View>
             {isNew && <View style={styles.newDot} />}
           </View>
-          <Text style={styles.notifTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.notifTitle} numberOfLines={1}>
+            {item.title}
+            {item.status === 'failed' ? ' (delivery failed)' : ''}
+          </Text>
           <Text style={styles.notifBody} numberOfLines={2}>{item.body}</Text>
           <Text style={styles.notifTime}>{formatRelativeTime(item.scheduled_for)}</Text>
         </View>
@@ -292,10 +296,7 @@ export default function NotificationsScreen() {
                   <View style={styles.detailTimeRow}>
                     <Ionicons name="time-outline" size={14} color="#AAA" />
                     <Text style={styles.detailTime}>
-                      {new Date(selectedNotif.scheduled_for).toLocaleString('en-US', {
-                        weekday: 'short', month: 'short', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
+                      {formatDateTime(selectedNotif.scheduled_for)}
                     </Text>
                   </View>
 

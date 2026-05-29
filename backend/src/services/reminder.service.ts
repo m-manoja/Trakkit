@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabaseClient.js';
-import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence } from './notificationQueue.service.js';
+import { scheduleManualReminder, removeScheduledReminders, getNextOccurrence, getUserTimezone } from './notificationQueue.service.js';
 import { removeSharesForItem } from './sharing.service.js';
 
 export const createReminder = async (reminderData: any) => {
@@ -36,9 +36,11 @@ export const getRemindersByUserId = async (userId: string) => {
 
     if (error) throw error;
 
+    const tz = await getUserTimezone(userId);
+
     const augmentedData = data.map(item => {
         if (item.repeat_cycle) {
-            item.reminder_date = getNextOccurrence(item.reminder_date, item.repeat_cycle).toISOString();
+            item.reminder_date = getNextOccurrence(item.reminder_date, item.repeat_cycle, tz).toISOString();
         }
         return item;
     });

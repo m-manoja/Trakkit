@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { TimezoneProvider } from "./context/TimezoneContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import EmailLoginPage from "./pages/auth/EmailLoginPage";
@@ -23,6 +24,7 @@ import PaymentCancelPage from "./pages/premium/PaymentCancelPage";
 export default function App() {
   return (
     <AuthProvider>
+      <TimezoneProvider>
       <BrowserRouter>
         <Routes>
           {/* Public auth routes */}
@@ -138,6 +140,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      </TimezoneProvider>
     </AuthProvider>
   );
 }

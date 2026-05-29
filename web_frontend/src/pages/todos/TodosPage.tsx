@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDate, formatTime12h } from "../../utils/dateFormat";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   CheckSquare, 
@@ -249,7 +250,7 @@ export default function TodosPage() {
                     </span>
                     {todo.has_reminder && todo.reminder_date && (
                       <span className={styles.reminderBadge}>
-                        🔔 Reminder: {new Date(todo.reminder_date).toLocaleDateString()}
+                        🔔 Reminder: {formatDate(todo.reminder_date)}{(todo as any).reminder_time ? `, ${formatTime12h((todo as any).reminder_time)}` : ''}
                       </span>
                     )}
                   </div>

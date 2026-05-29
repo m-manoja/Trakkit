@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatDate as formatLKDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl
@@ -200,10 +201,6 @@ export default function RemindersScreen() {
   );
 
   const ReminderCard = ({ item }: { item: any }) => {
-    const formatDate = (date: Date | string) => {
-      const d = typeof date === 'string' ? new Date(date) : date;
-      return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
-    };
 
     return (
       <View style={styles.card}>
@@ -243,7 +240,7 @@ export default function RemindersScreen() {
 
         <View style={styles.cardContent}>
           <View style={styles.dateRow}>
-            <Text style={styles.dateText}>{formatDate(item.reminder_date)}</Text>
+            <Text style={styles.dateText}>{formatLKDate(item.reminder_date)}</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>Active</Text>
             </View>
@@ -362,7 +359,7 @@ export default function RemindersScreen() {
 
               <Text style={styles.inputLabel}>Reminder Date*</Text>
               <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowDatePicker(true)}>
-                <Text>{formData.reminder_date.toLocaleDateString()}</Text>
+                <Text>{formatLKDate(formData.reminder_date)}</Text>
                 <Ionicons name="calendar-outline" size={20} color="#666" />
               </TouchableOpacity>
 

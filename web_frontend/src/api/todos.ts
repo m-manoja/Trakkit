@@ -7,6 +7,7 @@ export interface Todo {
   is_completed: boolean;
   has_reminder: boolean;
   reminder_date: string | null;
+  reminder_time: string | null;
   reminder_schedule: string | null;
 }
 

@@ -1,6 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { TimezoneProvider } from '../src/context/TimezoneContext';
+import PushNotificationRegistrar from '../src/components/PushNotificationRegistrar';
 import { COLORS } from '../src/theme/colors';
 
 function AuthGuard() {
@@ -46,6 +48,8 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <TimezoneProvider>
+      <PushNotificationRegistrar />
       <AuthGuard />
       <Stack
         screenOptions={{
@@ -69,6 +73,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      </TimezoneProvider>
     </AuthProvider>
   );
 }

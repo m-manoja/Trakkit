@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatDate as formatLKDate } from '../../utils/dateFormat';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
@@ -22,7 +23,7 @@ const TYPE_LABELS: Record<ShareItemType, string> = {
 function formatDate(value: unknown): string {
   if (!value || typeof value !== 'string') return '—';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? String(value) : formatLKDate(d);
 }
 
 function ItemDetails({ entry }: { entry: ShareListEntry }) {
@@ -169,7 +170,7 @@ export default function SharingSettings() {
                   </div>
                   <p className={styles.meta}>
                     Shared with <strong>{entry.otherUser.displayName}</strong> ·{' '}
-                    {new Date(entry.createdAt).toLocaleDateString()}
+                    {formatLKDate(entry.createdAt)}
                   </p>
                   <button
                     type="button"
@@ -212,7 +213,7 @@ export default function SharingSettings() {
                 </div>
                 <p className={styles.meta}>
                   Shared by <strong>{entry.otherUser.displayName}</strong> ·{' '}
-                  {new Date(entry.createdAt).toLocaleDateString()}
+                  {formatLKDate(entry.createdAt)}
                 </p>
                 <button
                   type="button"

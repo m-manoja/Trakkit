@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Linking, Platform
@@ -72,7 +73,7 @@ export default function WarrantyScreen() {
       const purchase = new Date(formData.purchase_date);
       const months = parseInt(formData.warranty_period) || 0;
       const expiry = new Date(purchase.setMonth(purchase.getMonth() + months));
-      setFormData(prev => ({ ...prev, expiry_date: expiry.toLocaleDateString() }));
+      setFormData(prev => ({ ...prev, expiry_date: formatDate(expiry) }));
     };
     calculateExpiry();
   }, [formData.purchase_date, formData.warranty_period]);
@@ -217,7 +218,7 @@ export default function WarrantyScreen() {
       warranty_period: item.warranty_period.toString(),
       category: item.category,
       purchase_date: new Date(item.purchase_date),
-      expiry_date: new Date(item.expiry_date).toLocaleDateString(),
+      expiry_date: formatDate(item.expiry_date),
       description: item.description || '',
       selectedFile: null,
       existingUrl: item.document_url,
@@ -434,7 +435,7 @@ export default function WarrantyScreen() {
 
         <View style={styles.cardContent}>
           <DetailRow label="Purchase from" value={item.purchase_place} />
-          <DetailRow label="Expiry Date" value={new Date(item.expiry_date).toLocaleDateString()} />
+          <DetailRow label="Expiry Date" value={formatDate(item.expiry_date)} />
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Warranty Document</Text>
@@ -584,7 +585,7 @@ export default function WarrantyScreen() {
 
               <Text style={styles.inputLabel}>Purchase Date</Text>
               <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowDatePicker(true)}>
-                <Text>{formData.purchase_date.toLocaleDateString()}</Text>
+                <Text>{formatDate(formData.purchase_date)}</Text>
                 <Ionicons name="calendar" size={18} color="#666" />
               </TouchableOpacity>
 

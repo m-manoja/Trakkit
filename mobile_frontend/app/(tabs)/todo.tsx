@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl
@@ -280,7 +281,7 @@ export default function TodoScreen() {
               style={[styles.dropdownTrigger, !formData.has_reminder && { opacity: 0.5 }]}
               onPress={() => formData.has_reminder && setShowDatePicker(true)}
             >
-              <Text>{formData.reminder_date.toLocaleDateString()}</Text>
+              <Text>{formatDate(formData.reminder_date)}</Text>
               <Ionicons name="calendar-outline" size={20} color="#666" />
             </TouchableOpacity>
 
