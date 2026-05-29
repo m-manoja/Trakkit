@@ -1,9 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import styles from "./TodosPage.module.css";
 import { getNotificationSettings } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
+import { normalizeReminderTime, readReminderTimeFromForm } from "../../utils/reminderTime";
 
 interface TodoFormModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export default function TodoFormModal({
     reminder_schedule: "7,3,1",
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState("7,3,1");
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (token) {
@@ -46,7 +48,13 @@ export default function TodoFormModal({
   }, [token]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     setFormData({
       task_name: "",
       has_reminder: false,
@@ -69,8 +77,11 @@ export default function TodoFormModal({
 
   const today = new Date().toISOString().split('T')[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const reminderTime = readReminderTimeFromForm(form, formData.reminder_time);
+
     if (!formData.task_name.trim()) {
       alert("Please enter a task name.");
       return;
@@ -84,7 +95,7 @@ export default function TodoFormModal({
       ...formData,
       task_name: formData.task_name.trim(),
       reminder_date: formData.has_reminder ? new Date(formData.reminder_date).toISOString() : null,
-      reminder_time: formData.has_reminder ? formData.reminder_time : null,
+      reminder_time: formData.has_reminder ? reminderTime : null,
       reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null
     };
     
@@ -145,9 +156,11 @@ export default function TodoFormModal({
                   <label className={styles.formLabel}>Reminder Time</label>
                   <input
                     type="time"
+                    name="reminder_time"
+                    step={60}
                     className={styles.formInput}
                     value={formData.reminder_time}
-                    onChange={(e) => setFormData({...formData, reminder_time: e.target.value})}
+                    onChange={(e) => setFormData({...formData, reminder_time: normalizeReminderTime(e.target.value)})}
                   />
                 </div>
 

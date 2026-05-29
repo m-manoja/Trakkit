@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { formatDate } from "../../utils/dateFormat";
+import { formatDate, formatTime12h } from "../../utils/dateFormat";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   BellRing, 
@@ -254,6 +254,7 @@ export default function RemindersPage() {
                     <span className={styles.infoLabel}>Date</span>
                     <span className={styles.infoValue}>
                       {formatDate(rem.reminder_date)}
+                      {rem.reminder_time ? `, ${formatTime12h(rem.reminder_time)}` : ''}
                     </span>
                   </div>
                   <div className={styles.infoRow}>

@@ -6,6 +6,7 @@ export interface Reminder {
   title: string;
   type: string;
   reminder_date: string;
+  reminder_time?: string | null;
   repeat_cycle: string | null;
   remind_time: string;
   description: string;

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import styles from "./RemindersPage.module.css";
 import { type Reminder } from "../../api/reminders";
+import { normalizeReminderTime, readReminderTimeFromForm } from "../../utils/reminderTime";
 
 interface ReminderFormModalProps {
   isOpen: boolean;
@@ -32,31 +33,38 @@ export default function ReminderFormModal({
     reminder_schedule: "7,3,1",
   });
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setFormData({
-          title: initialData.title,
-          type: initialData.type,
-          reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
-          reminder_time: (initialData as any).reminder_time || "08:00",
-          repeat_cycle: initialData.repeat_cycle || "",
-          remind_time: initialData.remind_time || "On the day",
-          description: initialData.description || "",
-          reminder_schedule: initialData.reminder_schedule || "7,3,1",
-        });
-      } else {
-        setFormData({
-          title: "",
-          type: "",
-          reminder_date: new Date().toISOString().split('T')[0],
-          reminder_time: "08:00",
-          repeat_cycle: "",
-          remind_time: "On the day",
-          description: "",
-          reminder_schedule: "7,3,1",
-        });
-      }
+    if (!isOpen) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    if (initialData) {
+      setFormData({
+        title: initialData.title,
+        type: initialData.type,
+        reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
+        reminder_time: normalizeReminderTime((initialData as Reminder & { reminder_time?: string }).reminder_time),
+        repeat_cycle: initialData.repeat_cycle || "",
+        remind_time: initialData.remind_time || "On the day",
+        description: initialData.description || "",
+        reminder_schedule: initialData.reminder_schedule || "7,3,1",
+      });
+    } else {
+      setFormData({
+        title: "",
+        type: "",
+        reminder_date: new Date().toISOString().split('T')[0],
+        reminder_time: "08:00",
+        repeat_cycle: "",
+        remind_time: "On the day",
+        description: "",
+        reminder_schedule: "7,3,1",
+      });
     }
   }, [isOpen, initialData]);
 
@@ -64,8 +72,11 @@ export default function ReminderFormModal({
 
   const today = new Date().toISOString().split('T')[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const reminderTime = readReminderTimeFromForm(form, formData.reminder_time);
+
     if (!formData.title || !formData.type) {
       alert("Please enter a Name and Type (*)");
       return;
@@ -75,12 +86,11 @@ export default function ReminderFormModal({
       return;
     }
 
-    // Convert logic to match backend expectations
     const payload = {
       title: formData.title.trim(),
       type: formData.type,
       reminder_date: new Date(formData.reminder_date).toISOString(),
-      reminder_time: formData.reminder_time,
+      reminder_time: reminderTime,
       repeat_cycle: formData.type === 'repeat' ? formData.repeat_cycle : null,
       remind_time: formData.remind_time,
       reminder_schedule: (formData.remind_time === 'Before the day' || formData.remind_time === 'On and before')
@@ -145,9 +155,11 @@ export default function ReminderFormModal({
                 <label className={styles.formLabel}>Reminder Time</label>
                 <input
                   type="time"
+                  name="reminder_time"
+                  step={60}
                   className={styles.formInput}
                   value={formData.reminder_time}
-                  onChange={(e) => setFormData({...formData, reminder_time: e.target.value})}
+                  onChange={(e) => setFormData({...formData, reminder_time: normalizeReminderTime(e.target.value)})}
                 />
               </div>
             </div>
