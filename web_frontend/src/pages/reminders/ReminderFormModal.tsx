@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import styles from "./RemindersPage.module.css";
 import { type Reminder } from "../../api/reminders";
-import { normalizeReminderTime, readReminderTimeFromForm } from "../../utils/reminderTime";
+import { normalizeReminderTime } from "../../utils/reminderTime";
+import TimeSelect from "../../components/TimeSelect/TimeSelect";
 
 interface ReminderFormModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export default function ReminderFormModal({
         title: initialData.title,
         type: initialData.type,
         reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
-        reminder_time: normalizeReminderTime((initialData as Reminder & { reminder_time?: string }).reminder_time),
+        reminder_time: normalizeReminderTime(initialData.reminder_time),
         repeat_cycle: initialData.repeat_cycle || "",
         remind_time: initialData.remind_time || "On the day",
         description: initialData.description || "",
@@ -74,8 +75,7 @@ export default function ReminderFormModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const reminderTime = readReminderTimeFromForm(form, formData.reminder_time);
+    const reminderTime = normalizeReminderTime(formData.reminder_time);
 
     if (!formData.title || !formData.type) {
       alert("Please enter a Name and Type (*)");
@@ -86,7 +86,7 @@ export default function ReminderFormModal({
       return;
     }
 
-    const payload = {
+    onSubmit({
       title: formData.title.trim(),
       type: formData.type,
       reminder_date: new Date(formData.reminder_date).toISOString(),
@@ -97,9 +97,7 @@ export default function ReminderFormModal({
         ? formData.reminder_schedule
         : null,
       description: formData.description.trim()
-    };
-    
-    onSubmit(payload, initialData?.id || null);
+    }, initialData?.id || null);
   };
 
   return (
@@ -107,13 +105,13 @@ export default function ReminderFormModal({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>{initialData ? "Edit Reminder" : "Add Reminder"}</h2>
-          <button className={styles.closeButton} onClick={onClose} title="Close">
+          <button type="button" className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
 
-        <div className={styles.modalBody}>
-          <form id="reminderForm" onSubmit={handleSubmit} className={styles.formGroup}>
+        <form id="reminderForm" onSubmit={handleSubmit}>
+          <div className={styles.modalBody}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Reminder Name *</label>
               <input
@@ -152,14 +150,10 @@ export default function ReminderFormModal({
                 />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Reminder Time</label>
-                <input
-                  type="time"
-                  name="reminder_time"
-                  step={60}
-                  className={styles.formInput}
+                <label className={styles.formLabel}>Reminder Time *</label>
+                <TimeSelect
                   value={formData.reminder_time}
-                  onChange={(e) => setFormData({...formData, reminder_time: normalizeReminderTime(e.target.value)})}
+                  onChange={(reminder_time) => setFormData({ ...formData, reminder_time })}
                 />
               </div>
             </div>
@@ -224,31 +218,30 @@ export default function ReminderFormModal({
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
             </div>
-          </form>
-        </div>
+          </div>
 
-        <div className={styles.modalFooter}>
-          <button 
-            type="button" 
-            className={styles.cancelButton} 
-            onClick={onClose}
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            form="reminderForm" 
-            className={styles.submitButton}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <><Loader2 size={18} className={styles.spinner} /> Saving...</>
-            ) : (
-              "Save Reminder"
-            )}
-          </button>
-        </div>
+          <div className={styles.modalFooter}>
+            <button 
+              type="button" 
+              className={styles.cancelButton} 
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className={styles.submitButton}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <><Loader2 size={18} className={styles.spinner} /> Saving...</>
+              ) : (
+                "Save Reminder"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

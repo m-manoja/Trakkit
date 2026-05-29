@@ -1,0 +1,36 @@
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.select {
+  padding: 0.75rem 0.75rem;
+  background-color: rgba(249, 250, 251, 0.5);
+  border: 1px solid #D1D5DB;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  color: #111827;
+  cursor: pointer;
+  min-width: 4.5rem;
+}
+
+.select:focus {
+  background-color: white;
+  border-color: #B9375D;
+  box-shadow: 0 0 0 4px rgba(185, 55, 93, 0.1);
+}
+
+.preview {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.preview strong {
+  color: #B9375D;
+}

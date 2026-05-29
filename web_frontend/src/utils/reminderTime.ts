@@ -8,11 +8,11 @@ export function normalizeReminderTime(time: string | null | undefined): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Read reminder time from a form — uses DOM value so it stays in sync with the time picker. */
-export function readReminderTimeFromForm(form: HTMLFormElement, fallback: string): string {
-  const raw = form.elements.namedItem("reminder_time");
-  if (raw instanceof HTMLInputElement && raw.value) {
-    return normalizeReminderTime(raw.value);
-  }
-  return normalizeReminderTime(fallback);
+export function formatTime12h(hhmm: string | null | undefined): string {
+  const normalized = normalizeReminderTime(hhmm);
+  const [h, m] = normalized.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return normalized;
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }

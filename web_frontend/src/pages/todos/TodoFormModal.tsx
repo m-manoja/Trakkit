@@ -4,7 +4,8 @@ import { X, Loader2 } from "lucide-react";
 import styles from "./TodosPage.module.css";
 import { getNotificationSettings } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
-import { normalizeReminderTime, readReminderTimeFromForm } from "../../utils/reminderTime";
+import { normalizeReminderTime } from "../../utils/reminderTime";
+import TimeSelect from "../../components/TimeSelect/TimeSelect";
 
 interface TodoFormModalProps {
   isOpen: boolean;
@@ -79,8 +80,7 @@ export default function TodoFormModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const reminderTime = readReminderTimeFromForm(form, formData.reminder_time);
+    const reminderTime = normalizeReminderTime(formData.reminder_time);
 
     if (!formData.task_name.trim()) {
       alert("Please enter a task name.");
@@ -91,15 +91,13 @@ export default function TodoFormModal({
       return;
     }
     
-    const payload = {
+    onSubmit({
       ...formData,
       task_name: formData.task_name.trim(),
       reminder_date: formData.has_reminder ? new Date(formData.reminder_date).toISOString() : null,
       reminder_time: formData.has_reminder ? reminderTime : null,
       reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null
-    };
-    
-    onSubmit(payload);
+    });
   };
 
   return (
@@ -107,13 +105,13 @@ export default function TodoFormModal({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2>Add Todo List</h2>
-          <button className={styles.closeButton} onClick={onClose} title="Close">
+          <button type="button" className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
 
-        <div className={styles.modalBody}>
-          <form id="todoForm" onSubmit={handleSubmit} className={styles.formGroup}>
+        <form id="todoForm" onSubmit={handleSubmit}>
+          <div className={styles.modalBody}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Enter Task *</label>
               <input
@@ -153,14 +151,10 @@ export default function TodoFormModal({
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Reminder Time</label>
-                  <input
-                    type="time"
-                    name="reminder_time"
-                    step={60}
-                    className={styles.formInput}
+                  <label className={styles.formLabel}>Reminder Time *</label>
+                  <TimeSelect
                     value={formData.reminder_time}
-                    onChange={(e) => setFormData({...formData, reminder_time: normalizeReminderTime(e.target.value)})}
+                    onChange={(reminder_time) => setFormData({ ...formData, reminder_time })}
                   />
                 </div>
 
@@ -179,31 +173,30 @@ export default function TodoFormModal({
                 </div>
               </>
             )}
-          </form>
-        </div>
+          </div>
 
-        <div className={styles.modalFooter}>
-          <button 
-            type="button" 
-            className={styles.cancelButton} 
-            onClick={onClose}
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            form="todoForm" 
-            className={styles.submitButton}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <><Loader2 size={18} className={styles.spinner} /> Saving...</>
-            ) : (
-              "Add Task"
-            )}
-          </button>
-        </div>
+          <div className={styles.modalFooter}>
+            <button 
+              type="button" 
+              className={styles.cancelButton} 
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className={styles.submitButton}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <><Loader2 size={18} className={styles.spinner} /> Saving...</>
+              ) : (
+                "Add Task"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
