@@ -5,7 +5,9 @@ import styles from "./TodosPage.module.css";
 import { getNotificationSettings } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeReminderTime } from "../../utils/reminderTime";
-import TimeSelect from "../../components/TimeSelect/TimeSelect";
+import TimeSelect, { readTimeFromSelects } from "../../components/TimeSelect/TimeSelect";
+
+const TODO_TIME_SELECT_ID = "todo-form-time-select";
 
 interface TodoFormModalProps {
   isOpen: boolean;
@@ -31,7 +33,12 @@ export default function TodoFormModal({
     reminder_schedule: "7,3,1",
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState("7,3,1");
+  const reminderTimeRef = useRef("08:00");
   const initializedRef = useRef(false);
+
+  const patchForm = (patch: Partial<typeof formData>) => {
+    setFormData((prev) => ({ ...prev, ...patch }));
+  };
 
   useEffect(() => {
     if (token) {
@@ -56,6 +63,7 @@ export default function TodoFormModal({
     if (initializedRef.current) return;
     initializedRef.current = true;
 
+    reminderTimeRef.current = "08:00";
     setFormData({
       task_name: "",
       has_reminder: false,
@@ -80,7 +88,8 @@ export default function TodoFormModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const reminderTime = normalizeReminderTime(formData.reminder_time);
+    const domTime = readTimeFromSelects(TODO_TIME_SELECT_ID);
+    const reminderTime = normalizeReminderTime(domTime ?? reminderTimeRef.current);
 
     if (!formData.task_name.trim()) {
       alert("Please enter a task name.");
@@ -120,7 +129,7 @@ export default function TodoFormModal({
                 className={styles.formInput}
                 placeholder="E.g - Finish design"
                 value={formData.task_name}
-                onChange={(e) => setFormData({...formData, task_name: e.target.value})}
+                onChange={(e) => patchForm({ task_name: e.target.value })}
               />
             </div>
 
@@ -130,7 +139,7 @@ export default function TodoFormModal({
                 <input 
                   type="checkbox" 
                   checked={formData.has_reminder}
-                  onChange={(e) => setFormData({...formData, has_reminder: e.target.checked})}
+                  onChange={(e) => patchForm({ has_reminder: e.target.checked })}
                 />
                 <span className={styles.slider}></span>
               </label>
@@ -146,15 +155,19 @@ export default function TodoFormModal({
                     min={today}
                     className={styles.formInput}
                     value={formData.reminder_date}
-                    onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}
+                    onChange={(e) => patchForm({ reminder_date: e.target.value })}
                   />
                 </div>
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Reminder Time *</label>
                   <TimeSelect
+                    selectId={TODO_TIME_SELECT_ID}
                     value={formData.reminder_time}
-                    onChange={(reminder_time) => setFormData({ ...formData, reminder_time })}
+                    onChange={(reminder_time) => {
+                      reminderTimeRef.current = reminder_time;
+                      patchForm({ reminder_time });
+                    }}
                   />
                 </div>
 
@@ -165,7 +178,7 @@ export default function TodoFormModal({
                     className={styles.formInput}
                     placeholder={`Default: ${defaultReminderSchedule}`}
                     value={formData.reminder_schedule}
-                    onChange={(e) => setFormData({...formData, reminder_schedule: e.target.value})}
+                    onChange={(e) => patchForm({ reminder_schedule: e.target.value })}
                   />
                   <small className={styles.inputHelp}>
                     Enter comma-separated days (e.g. 7,3,1). Leave blank to use default.

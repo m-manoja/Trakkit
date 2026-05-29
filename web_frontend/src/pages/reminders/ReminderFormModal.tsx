@@ -3,7 +3,9 @@ import { X, Loader2 } from "lucide-react";
 import styles from "./RemindersPage.module.css";
 import { type Reminder } from "../../api/reminders";
 import { normalizeReminderTime } from "../../utils/reminderTime";
-import TimeSelect from "../../components/TimeSelect/TimeSelect";
+import TimeSelect, { readTimeFromSelects } from "../../components/TimeSelect/TimeSelect";
+
+const REMINDER_TIME_SELECT_ID = "reminder-form-time-select";
 
 interface ReminderFormModalProps {
   isOpen: boolean;
@@ -16,6 +18,17 @@ interface ReminderFormModalProps {
 const REMINDER_TYPES = ['one time', 'repeat'];
 const REPEAT_CYCLES = ['Everyday', 'Every week', 'Every month', 'Every year'];
 
+const emptyForm = (reminderSchedule = "7,3,1") => ({
+  title: "",
+  type: "",
+  reminder_date: new Date().toISOString().split('T')[0],
+  reminder_time: "08:00",
+  repeat_cycle: "",
+  remind_time: "On the day",
+  description: "",
+  reminder_schedule: reminderSchedule,
+});
+
 export default function ReminderFormModal({
   isOpen,
   onClose,
@@ -23,18 +36,13 @@ export default function ReminderFormModal({
   onSubmit,
   isSaving
 }: ReminderFormModalProps) {
-  const [formData, setFormData] = useState({
-    title: "",
-    type: "",
-    reminder_date: new Date().toISOString().split('T')[0],
-    reminder_time: "08:00",
-    repeat_cycle: "",
-    remind_time: "On the day",
-    description: "",
-    reminder_schedule: "7,3,1",
-  });
-
+  const [formData, setFormData] = useState(emptyForm());
+  const reminderTimeRef = useRef("08:00");
   const initializedRef = useRef(false);
+
+  const patchForm = (patch: Partial<typeof formData>) => {
+    setFormData((prev) => ({ ...prev, ...patch }));
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -45,27 +53,21 @@ export default function ReminderFormModal({
     initializedRef.current = true;
 
     if (initialData) {
+      const time = normalizeReminderTime(initialData.reminder_time);
+      reminderTimeRef.current = time;
       setFormData({
         title: initialData.title,
         type: initialData.type,
         reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
-        reminder_time: normalizeReminderTime(initialData.reminder_time),
+        reminder_time: time,
         repeat_cycle: initialData.repeat_cycle || "",
         remind_time: initialData.remind_time || "On the day",
         description: initialData.description || "",
         reminder_schedule: initialData.reminder_schedule || "7,3,1",
       });
     } else {
-      setFormData({
-        title: "",
-        type: "",
-        reminder_date: new Date().toISOString().split('T')[0],
-        reminder_time: "08:00",
-        repeat_cycle: "",
-        remind_time: "On the day",
-        description: "",
-        reminder_schedule: "7,3,1",
-      });
+      reminderTimeRef.current = "08:00";
+      setFormData(emptyForm());
     }
   }, [isOpen, initialData]);
 
@@ -75,7 +77,8 @@ export default function ReminderFormModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const reminderTime = normalizeReminderTime(formData.reminder_time);
+    const domTime = readTimeFromSelects(REMINDER_TIME_SELECT_ID);
+    const reminderTime = normalizeReminderTime(domTime ?? reminderTimeRef.current);
 
     if (!formData.title || !formData.type) {
       alert("Please enter a Name and Type (*)");
@@ -120,7 +123,7 @@ export default function ReminderFormModal({
                 className={styles.formInput}
                 placeholder="E.g - Meeting"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                onChange={(e) => patchForm({ title: e.target.value })}
               />
             </div>
 
@@ -132,7 +135,7 @@ export default function ReminderFormModal({
                   className={styles.formSelect}
                   title="Reminder type"
                   value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  onChange={(e) => patchForm({ type: e.target.value })}
                 >
                   <option value="">Select Type</option>
                   {REMINDER_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -146,14 +149,18 @@ export default function ReminderFormModal({
                   min={today}
                   className={styles.formInput}
                   value={formData.reminder_date}
-                  onChange={(e) => setFormData({...formData, reminder_date: e.target.value})}
+                  onChange={(e) => patchForm({ reminder_date: e.target.value })}
                 />
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Reminder Time *</label>
                 <TimeSelect
+                  selectId={REMINDER_TIME_SELECT_ID}
                   value={formData.reminder_time}
-                  onChange={(reminder_time) => setFormData({ ...formData, reminder_time })}
+                  onChange={(reminder_time) => {
+                    reminderTimeRef.current = reminder_time;
+                    patchForm({ reminder_time });
+                  }}
                 />
               </div>
             </div>
@@ -169,7 +176,7 @@ export default function ReminderFormModal({
                         name="repeat_cycle"
                         value={cycle}
                         checked={formData.repeat_cycle === cycle}
-                        onChange={(e) => setFormData({...formData, repeat_cycle: e.target.value})}
+                        onChange={(e) => patchForm({ repeat_cycle: e.target.value })}
                       />
                       <span>{cycle}</span>
                     </label>
@@ -188,7 +195,7 @@ export default function ReminderFormModal({
                       name="remind_time"
                       value={time}
                       checked={formData.remind_time === time}
-                      onChange={(e) => setFormData({...formData, remind_time: e.target.value})}
+                      onChange={(e) => patchForm({ remind_time: e.target.value })}
                     />
                     <span>{time}</span>
                   </label>
@@ -204,7 +211,7 @@ export default function ReminderFormModal({
                   className={styles.formInput}
                   placeholder="e.g. 7,3,1"
                   value={formData.reminder_schedule}
-                  onChange={(e) => setFormData({...formData, reminder_schedule: e.target.value})}
+                  onChange={(e) => patchForm({ reminder_schedule: e.target.value })}
                 />
               </div>
             )}
@@ -215,7 +222,7 @@ export default function ReminderFormModal({
                 className={styles.formTextarea}
                 placeholder="Add any notes about this reminder"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => patchForm({ description: e.target.value })}
               />
             </div>
           </div>

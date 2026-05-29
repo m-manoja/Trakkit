@@ -254,7 +254,12 @@ export default function RemindersPage() {
                     <span className={styles.infoLabel}>Date</span>
                     <span className={styles.infoValue}>
                       {formatDate(rem.reminder_date)}
-                      {rem.reminder_time ? `, ${formatTime12h(rem.reminder_time)}` : ''}
+                    </span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>Time</span>
+                    <span className={styles.infoValue}>
+                      {formatTime12h(rem.reminder_time || "08:00")}
                     </span>
                   </div>
                   <div className={styles.infoRow}>
