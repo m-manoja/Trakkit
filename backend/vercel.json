@@ -12,5 +12,11 @@
       "src": "/(.*)",
       "dest": "/src/vercel.ts"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/process-notifications",
+      "schedule": "0 * * * *"
+    }
   ]
 }

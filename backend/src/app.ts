@@ -11,6 +11,7 @@ import notificationsRoutes from "./routes/notifications.js";
 import paymentRoutes from "./routes/payment.js";
 import googleCalendarRoutes from "./routes/googleCalendar.js";
 import sharingRoutes from "./routes/sharing.js";
+import cronRoutes from "./routes/cron.js";
 
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
@@ -50,6 +51,7 @@ app.use("/api/notifications", notificationsRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/google-calendar", googleCalendarRoutes);
 app.use("/api/sharing", sharingRoutes);
+app.use("/api/cron", cronRoutes);
 
 app.get("/", (_req, res) => {
   res.send("API is working!");

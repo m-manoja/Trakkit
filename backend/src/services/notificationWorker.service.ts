@@ -30,80 +30,80 @@ async function sendSms(phone: string, text: string) {
   }
 }
 
+export async function processNotifications() {
+  const now = new Date().toISOString();
+
+  const { data: pendingNotifications, error } = await supabase
+    .from('scheduled_notifications')
+    .select('*')
+    .eq('status', 'pending')
+    .lte('scheduled_for', now);
+
+  if (error) {
+    console.error('Error fetching pending notifications for worker:', error);
+    return { processed: 0, error: error.message };
+  }
+
+  if (!pendingNotifications || pendingNotifications.length === 0) {
+    return { processed: 0 };
+  }
+
+  let processed = 0;
+  for (const notification of pendingNotifications) {
+    try {
+      const { user_id, title, body } = notification;
+
+      const { data: settings } = await supabase
+        .from('notification_settings')
+        .select('sms_notification, email_notification')
+        .eq('user_id', user_id)
+        .single();
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('phone, email')
+        .eq('id', user_id)
+        .single();
+
+      if (settings?.sms_notification && userData?.phone) {
+        const message = `Trakkit Reminder\n${title}\n${body}`;
+        await sendSms(userData.phone, message);
+      }
+
+      console.log(`[Worker] email_notification=${settings?.email_notification}, email=${userData?.email}`);
+      if (settings?.email_notification && userData?.email) {
+        try {
+          console.log(`[Worker] Sending email to ${userData.email}...`);
+          await sendEmailNotification(userData.email, title, body);
+          console.log(`[Worker] ✅ Email sent successfully to ${userData.email}`);
+        } catch (emailErr) {
+          console.error(`[Worker] ❌ Email failed for ${userData.email}:`, emailErr);
+        }
+      } else {
+        console.log(`[Worker] Skipping email — email_notification: ${settings?.email_notification}, email: ${userData?.email}`);
+      }
+
+      await supabase
+        .from('scheduled_notifications')
+        .update({ status: 'notified' })
+        .eq('id', notification.id);
+
+      processed++;
+    } catch (err) {
+      console.error(`Error processing notification ${notification.id}:`, err);
+    }
+  }
+
+  return { processed };
+}
+
 export function startNotificationWorker() {
   console.log("Starting notification worker...");
-  
-  // Run every minute
   setInterval(async () => {
     try {
-      const now = new Date().toISOString();
-
-      // Find all pending notifications due now or in the past
-      const { data: pendingNotifications, error } = await supabase
-        .from('scheduled_notifications')
-        .select('*')
-        .eq('status', 'pending')
-        .lte('scheduled_for', now);
-
-      if (error) {
-        console.error('Error fetching pending notifications for worker:', error);
-        return;
-      }
-
-      if (!pendingNotifications || pendingNotifications.length === 0) {
-        return;
-      }
-
-      for (const notification of pendingNotifications) {
-        try {
-          const { user_id, title, body } = notification;
-
-          // Fetch user's notification settings
-          const { data: settings } = await supabase
-            .from('notification_settings')
-            .select('sms_notification, email_notification')
-            .eq('user_id', user_id)
-            .single();
-
-          // Fetch user contact details (phone + email) in one query
-          const { data: userData } = await supabase
-            .from('users')
-            .select('phone, email')
-            .eq('id', user_id)
-            .single();
-
-          // If sms_notification is true, send an SMS
-          if (settings?.sms_notification && userData?.phone) {
-            const message = `Trakkit Reminder\n${title}\n${body}`;
-            await sendSms(userData.phone, message);
-          }
-
-          // If email_notification is true, send an email
-          console.log(`[Worker] email_notification=${settings?.email_notification}, email=${userData?.email}`);
-          if (settings?.email_notification && userData?.email) {
-            try {
-              console.log(`[Worker] Sending email to ${userData.email}...`);
-              await sendEmailNotification(userData.email, title, body);
-              console.log(`[Worker] ✅ Email sent successfully to ${userData.email}`);
-            } catch (emailErr) {
-              console.error(`[Worker] ❌ Email failed for ${userData.email}:`, emailErr);
-            }
-          } else {
-            console.log(`[Worker] Skipping email — email_notification: ${settings?.email_notification}, email: ${userData?.email}`);
-          }
-
-          // Mark as processed ('notified') so we don't process it again
-          await supabase
-            .from('scheduled_notifications')
-            .update({ status: 'notified' })
-            .eq('id', notification.id);
-
-        } catch (err) {
-          console.error(`Error processing notification ${notification.id}:`, err);
-        }
-      }
+      await processNotifications();
     } catch (err) {
       console.error('Notification worker error:', err);
     }
-  }, 60 * 1000); // Check every 60 seconds
+  }, 60 * 1000);
 }
