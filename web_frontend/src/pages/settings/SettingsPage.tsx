@@ -21,6 +21,7 @@ import {
   type UserProfile,
   type NotificationSettings
 } from "../../api/users";
+import { sendEmailVerification } from "../../api/auth";
 import {
   User,
   Bell,
@@ -81,6 +82,14 @@ export default function SettingsPage() {
   const [phoneOtp, setPhoneOtp] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  
+  // Email Change Modal state
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailModalStep, setEmailModalStep] = useState<1 | 2>(1);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
   
   // Avatar upload
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -269,6 +278,68 @@ export default function SettingsPage() {
     setPhoneError(null);
   };
 
+  const handleInitiateEmailChange = async () => {
+    if (!user?.token) return;
+    if (!newEmail || !newEmail.includes('@')) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+    
+    try {
+      setEmailLoading(true);
+      setEmailError(null);
+      await sendEmailVerification(user.token, newEmail);
+      setEmailModalStep(2);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Failed to send verification code.");
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleVerifyEmailChange = async () => {
+    if (!user?.token) return;
+    if (!emailOtp || emailOtp.length < 4) {
+      setEmailError("Please enter a valid OTP.");
+      return;
+    }
+
+    try {
+      setEmailLoading(true);
+      setEmailError(null);
+      // We will add verifyEmailChange to the API next
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-email/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+        body: JSON.stringify({ token: emailOtp }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Verification failed");
+
+      // Update state
+      setEmail(data.email);
+      if (user) {
+        setUser({ ...user, email: data.email });
+      }
+
+      setIsEmailModalOpen(false);
+      setSuccess("Email address updated successfully");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Verification failed. Check your code.");
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const closeEmailModal = () => {
+    setIsEmailModalOpen(false);
+    setEmailModalStep(1);
+    setNewEmail("");
+    setEmailOtp("");
+    setEmailError(null);
+  };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !user?.token) return;
     const file = e.target.files[0];
@@ -422,13 +493,21 @@ export default function SettingsPage() {
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Email Address</label>
-                  <input 
-                    type="email" 
-                    className={styles.input} 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter email address"
-                  />
+                  <div className={styles.phoneFieldWrapper}>
+                    <input 
+                      type="email" 
+                      className={`${styles.input} ${styles.phoneInputFlex}`}
+                      value={email}
+                      disabled
+                      title="Email address"
+                    />
+                    <button 
+                      className={styles.changePhoneBtn}
+                      onClick={() => setIsEmailModalOpen(true)}
+                    >
+                      Change
+                    </button>
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Phone Number</label>
@@ -710,6 +789,71 @@ export default function SettingsPage() {
               ) : (
                 <button className={styles.btnPrimary} onClick={handleVerifyPhoneChange} disabled={phoneLoading}>
                   {phoneLoading ? <Loader2 size={16} className={styles.btnSpinner} /> : "Verify & Save"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Change Modal */}
+      {isEmailModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>Change Email Address</h3>
+              <button className={styles.closeModalBtn} onClick={closeEmailModal} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              {emailError && <p className={styles.inlineError}>{emailError}</p>}
+              
+              {emailModalStep === 1 ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>New Email Address</label>
+                  <input 
+                    type="email" 
+                    className={styles.input} 
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="e.g. newemail@example.com"
+                    autoFocus
+                  />
+                  <p className={styles.modalHint}>
+                    We'll send a 6-digit code to this new email address.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Enter Code</label>
+                  <input 
+                    type="text" 
+                    className={styles.input} 
+                    value={emailOtp}
+                    onChange={(e) => setEmailOtp(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    autoFocus
+                  />
+                  <p className={styles.modalHint}>
+                    Code sent to {newEmail}.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button className={styles.btnSecondary} onClick={closeEmailModal} disabled={emailLoading}>
+                Cancel
+              </button>
+              {emailModalStep === 1 ? (
+                <button className={styles.btnPrimary} onClick={handleInitiateEmailChange} disabled={emailLoading}>
+                  {emailLoading ? <Loader2 size={16} className={styles.btnSpinner} /> : "Send Code"}
+                </button>
+              ) : (
+                <button className={styles.btnPrimary} onClick={handleVerifyEmailChange} disabled={emailLoading}>
+                  {emailLoading ? <Loader2 size={16} className={styles.btnSpinner} /> : "Verify & Save"}
                 </button>
               )}
             </div>

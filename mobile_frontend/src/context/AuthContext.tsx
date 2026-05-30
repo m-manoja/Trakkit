@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const json = await res.json();
           if (!cancelled && json.success && json.data?.plan) {
             const plan: 'free' | 'premium' = json.data.plan === 'premium' ? 'premium' : 'free';
-            const next = { ...restoredUser, plan };
+            const next = { ...restoredUser!, plan };
             setUserState(next);
             await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
           }

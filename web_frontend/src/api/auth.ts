@@ -123,7 +123,7 @@ export async function sendEmailVerification(token: string, email: string): Promi
   if (!response.ok) throw new Error(result?.error || "Failed to send verification email");
 }
 
-export async function confirmEmailVerification(token: string): Promise<void> {
+export async function confirmEmailVerification(token: string): Promise<{ email: string }> {
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -132,4 +132,5 @@ export async function confirmEmailVerification(token: string): Promise<void> {
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result?.error || "Verification failed");
+  return { email: result.email };
 }

@@ -8,7 +8,6 @@ import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ProfileSetupPage from "./pages/auth/ProfileSetupPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
-import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import VerifyEmailPendingPage from "./pages/auth/VerifyEmailPendingPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import WarrantiesPage from "./pages/warranties/WarrantiesPage";
@@ -33,7 +32,6 @@ export default function App() {
           <Route path="/verify-otp" element={<OTPVerificationPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
             path="/verify-email-pending"
             element={

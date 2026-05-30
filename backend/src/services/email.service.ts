@@ -89,6 +89,27 @@ export async function sendEmailVerificationEmail(to: string, verifyUrl: string):
   });
 }
 
+export async function sendOtpEmail(to: string, code: string): Promise<void> {
+  const fromAddress = process.env.EMAIL_FROM || `Trakkit <${process.env.EMAIL_USER}>`;
+  const body = `
+    <h2 style="margin:0 0 12px;color:#1a1a1a;font-size:20px;font-weight:700;">Your Verification Code</h2>
+    <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+      Please use the following 6-digit code to verify your new email address.
+    </p>
+    <div style="background:#f4f4f5;padding:16px;border-radius:8px;text-align:center;font-size:28px;font-weight:700;letter-spacing:4px;color:#A83B5E;">
+      ${code}
+    </div>
+    <p style="margin:24px 0 0;color:#aaa;font-size:12px;">This code expires in 5 minutes. If you didn't request this change, you can safely ignore this email.</p>`;
+
+  await getTransporter().sendMail({
+    from: fromAddress,
+    to,
+    subject: 'Your Trakkit Verification Code',
+    text: `Your verification code is: ${code}\n\nThis code expires in 5 minutes.\n\n— Trakkit`,
+    html: baseTemplate('Verification Code', 'Email verification code', body),
+  });
+}
+
 /**
  * Sends an HTML email notification for a reminder.
  */

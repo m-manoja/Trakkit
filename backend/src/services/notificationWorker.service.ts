@@ -145,14 +145,18 @@ async function processOneNotification(notification: NotificationRow): Promise<bo
   // Fall back to defaults when no settings row exists (user never saved settings)
   const settings = settingsRow ?? DEFAULT_NOTIFICATION_SETTINGS;
 
-  const { data: userData } = await supabase
+  const { data: userData, error: userError } = await supabase
     .from('users')
-    .select('phone, email, backup_email')
+    .select('phone, email')
     .eq('id', user_id)
     .single();
 
-  // Use email or backup_email as the email address for notifications
-  const emailAddress = userData?.email || userData?.backup_email || null;
+  if (userError || !userData) {
+    throw new Error(`Could not fetch user phone/email for user ${user_id}: ${userError?.message}`);
+  }
+
+  // Use email as the email address for notifications
+  const emailAddress = userData?.email || null;
 
   const smsText = `Trakkit Reminder\n${title}\n${body}`;
   const wantsSms = Boolean(settings.sms_notification && userData?.phone);

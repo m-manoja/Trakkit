@@ -47,8 +47,9 @@ function AuthGuard() {
       return;
     }
 
-    // Redirect authenticated+fully set up users away from login
-    if (root === 'login' && user.profileCompleted !== false && user.emailVerified !== false) {
+    // Redirect authenticated+fully set up users away from login screens
+    const isAuthScreen = root === 'login' || root === 'email_login' || root === 'verification' || root === 'forgot-password';
+    if (isAuthScreen && user.profileCompleted !== false && user.emailVerified !== false) {
       router.replace('/(tabs)');
     }
   }, [user, loading, segments]);

@@ -92,6 +92,12 @@ export default function TabLayout() {
         href: null,
       }} />
 
+      <Tabs.Screen name="change_email" options={{
+        title: 'Change Email',
+        tabBarIcon: ({ color }) => <Ionicons name="mail-outline" size={24} color={color} />,
+        href: null,
+      }} />
+
       <Tabs.Screen name="notifications" options={{
         title: 'Notifications',
         tabBarIcon: ({ color }) => <Ionicons name="notifications-outline" size={24} color={color} />,

@@ -26,7 +26,8 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
   const [dismissing, setDismissing] = useState(false);
 
   const handleSave = async () => {
-    if (!email.trim()) {
+    const finalEmail = (user as any)?.email || email.trim();
+    if (!finalEmail) {
       Alert.alert('Missing email', 'Please enter an email address.');
       return;
     }
@@ -41,7 +42,7 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
 
     setLoading(true);
     try {
-      await apiSetBackupPassword(email.trim(), password, token);
+      await apiSetBackupPassword(finalEmail, password, token);
       Alert.alert('✅ Backup login set!', 'You can now log in with your email & password if you lose access to your phone.');
       onDone();
     } catch (err: any) {
@@ -85,20 +86,31 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
 
             {/* Fields */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Backup email</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={16} color="#999" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="you@example.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholderTextColor="#BBB"
-                />
-              </View>
+              {(user as any)?.email ? (
+                <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                  <Text style={{ fontSize: 14, color: '#555' }}>Your email address:</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.primary, marginTop: 4 }}>
+                    {(user as any)?.email}
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.label}>Email Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="mail-outline" size={16} color="#999" style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="you@example.com"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholderTextColor="#BBB"
+                    />
+                  </View>
+                </>
+              )}
 
               <Text style={[styles.label, { marginTop: 14 }]}>Password</Text>
               <View style={styles.inputWrapper}>

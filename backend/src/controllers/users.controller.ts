@@ -241,7 +241,6 @@ export async function emailLogin(req: Request, res: Response) {
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,
-        backupEmail: user.backup_email,
         backupPromptShown: user.backup_prompt_shown,
         emailVerified: (user as any).email_verified ?? true,
         settingsCompleted,

@@ -136,7 +136,14 @@ export default function ProfileSetupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              disabled={!isFirstSetup}
+              title={!isFirstSetup ? "Please use the Settings page to change your email" : ""}
             />
+            {!isFirstSetup && (
+              <p style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                Use the Settings page to update your email.
+              </p>
+            )}
           </div>
 
           {isFirstSetup && (

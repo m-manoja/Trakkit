@@ -10,8 +10,6 @@ import {
   LogOut,
   BellRing,
   X,
-  Zap,
-  Crown
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchUnreadCount } from "../../api/notifications";
@@ -73,25 +71,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         ))}
 
-        {/* Upgrade / Premium status */}
-        {user?.plan === 'premium' ? (
-          <div className={styles.premiumBadge}>
-            <Crown size={15} />
-            <span>Premium Plan</span>
-          </div>
-        ) : (
-          <NavLink
-            to="/pricing"
-            className={({ isActive }) => isActive ? `${styles.upgradeLink} ${styles.active}` : styles.upgradeLink}
-          >
-            <Zap size={18} />
-            <span>Upgrade to Premium</span>
-          </NavLink>
-        )}
       </nav>
 
       <div className={styles.footer}>
-        <NavLink to="/settings" className={styles.navLink}>
+        <NavLink 
+          to="/settings" 
+          className={({ isActive }) => isActive ? `${styles.navLink} ${styles.active}` : styles.navLink}
+        >
           <Settings size={20} />
           <span>Settings</span>
         </NavLink>

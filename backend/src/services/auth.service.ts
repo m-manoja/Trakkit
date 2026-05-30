@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { supabase } from "../config/supabaseClient.js";
-import { sendPasswordResetEmail, sendEmailVerificationEmail } from "./email.service.js";
+import { sendPasswordResetEmail, sendEmailVerificationEmail, sendOtpEmail } from "./email.service.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const TEXTLK_API_URL = "https://app.text.lk/api/http/sms/send";
@@ -13,6 +13,13 @@ type OtpEntry = {
 };
 
 const otpStore = new Map<string, OtpEntry>();
+
+type EmailOtpEntry = {
+  code: string;
+  newEmail: string;
+  expiresAt: number;
+};
+const emailOtpStore = new Map<string, EmailOtpEntry>();
 
 export class AuthServiceError extends Error {
   status: number;
@@ -160,7 +167,7 @@ export async function setBackupPassword(userId: string, email: string, password:
   const { data: existing } = await supabase
     .from('users')
     .select('id')
-    .eq('backup_email', email.toLowerCase())
+    .eq('email', email.toLowerCase())
     .neq('id', userId)
     .maybeSingle();
 
@@ -173,7 +180,7 @@ export async function setBackupPassword(userId: string, email: string, password:
   const { error } = await supabase
     .from('users')
     .update({
-      backup_email: email.toLowerCase(),
+      email: email.toLowerCase(),
       password_hash: hash,
       backup_prompt_shown: true,
     })
@@ -200,12 +207,12 @@ export async function requestPasswordReset(email: string): Promise<void> {
   const { data: user } = await supabase
     .from('users')
     .select('id, password_hash')
-    .eq('backup_email', email.toLowerCase())
+    .eq('email', email.toLowerCase())
     .maybeSingle();
 
   if (!user || !user.password_hash) {
     throw new AuthServiceError(
-      'This email is not registered as a backup email. Please use the email you set up for account recovery.',
+      'This email is not registered for password login. Please check the email address.',
       404
     );
   }
@@ -260,36 +267,48 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
 // ─── EMAIL VERIFICATION ───────────────────────────────────────────────────────
 
 export async function requestEmailVerification(userId: string, email: string): Promise<void> {
-  const secret = process.env.JWT_SECRET || 'your-secret-key';
-  const appUrl = process.env.APP_URL || 'http://localhost:5173';
-  const token = jwt.sign(
-    { userId, email, type: 'email-verify' },
-    secret,
-    { expiresIn: '24h' }
-  );
-
-  await sendEmailVerificationEmail(email, `${appUrl}/verify-email?token=${token}`);
+  const code = generateOtp();
+  emailOtpStore.set(userId, { 
+    code, 
+    newEmail: email.toLowerCase(), 
+    expiresAt: Date.now() + OTP_TTL_MS 
+  });
+  await sendOtpEmail(email, code);
 }
 
-export async function confirmEmailVerification(token: string): Promise<{ email: string }> {
-  const secret = process.env.JWT_SECRET || 'your-secret-key';
-  let payload: any;
-  try {
-    payload = jwt.verify(token, secret);
-  } catch {
-    throw new AuthServiceError('Verification link is invalid or expired', 400);
+export async function confirmEmailVerification(userId: string, token: string): Promise<{ email: string }> {
+  const entry = emailOtpStore.get(userId);
+  
+  if (!entry) {
+    throw new AuthServiceError('Verification code expired or not found', 400);
   }
 
-  if (payload.type !== 'email-verify') {
-    throw new AuthServiceError('Invalid token', 400);
+  if (Date.now() > entry.expiresAt) {
+    emailOtpStore.delete(userId);
+    throw new AuthServiceError('Verification code expired', 400);
   }
 
-  await supabase
+  if (entry.code !== token.trim()) {
+    throw new AuthServiceError('Invalid verification code', 400);
+  }
+
+  const { data: updatedData, error } = await supabase
     .from('users')
-    .update({ email_verified: true })
-    .eq('id', payload.userId);
+    .update({ 
+      email_verified: true,
+      email: entry.newEmail
+    })
+    .eq('id', userId)
+    .select()
+    .single();
 
-  return { email: payload.email };
+  if (error) {
+    console.error("Update failed in DB:", error);
+    throw new AuthServiceError(`Failed to update email: ${error.message}`, 500);
+  }
+
+  emailOtpStore.delete(userId);
+  return { email: entry.newEmail };
 }
 
 /**
@@ -299,13 +318,13 @@ export async function confirmEmailVerification(token: string): Promise<{ email: 
 export async function loginWithEmail(email: string, password: string) {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, phone, first_name, last_name, email, backup_email, password_hash, backup_prompt_shown, email_verified, plan, plan_activated_at')
-    .eq('backup_email', email.toLowerCase())
+    .select('id, phone, first_name, last_name, email, password_hash, backup_prompt_shown, email_verified, plan, plan_activated_at')
+    .eq('email', email.toLowerCase())
     .maybeSingle();
 
   if (error) throw new AuthServiceError(error.message, 500);
   if (!user || !user.password_hash) {
-    throw new AuthServiceError('No account found with that email, or backup login not set up', 401);
+    throw new AuthServiceError('No account found with that email, or password login not set up', 401);
   }
 
   const match = await bcrypt.compare(password, user.password_hash);

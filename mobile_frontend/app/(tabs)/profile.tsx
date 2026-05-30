@@ -156,7 +156,7 @@ export default function ProfileScreen() {
                         <Text style={styles.infoPillText}>{(user as any)?.phone || '—'}</Text>
                     </View>
                     {(user as any)?.email && (
-                        <View style={styles.infoPill}>
+                        <View style={[styles.infoPill, { marginTop: 4 }]}>
                             <Ionicons name="mail-outline" size={16} color={COLORS.primary} />
                             <Text style={styles.infoPillText}>{(user as any).email}</Text>
                         </View>
@@ -310,6 +310,24 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: COLORS.textPrimary,
         fontWeight: '500',
+    },
+    infoPillRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        paddingVertical: 4,
+    },
+    changeActionBtn: {
+        backgroundColor: '#F2F2F7',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    changeActionText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.primary,
     },
     menuSection: {
         marginTop: 24,

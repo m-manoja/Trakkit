@@ -12,6 +12,6 @@ router.post("/email-login", asyncHandler(emailLogin));
 router.post("/forgot-password", asyncHandler(forgotPassword));
 router.post("/reset-password", asyncHandler(resetPassword));
 router.post("/verify-email/send", protect, asyncHandler(sendVerifyEmail));
-router.post("/verify-email/confirm", asyncHandler(verifyEmail));
+router.post("/verify-email/confirm", protect, asyncHandler(verifyEmail));
 
 export default router;

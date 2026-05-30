@@ -23,7 +23,8 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
   if (!visible) return null;
 
   const handleSave = async () => {
-    if (!email.trim()) {
+    const finalEmail = (user as any)?.email || email.trim();
+    if (!finalEmail) {
       alert("Please enter an email address.");
       return;
     }
@@ -38,7 +39,7 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
 
     setLoading(true);
     try {
-      await setBackupPassword(email.trim(), password, token);
+      await setBackupPassword(finalEmail, password, token);
       alert("✅ Backup login set! You can now log in with your email & password if you lose access to your phone.");
       onDone();
     } catch (err) {
@@ -71,19 +72,28 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
           Add a backup email & password so you can still log in if you ever lose access to your phone number.
         </p>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Backup email</label>
-          <div className={styles.inputWrapper}>
-            <Mail size={16} color="#9CA3AF" />
-            <input
-              type="email"
-              className={styles.input}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        {(user as any)?.email ? (
+          <div className={styles.formGroup} style={{ textAlign: "center" }}>
+            <span style={{ fontSize: "14px", color: "#6B7280" }}>Your email address:</span>
+            <div style={{ fontSize: "16px", fontWeight: "600", color: "#DC2626", marginTop: "4px" }}>
+              {(user as any)?.email}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Email Address</label>
+            <div className={styles.inputWrapper}>
+              <Mail size={16} color="#9CA3AF" />
+              <input
+                type="email"
+                className={styles.input}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Password</label>

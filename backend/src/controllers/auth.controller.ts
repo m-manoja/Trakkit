@@ -170,12 +170,16 @@ export async function sendVerifyEmail(req: Request, res: Response) {
 }
 
 export async function verifyEmail(req: Request, res: Response) {
+  const userId = (req as any).user?.id;
   const { token } = req.body;
   if (!token) {
     return res.status(400).json({ error: 'Token is required' });
   }
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
-    const { email } = await confirmEmailVerification(token);
+    const { email } = await confirmEmailVerification(userId, token);
     return res.json({ message: 'Email verified successfully', email });
   } catch (err: any) {
     return res.status(err.status || 400).json({ error: err.message });

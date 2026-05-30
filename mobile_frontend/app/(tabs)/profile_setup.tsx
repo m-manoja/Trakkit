@@ -79,6 +79,13 @@ export default function ProfileSetupScreen() {
     fetchUserProfile();
   }, [user?.id]);
 
+  // Keep form email in sync with AuthContext in case it gets updated (e.g., from change_email screen)
+  useEffect(() => {
+    if ((user as any)?.email) {
+      setForm(f => ({ ...f, email: (user as any).email }));
+    }
+  }, [(user as any)?.email]);
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!form.firstName.trim()) newErrors.firstName = 'First name is required';
@@ -142,7 +149,7 @@ export default function ProfileSetupScreen() {
       } else {
         await setUser(updatedUser);
         Alert.alert('✓ Saved', 'Your profile has been updated.', [
-          { text: 'OK', onPress: () => router.back() }
+          { text: 'OK', onPress: () => router.push('/(tabs)/profile') }
         ]);
       }
     } catch (error: any) {
@@ -197,7 +204,7 @@ export default function ProfileSetupScreen() {
       {/* Fixed Header */}
       <View style={styles.header}>
         {isEditing ? (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
           </TouchableOpacity>
         ) : (
@@ -306,15 +313,36 @@ export default function ProfileSetupScreen() {
                 <Text style={styles.cardTitle}>Contact Information</Text>
               </View>
 
-              <CustomInput
-                label={!isEditing ? "Email Address (Recovery Email)" : "Email Address"}
-                placeholder="your@email.com"
-                value={form.email}
-                onChangeText={(v) => onChange('email', v)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+              {isEditing ? (
+                <>
+                  <Text style={styles.fieldLabel}>Email Address</Text>
+                  <View style={styles.readonlyField}>
+                    <Ionicons name="mail-outline" size={18} color={COLORS.textSecondary} />
+                    <Text style={styles.readonlyText}>{form.email || '—'}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        router.push('/(tabs)/change_email');
+                      }}
+                      style={styles.changePhoneBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.changePhoneBtnText}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <CustomInput
+                    label="Email Address (Recovery Email)"
+                    placeholder="your@email.com"
+                    value={form.email}
+                    onChangeText={(v) => onChange('email', v)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+                </>
+              )}
 
               {!isEditing && (
                 <>

@@ -7,6 +7,7 @@ export interface UserProfile {
   email?: string;
   phone?: string;
   dob?: string;
+  date_of_birth?: string; // raw field name from backend
   profile_picture?: string;
 }
 
@@ -22,10 +23,13 @@ export interface NotificationSettings {
 
 export async function getProfile(token: string): Promise<UserProfile> {
   const result = await apiRequest<UserProfile>("/api/users/profile", "GET", undefined, token);
-  // the client.ts returns result.data which might be what we need, but let's check profile controller in backend.
-  // getProfile returns { success: true, data: profile }
-  // wait, apiRequest extracts `result.data`. So it returns `UserProfile` directly!
-  return result as UserProfile;
+  // Backend returns { success: true, data: { date_of_birth, ... } }
+  // Normalize date_of_birth -> dob for consistent frontend usage
+  const profile = result as UserProfile;
+  if (profile && profile.date_of_birth && !profile.dob) {
+    profile.dob = profile.date_of_birth;
+  }
+  return profile;
 }
 
 export async function updateProfile(data: { userId: string, firstName: string, lastName: string, email: string, dob?: string }, token: string) {
