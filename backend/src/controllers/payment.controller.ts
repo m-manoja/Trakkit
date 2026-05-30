@@ -15,31 +15,53 @@ const PAYHERE_CHECKOUT_URL =
     ? 'https://www.payhere.lk/pay/checkout'
     : 'https://sandbox.payhere.lk/pay/checkout');
 
+// In production we use the public deployed URLs; in local dev we use localhost so
+// PayHere's browser redirect comes back to your machine (not the live site).
+// NODE_ENV is forced to 'development' by the `dev` npm script and 'production' on Vercel.
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 function getBackendLocalUrl(): string {
   const port = process.env.PORT || '5000';
   return `http://localhost:${port}`;
 }
 
-/** LAN/public URL for PayHere browser return — phones cannot reach localhost. */
+/**
+ * Backend origin PayHere redirects the browser to (the /web-return endpoint).
+ * Prod → public deployed URL; dev → localhost (override with DEV_BACKEND_URL).
+ */
 function getBackendPublicUrl(): string {
-  return process.env.BACKEND_PUBLIC_URL?.replace(/\/$/, '') || getBackendLocalUrl();
-}
-
-/** Notify URL must be reachable by PayHere servers — use HTTPS tunnel in dev. */
-function getNotifyUrl(): string {
-  if (process.env.PAYHERE_NOTIFY_URL) {
-    return process.env.PAYHERE_NOTIFY_URL;
+  if (IS_PRODUCTION) {
+    return (process.env.BACKEND_PUBLIC_URL || getBackendLocalUrl()).replace(/\/$/, '');
   }
-  const fallback = `${getBackendLocalUrl()}/api/payment/notify`;
-  console.warn(
-    `[PayHere] PAYHERE_NOTIFY_URL is not set. Using ${fallback} — PayHere cannot reach this from the internet.`,
-    'Run: npx localtunnel --port 5000 and set PAYHERE_NOTIFY_URL=https://<tunnel>.loca.lt/api/payment/notify'
-  );
-  return fallback;
+  return (process.env.DEV_BACKEND_URL || getBackendLocalUrl()).replace(/\/$/, '');
 }
 
+/**
+ * Web SPA base URL the flow lands on after /web-return (the /payment/success page).
+ * Must match the origin you browse so sessionStorage (token + order id) survives.
+ */
 function getWebFrontendBaseUrl(): string {
-  return process.env.FRONTEND_URL || 'http://localhost:5173';
+  if (IS_PRODUCTION) {
+    return process.env.FRONTEND_URL || 'https://trakkit.site';
+  }
+  return process.env.DEV_FRONTEND_URL || 'http://localhost:5173';
+}
+
+/**
+ * Notify URL (PayHere server-to-server). The WEB flow does NOT depend on this —
+ * the success page activates Premium via /activate. Mobile + the secure confirm
+ * path do use it. Prod → configured HTTPS URL; dev → localhost (or DEV_NOTIFY_URL tunnel).
+ */
+function getNotifyUrl(): string {
+  if (IS_PRODUCTION) {
+    if (process.env.PAYHERE_NOTIFY_URL) return process.env.PAYHERE_NOTIFY_URL;
+    const fallback = `${getBackendLocalUrl()}/api/payment/notify`;
+    console.warn(
+      `[PayHere] PAYHERE_NOTIFY_URL is not set in production. Using ${fallback} — PayHere cannot reach this.`
+    );
+    return fallback;
+  }
+  return process.env.DEV_NOTIFY_URL || `${getBackendLocalUrl()}/api/payment/notify`;
 }
 
 /** Browser return hits local backend (activates premium), then redirects to the SPA. */
