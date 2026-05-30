@@ -49,7 +49,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <span className={styles.logoText}>Trakkit</span>
         </div>
         {onClose && (
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close sidebar">
             <X size={24} />
           </button>
         )}
@@ -64,7 +64,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className={({ isActive }) => isActive ? `${styles.navLink} ${styles.active}` : styles.navLink}
           >
             <item.icon size={20} />
-            <span style={{ flex: 1 }}>{item.label}</span>
+            <span className={styles.navLabel}>{item.label}</span>
             {item.label === "Notifications" && unreadCount > 0 && (
               <span className={styles.badge}>{unreadCount}</span>
             )}

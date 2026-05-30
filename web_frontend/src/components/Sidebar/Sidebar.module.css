@@ -70,6 +70,10 @@
   transition: var(--transition);
 }
 
+.navLabel {
+  flex: 1;
+}
+
 .navLink:hover {
   background: rgba(185, 55, 93, 0.05);
   color: var(--primary);
