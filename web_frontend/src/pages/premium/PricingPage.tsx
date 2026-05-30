@@ -16,7 +16,6 @@ import {
   Calendar,
   Bell,
   Smartphone,
-  Infinity,
 } from 'lucide-react';
 
 // PayHere sandbox URL — switch to live URL after academic submission
