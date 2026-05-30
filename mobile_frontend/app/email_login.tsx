@@ -41,6 +41,7 @@ export default function EmailLoginScreen() {
         profileCompleted: true,
         emailVerified: user.emailVerified ?? true,
         settingsCompleted: user.settingsCompleted ?? true,
+        plan: (user.plan === 'premium' ? 'premium' : 'free') as 'free' | 'premium',
       });
 
       if (!(user.settingsCompleted ?? true)) {

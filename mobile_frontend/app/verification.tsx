@@ -93,6 +93,7 @@ export default function VerificationScreen() {
           profileCompleted,
           emailVerified,
           settingsCompleted,
+          plan: (backendUser?.plan === 'premium' ? 'premium' : 'free') as 'free' | 'premium',
         });
       } else {
         throw new Error("Authentication failed: Missing User ID or Token from server response");

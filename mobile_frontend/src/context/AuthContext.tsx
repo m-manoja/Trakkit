@@ -51,7 +51,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const parsed: User = JSON.parse(savedUser);
         if (cancelled) return;
-        setUserState(parsed);
+
+        // Returning users (session restored from storage) should never be
+        // re-gated to the settings screen. First-time routing is handled
+        // directly by email_login.tsx and verification.tsx after login.
+        const restoredUser: User = parsed ? { ...parsed, settingsCompleted: true } : parsed;
+        setUserState(restoredUser);
 
         if (!parsed?.token) return;
 
@@ -63,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const json = await res.json();
           if (!cancelled && json.success && json.data?.plan) {
             const plan: 'free' | 'premium' = json.data.plan === 'premium' ? 'premium' : 'free';
-            const next = { ...parsed, plan };
+            const next = { ...restoredUser, plan };
             setUserState(next);
             await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
           }

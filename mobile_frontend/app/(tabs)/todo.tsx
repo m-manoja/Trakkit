@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
@@ -32,6 +32,7 @@ export default function TodoScreen() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     task_name: '',
@@ -41,6 +42,8 @@ export default function TodoScreen() {
     reminder_schedule: '7,3,1'  // will be updated once global settings load
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
+  // Ref to always track the latest reminder_time (avoids stale state in submit handler)
+  const reminderTimeRef = useRef('08:00');
 
   // --- API: FETCH ---
   const fetchTodos = useCallback(async () => {
@@ -76,7 +79,13 @@ export default function TodoScreen() {
     }
   }, [fetchTodos, token]);
 
-  // --- API: SAVE ---
+  const resetForm = () => {
+    setEditId(null);
+    reminderTimeRef.current = '08:00';
+    setFormData({ task_name: '', has_reminder: false, reminder_date: new Date(), reminder_time: '08:00', reminder_schedule: defaultReminderSchedule });
+  };
+
+  // --- API: SAVE (CREATE & UPDATE) ---
   const handleSave = async () => {
     if (!formData.task_name.trim()) {
       Alert.alert("Required", "Please enter a task name");
@@ -105,18 +114,25 @@ export default function TodoScreen() {
         userId: user?.id,
         reminder_date: formData.has_reminder ? localDateStr : null,
         reminder_schedule: formData.has_reminder ? (formData.reminder_schedule.trim() || defaultReminderSchedule) : null,
-        reminder_time: formData.has_reminder ? formData.reminder_time : null,
+        reminder_time: formData.has_reminder ? reminderTimeRef.current : null,
       };
 
-      await axios.post(`${API_BASE_URL}/api/todos/add`, payload, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      if (editId) {
+        await axios.put(`${API_BASE_URL}/api/todos/${editId}`, payload, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        Alert.alert("Updated", "Task updated successfully!");
+      } else {
+        await axios.post(`${API_BASE_URL}/api/todos/add`, payload, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
 
       setIsFormVisible(false);
-      setFormData({ task_name: '', has_reminder: false, reminder_date: new Date(), reminder_time: '08:00', reminder_schedule: defaultReminderSchedule });
+      resetForm();
       fetchTodos();
     } catch (error) {
-      Alert.alert("Error", "Failed to add task");
+      Alert.alert("Error", editId ? "Failed to update task" : "Failed to add task");
     } finally {
       setIsActionLoading(false);
     }
@@ -135,22 +151,51 @@ export default function TodoScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await axios.delete(`${API_BASE_URL}/api/todos/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      fetchTodos();
-    } catch (error) {
-      Alert.alert("Error", "Failed to delete task");
-    }
+    Alert.alert("Delete", "Delete this task?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive", onPress: async () => {
+          try {
+            await axios.delete(`${API_BASE_URL}/api/todos/${id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchTodos();
+          } catch (error) { Alert.alert("Error", "Failed to delete task"); }
+        }
+      }
+    ]);
+  };
+
+  const handleEditPress = (item: any) => {
+    setEditId(item.id);
+    const editTime = item.reminder_time || '08:00';
+    reminderTimeRef.current = editTime;
+    setFormData({
+      task_name: item.task_name,
+      has_reminder: item.has_reminder || false,
+      reminder_date: item.reminder_date ? new Date(item.reminder_date) : new Date(),
+      reminder_time: editTime,
+      reminder_schedule: item.reminder_schedule || defaultReminderSchedule,
+    });
+    setIsFormVisible(true);
   };
 
   const filteredTodos = todos.filter((t) =>
     t.task_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const formatTime12h = (timeStr: string) => {
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr ?? '8', 10);
+    const m = parseInt(mStr ?? '0', 10);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
   const TodoItem = ({ item }: { item: any }) => (
     <View style={styles.todoRow}>
+      {/* Checkbox */}
       {sharing.bulkShareMode && isPremium ? (
         <TouchableOpacity style={shareCardStyles.checkbox} onPress={() => sharing.toggleSelect(item.id)}>
           <Ionicons
@@ -168,9 +213,28 @@ export default function TodoScreen() {
           />
         </TouchableOpacity>
       )}
-      <Text style={[styles.todoText, item.is_completed && styles.todoTextDone]}>
-        {item.task_name}
-      </Text>
+
+      {/* Task name + optional reminder info */}
+      <View style={styles.todoContent}>
+        <Text style={[styles.todoText, item.is_completed && styles.todoTextDone]}>
+          {item.task_name}
+        </Text>
+        {item.has_reminder && item.reminder_date ? (
+          <View style={styles.reminderPill}>
+            <Ionicons name="calendar-outline" size={11} color="#7f8c8d" />
+            <Text style={styles.reminderPillText}>{formatDate(item.reminder_date)}</Text>
+            {item.reminder_time ? (
+              <>
+                <Text style={styles.reminderPillDot}>·</Text>
+                <Ionicons name="time-outline" size={11} color="#7f8c8d" />
+                <Text style={styles.reminderPillText}>{formatTime12h(item.reminder_time)}</Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+
+      {/* Action buttons */}
       {isPremium && !sharing.bulkShareMode && (
         <TouchableOpacity
           style={shareCardStyles.cardShareBtn}
@@ -180,9 +244,14 @@ export default function TodoScreen() {
         </TouchableOpacity>
       )}
       {!sharing.bulkShareMode && (
-        <TouchableOpacity onPress={() => handleDelete(item.id)}>
-          <Ionicons name="close" size={24} color="#000" />
-        </TouchableOpacity>
+        <View style={styles.rowActions}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => handleEditPress(item)}>
+            <Ionicons name="create-outline" size={20} color="#555" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Ionicons name="close" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -254,13 +323,13 @@ export default function TodoScreen() {
         }
       />
 
-      {/* ADD TODO MODAL */}
+      {/* ADD / EDIT TODO MODAL */}
       <Modal visible={isFormVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderText}>Add Todo list</Text>
-              <TouchableOpacity onPress={() => setIsFormVisible(false)}><Ionicons name="close" size={26} color="black" /></TouchableOpacity>
+              <Text style={styles.modalHeaderText}>{editId ? 'Edit Task' : 'Add Todo list'}</Text>
+              <TouchableOpacity onPress={() => { setIsFormVisible(false); resetForm(); }}><Ionicons name="close" size={26} color="black" /></TouchableOpacity>
             </View>
 
             <Text style={styles.inputLabel}>Enter Task</Text>
@@ -328,11 +397,11 @@ export default function TodoScreen() {
             )}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsFormVisible(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setIsFormVisible(false); resetForm(); }}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={handleSave}>
-                {isActionLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitBtnText}>Add Task</Text>}
+                {isActionLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitBtnText}>{editId ? 'Update Task' : 'Add Task'}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -399,7 +468,9 @@ export default function TodoScreen() {
               if (event.type === 'set' && selectedDate) {
                 const hh = String(selectedDate.getHours()).padStart(2, '0');
                 const mm = String(selectedDate.getMinutes()).padStart(2, '0');
-                setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+                const newTime = `${hh}:${mm}`;
+                reminderTimeRef.current = newTime;
+                setFormData((prev) => ({ ...prev, reminder_time: newTime }));
               }
             }}
           />
@@ -428,7 +499,9 @@ export default function TodoScreen() {
                   if (selectedDate) {
                     const hh = String(selectedDate.getHours()).padStart(2, '0');
                     const mm = String(selectedDate.getMinutes()).padStart(2, '0');
-                    setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+                    const newTime = `${hh}:${mm}`;
+                    reminderTimeRef.current = newTime;
+                    setFormData((prev) => ({ ...prev, reminder_time: newTime }));
                   }
                 }}
                 style={{ width: '100%' }}
@@ -463,8 +536,14 @@ const styles = StyleSheet.create({
   // List Styles
   listContent: { paddingHorizontal: 20, paddingTop: 10 },
   todoRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 10, borderLeftWidth: 5, borderLeftColor: COLORS.primary },
-  todoText: { flex: 1, marginLeft: 15, fontSize: 16, color: '#333' },
+  todoContent: { flex: 1, marginLeft: 15, gap: 4 },
+  todoText: { fontSize: 16, color: '#333' },
   todoTextDone: { textDecorationLine: 'line-through', color: '#AAA' },
+  reminderPill: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
+  reminderPillText: { fontSize: 11, color: '#7f8c8d', fontWeight: '500' },
+  reminderPillDot: { fontSize: 11, color: '#bbb' },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  editBtn: { padding: 2 },
   // Empty State
   emptyContent: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAB7B8', marginTop: 15, marginBottom: 25 },

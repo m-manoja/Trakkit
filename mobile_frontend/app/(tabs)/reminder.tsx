@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { formatDate as formatLKDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
@@ -34,6 +34,8 @@ export default function RemindersScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickerData, setPickerData] = useState({ title: '', options: [] as string[], field: '' });
+  // Ref to always track the latest reminder_time (avoids stale state in submit handler)
+  const reminderTimeRef = useRef('08:00');
   const [editId, setEditId] = useState<string | null>(null);
 
   // --- DATA STATES ---
@@ -90,6 +92,8 @@ export default function RemindersScreen() {
 
   // --- API: SAVE (CREATE & UPDATE) ---
   const handleSave = async () => {
+    // Read the latest time from ref (reliable even if state update hasn't flushed)
+    const currentReminderTime = reminderTimeRef.current;
     const { title, type, reminder_date, repeat_cycle, remind_time, description, reminder_schedule } = formData;
 
     if (!title.trim() || !type) {
@@ -115,7 +119,7 @@ export default function RemindersScreen() {
         title: title.trim(),
         type,
         reminder_date: localDateStr,
-        reminder_time: formData.reminder_time,
+        reminder_time: currentReminderTime,
         repeat_cycle: type === 'repeat' ? repeat_cycle : null,
         remind_time,
         reminder_schedule: (remind_time === 'Before the day' || remind_time === 'On and before') ? (reminder_schedule.trim() || defaultReminderSchedule) : null,
@@ -163,11 +167,13 @@ export default function RemindersScreen() {
 
   const handleEditPress = (item: any) => {
     setEditId(item.id);
+    const editTime = item.reminder_time || '08:00';
+    reminderTimeRef.current = editTime;
     setFormData({
       title: item.title,
       type: item.type,
       reminder_date: new Date(item.reminder_date),
-      reminder_time: item.reminder_time || '08:00',
+      reminder_time: editTime,
       repeat_cycle: item.repeat_cycle,
       remind_time: item.remind_time,
       description: item.description || '',
@@ -178,6 +184,7 @@ export default function RemindersScreen() {
 
   const resetForm = () => {
     setEditId(null);
+    reminderTimeRef.current = '08:00';
     setFormData({ title: '', type: '', reminder_date: new Date(), reminder_time: '08:00', repeat_cycle: null, remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
   };
 
@@ -245,7 +252,24 @@ export default function RemindersScreen() {
 
         <View style={styles.cardContent}>
           <View style={styles.dateRow}>
-            <Text style={styles.dateText}>{formatLKDate(item.reminder_date)}</Text>
+            <View style={{ gap: 4 }}>
+              <Text style={styles.dateText}>{formatLKDate(item.reminder_date)}</Text>
+              {item.reminder_time ? (
+                <View style={styles.timeRow}>
+                  <Ionicons name="time-outline" size={13} color="#7f8c8d" />
+                  <Text style={styles.timeText}>
+                    {(() => {
+                      const [hStr, mStr] = item.reminder_time.split(':');
+                      const h = parseInt(hStr ?? '8', 10);
+                      const m = parseInt(mStr ?? '0', 10);
+                      const period = h >= 12 ? 'PM' : 'AM';
+                      const h12 = h % 12 || 12;
+                      return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+                    })()}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>Active</Text>
             </View>
@@ -505,7 +529,9 @@ export default function RemindersScreen() {
               if (event.type === 'set' && selectedDate) {
                 const hh = String(selectedDate.getHours()).padStart(2, '0');
                 const mm = String(selectedDate.getMinutes()).padStart(2, '0');
-                setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+                const newTime = `${hh}:${mm}`;
+                reminderTimeRef.current = newTime;
+                setFormData((prev) => ({ ...prev, reminder_time: newTime }));
               }
             }}
           />
@@ -538,7 +564,9 @@ export default function RemindersScreen() {
                   if (selectedDate) {
                     const hh = String(selectedDate.getHours()).padStart(2, '0');
                     const mm = String(selectedDate.getMinutes()).padStart(2, '0');
-                    setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+                    const newTime = `${hh}:${mm}`;
+                    reminderTimeRef.current = newTime;
+                    setFormData((prev) => ({ ...prev, reminder_time: newTime }));
                   }
                 }}
                 style={{ width: '100%' }}
@@ -594,6 +622,8 @@ const styles = StyleSheet.create({
   cardDescription: { fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 18 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   dateText: { fontSize: 15, fontWeight: '600', color: '#2c3e50' },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timeText: { fontSize: 12, color: '#7f8c8d', fontWeight: '500' },
   statusBadge: { backgroundColor: '#27ae60', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
   statusText: { fontSize: 11, fontWeight: '700', color: 'white', letterSpacing: 0.5 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
