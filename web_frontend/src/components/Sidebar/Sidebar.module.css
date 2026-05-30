@@ -246,5 +246,7 @@
     cursor: pointer;
     padding: 0.5rem;
     margin-right: -0.5rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }

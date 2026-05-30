@@ -106,6 +106,8 @@
     z-index: 999;
     backdrop-filter: blur(2px);
     animation: fadeIn 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
