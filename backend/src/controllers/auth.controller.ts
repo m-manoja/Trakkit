@@ -81,14 +81,18 @@ export async function verifyOtp(req: Request, res: Response) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Check whether the user has explicitly saved their notification settings
+    // Check whether the user needs first-time settings setup.
+    // - No row at all  → brand new user       → settingsCompleted = false
+    // - Row exists, user_configured = false   → new user after migration → false
+    // - Row exists, user_configured = true    → user saved settings       → true
+    // - Row exists, user_configured = undefined (column not yet migrated) → existing user → true
     const { data: notifSettings } = await supabase
       .from('notification_settings')
       .select('user_configured')
       .eq('user_id', userProfile.id)
       .maybeSingle();
 
-    const settingsCompleted = notifSettings?.user_configured === true;
+    const settingsCompleted = notifSettings != null && notifSettings.user_configured !== false;
 
     // Generate JWT token
     const jwtToken = jwt.sign(

@@ -106,10 +106,15 @@ export default function RemindersScreen() {
 
     setIsActionLoading(true);
     try {
+      const yyyy = reminder_date.getFullYear();
+      const mm = String(reminder_date.getMonth() + 1).padStart(2, '0');
+      const dd = String(reminder_date.getDate()).padStart(2, '0');
+      const localDateStr = `${yyyy}-${mm}-${dd}`;
+
       const payload = {
         title: title.trim(),
         type,
-        reminder_date: reminder_date.toISOString(),
+        reminder_date: localDateStr,
         reminder_time: formData.reminder_time,
         repeat_cycle: type === 'repeat' ? repeat_cycle : null,
         remind_time,
@@ -365,7 +370,16 @@ export default function RemindersScreen() {
 
               <Text style={styles.inputLabel}>Reminder Time</Text>
               <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowTimePicker(true)}>
-                <Text>{formData.reminder_time}</Text>
+                <Text>
+                  {(() => {
+                    const [hStr, mStr] = formData.reminder_time.split(':');
+                    const h = parseInt(hStr ?? '8', 10);
+                    const m = parseInt(mStr ?? '0', 10);
+                    const period = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+                  })()}
+                </Text>
                 <Ionicons name="time-outline" size={20} color="#666" />
               </TouchableOpacity>
 
@@ -425,44 +439,113 @@ export default function RemindersScreen() {
         </View>
       </Modal>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={formData.reminder_date}
-          mode="date"
-          minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
+      {/* Date picker — native dialog on Android, inline calendar sheet on iOS */}
+      {Platform.OS === 'android' ? (
+        showDatePicker && (
+          <DateTimePicker
+            value={formData.reminder_date}
+            mode="date"
+            display="default"
+            minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+            onChange={(event, selectedDate) => {
               setShowDatePicker(false);
-              if (event.type !== 'set' || !selectedDate) return;
-            }
-            if (selectedDate) {
-              setFormData((prev) => ({ ...prev, reminder_date: selectedDate }));
-            }
-          }}
-        />
+              if (event.type === 'set' && selectedDate) {
+                setFormData((prev) => ({ ...prev, reminder_date: selectedDate }));
+              }
+            }}
+          />
+        )
+      ) : (
+        <Modal visible={showDatePicker} transparent animationType="slide">
+          <TouchableOpacity
+            style={styles.pickerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <View style={styles.pickerModalSheet}>
+              <View style={styles.pickerModalHeader}>
+                <Text style={styles.pickerModalTitle}>Select Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={formData.reminder_date}
+                mode="date"
+                display="inline"
+                minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+                onChange={(_event, selectedDate) => {
+                  if (selectedDate) {
+                    setFormData((prev) => ({ ...prev, reminder_date: selectedDate }));
+                  }
+                }}
+                style={{ width: '100%' }}
+                themeVariant="light"
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
-      {showTimePicker && (
-        <DateTimePicker
-          value={(() => {
-            const [h, m] = formData.reminder_time.split(':').map(Number);
-            const d = new Date();
-            d.setHours(h ?? 8, m ?? 0, 0, 0);
-            return d;
-          })()}
-          mode="time"
-          is24Hour={true}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
+
+      {/* Time picker — native clock dialog on Android, spinner sheet on iOS */}
+      {Platform.OS === 'android' ? (
+        showTimePicker && (
+          <DateTimePicker
+            value={(() => {
+              const [h, m] = formData.reminder_time.split(':').map(Number);
+              const d = new Date();
+              d.setHours(h ?? 8, m ?? 0, 0, 0);
+              return d;
+            })()}
+            mode="time"
+            display="default"
+            is24Hour={false}
+            onChange={(event, selectedDate) => {
               setShowTimePicker(false);
-              if (event.type !== 'set' || !selectedDate) return;
-            }
-            if (selectedDate) {
-              const hh = String(selectedDate.getHours()).padStart(2, '0');
-              const mm = String(selectedDate.getMinutes()).padStart(2, '0');
-              setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
-            }
-          }}
-        />
+              if (event.type === 'set' && selectedDate) {
+                const hh = String(selectedDate.getHours()).padStart(2, '0');
+                const mm = String(selectedDate.getMinutes()).padStart(2, '0');
+                setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+              }
+            }}
+          />
+        )
+      ) : (
+        <Modal visible={showTimePicker} transparent animationType="slide">
+          <TouchableOpacity
+            style={styles.pickerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowTimePicker(false)}
+          >
+            <View style={styles.pickerModalSheet}>
+              <View style={styles.pickerModalHeader}>
+                <Text style={styles.pickerModalTitle}>Select Time</Text>
+                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={(() => {
+                  const [h, m] = formData.reminder_time.split(':').map(Number);
+                  const d = new Date();
+                  d.setHours(h ?? 8, m ?? 0, 0, 0);
+                  return d;
+                })()}
+                mode="time"
+                display="spinner"
+                is24Hour={false}
+                onChange={(_event, selectedDate) => {
+                  if (selectedDate) {
+                    const hh = String(selectedDate.getHours()).padStart(2, '0');
+                    const mm = String(selectedDate.getMinutes()).padStart(2, '0');
+                    setFormData((prev) => ({ ...prev, reminder_time: `${hh}:${mm}` }));
+                  }
+                }}
+                style={{ width: '100%' }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
 
       {/* Picker Modal for Types */}
@@ -565,4 +648,9 @@ const styles = StyleSheet.create({
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
   pickerContainer: { backgroundColor: 'white', width: '80%', borderRadius: 15, padding: 10 },
   pickerItem: { paddingVertical: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  pickerModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  pickerModalSheet: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 32 },
+  pickerModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  pickerModalTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+  pickerDoneText: { color: COLORS.primary, fontWeight: '700', fontSize: 15 },
 });

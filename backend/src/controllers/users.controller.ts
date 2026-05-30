@@ -224,14 +224,14 @@ export async function emailLogin(req: Request, res: Response) {
       { expiresIn: '30d' }
     );
 
-    // Check whether the user has explicitly saved their notification settings
+    // Check whether the user needs first-time settings setup.
     const { data: notifSettings } = await supabase
       .from('notification_settings')
       .select('user_configured')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const settingsCompleted = notifSettings?.user_configured === true;
+    const settingsCompleted = notifSettings != null && notifSettings.user_configured !== false;
 
     return res.json({
       token,

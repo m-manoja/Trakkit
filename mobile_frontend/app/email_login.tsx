@@ -40,9 +40,14 @@ export default function EmailLoginScreen() {
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         profileCompleted: true,
         emailVerified: user.emailVerified ?? true,
+        settingsCompleted: user.settingsCompleted ?? true,
       });
 
-      router.replace('/(tabs)');
+      if (!(user.settingsCompleted ?? true)) {
+        router.replace('/settings?firstSetup=true' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       Alert.alert('Login Failed', err.message || 'Incorrect email or password.');
     } finally {

@@ -10,7 +10,9 @@ import {
   Alert,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { COLORS } from '../theme/colors';
@@ -20,7 +22,11 @@ import { getNotificationSettings, updateNotificationSettings } from '../api/user
 import { getDetectedTimezone } from '../utils/dateFormat';
 import { COMMON_TIMEZONES, formatTimezoneLabel } from '../utils/timezones';
 
-export default function NotificationSettingsPanel() {
+interface Props {
+  onSaved?: () => void;
+}
+
+export default function NotificationSettingsPanel({ onSaved }: Props) {
   const { user } = useAuth();
   const { setTimezone: setGlobalTimezone } = useTimezone();
   const [loading, setLoading] = useState(true);
@@ -32,6 +38,8 @@ export default function NotificationSettingsPanel() {
   const [currentSchedule, setCurrentSchedule] = useState('7,3,1');
   const [timezone, setTimezone] = useState('Asia/Colombo');
   const [tzPickerVisible, setTzPickerVisible] = useState(false);
+  const [notifTime, setNotifTime] = useState('08:00');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const timezoneOptions = [...new Set([timezone, getDetectedTimezone(), ...COMMON_TIMEZONES])];
 
@@ -47,6 +55,7 @@ export default function NotificationSettingsPanel() {
         setSchedule(res.data.reminder_schedule);
         setCurrentSchedule(res.data.reminder_schedule);
         setTimezone(res.data.timezone || getDetectedTimezone());
+        setNotifTime(res.data.notification_time || '08:00');
       }
     } catch (e) {
       console.error(e);
@@ -76,13 +85,18 @@ export default function NotificationSettingsPanel() {
           push_notification: pushNotif,
           reminder_schedule: schedule,
           timezone,
+          notification_time: notifTime,
         },
         user!.token!
       );
       if (res?.success) {
         setCurrentSchedule(schedule);
         setGlobalTimezone(timezone);
-        Alert.alert('Saved', 'Notification settings updated.');
+        if (onSaved) {
+          onSaved();
+        } else {
+          Alert.alert('Saved', 'Notification settings updated.');
+        }
       }
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to save settings');
@@ -128,11 +142,52 @@ export default function NotificationSettingsPanel() {
       </View>
 
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Timezone</Text>
-      <Text style={styles.sectionSubtitle}>Reminders fire at 8:00 AM in this timezone</Text>
+      <Text style={styles.sectionSubtitle}>Reminders fire at your chosen time in this timezone</Text>
       <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setTzPickerVisible(true)}>
         <Text style={styles.dropdownText}>{formatTimezoneLabel(timezone)}</Text>
         <Ionicons name="chevron-down" size={18} color="#666" />
       </TouchableOpacity>
+
+      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Daily notification time</Text>
+      <Text style={styles.sectionSubtitle}>Time to receive subscription and warranty alerts</Text>
+      <TouchableOpacity style={styles.dropdownTrigger} onPress={() => setShowTimePicker(true)}>
+        <Ionicons name="time-outline" size={18} color="#555" />
+        <Text style={[styles.dropdownText, { marginLeft: 8 }]}>
+          {(() => {
+            const [hStr, mStr] = notifTime.split(':');
+            const h = parseInt(hStr ?? '8', 10);
+            const m = parseInt(mStr ?? '0', 10);
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+          })()}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color="#666" />
+      </TouchableOpacity>
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={(() => {
+            const [hStr, mStr] = notifTime.split(':');
+            const d = new Date();
+            d.setHours(parseInt(hStr ?? '8', 10), parseInt(mStr ?? '0', 10), 0, 0);
+            return d;
+          })()}
+          mode="time"
+          is24Hour={false}
+          onChange={(event, selectedDate) => {
+            if (Platform.OS === 'android') {
+              setShowTimePicker(false);
+              if (event.type !== 'set' || !selectedDate) return;
+            }
+            if (selectedDate) {
+              const hh = String(selectedDate.getHours()).padStart(2, '0');
+              const mm = String(selectedDate.getMinutes()).padStart(2, '0');
+              setNotifTime(`${hh}:${mm}`);
+            }
+          }}
+        />
+      )}
 
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Reminder schedule</Text>
       <Text style={styles.sectionSubtitle}>(days before expiration, e.g. 30,7,3,1)</Text>

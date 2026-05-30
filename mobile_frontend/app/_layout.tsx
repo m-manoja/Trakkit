@@ -36,6 +36,17 @@ function AuthGuard() {
       return;
     }
 
+    // Settings setup gate: redirect to settings on first login after email verification
+    if (
+      user.profileCompleted === true &&
+      user.emailVerified !== false &&
+      user.settingsCompleted === false &&
+      root !== 'settings'
+    ) {
+      router.replace('/settings?firstSetup=true' as any);
+      return;
+    }
+
     // Redirect authenticated+fully set up users away from login
     if (root === 'login' && user.profileCompleted !== false && user.emailVerified !== false) {
       router.replace('/(tabs)');

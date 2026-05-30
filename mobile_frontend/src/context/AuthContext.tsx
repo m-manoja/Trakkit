@@ -21,6 +21,7 @@ export type User = {
   plan?: 'free' | 'premium';
   profileCompleted?: boolean;
   emailVerified?: boolean;
+  settingsCompleted?: boolean;
 } | null;
 
 type AuthContextType = {

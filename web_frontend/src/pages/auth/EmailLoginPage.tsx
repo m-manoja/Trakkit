@@ -42,7 +42,7 @@ export default function EmailLoginPage() {
         email: user.email ?? "",
         profileCompleted: true,
         emailVerified: user.emailVerified ?? true,
-        settingsCompleted: user.settingsCompleted ?? false,
+        settingsCompleted: user.settingsCompleted ?? true,
         plan: normalizePlan(user.plan),
       });
 

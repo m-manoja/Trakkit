@@ -150,7 +150,7 @@ export async function removePushToken(pushToken: string, token: string) {
   return result;
 }
 
-export async function updateNotificationSettings(payload: { email_notification: boolean, sms_notification: boolean, push_notification: boolean, reminder_schedule: string, timezone?: string }, token: string) {
+export async function updateNotificationSettings(payload: { email_notification: boolean, sms_notification: boolean, push_notification: boolean, reminder_schedule: string, timezone?: string, notification_time?: string }, token: string) {
   const response = await fetch(`${API_BASE_URL}/api/users/notification-settings`, {
     method: "PUT",
     headers: {

@@ -83,7 +83,7 @@ export default function OTPVerificationPage() {
         email: user.email ?? "",
         profileCompleted: user.profileCompleted ?? false,
         emailVerified: user.emailVerified ?? false,
-        settingsCompleted: user.settingsCompleted ?? false,
+        settingsCompleted: user.settingsCompleted ?? true,
         plan: normalizePlan(user.plan),
       });
 

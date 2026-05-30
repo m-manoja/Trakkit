@@ -80,6 +80,7 @@ export default function VerificationScreen() {
       if (userId && token) {
         const profileCompleted = backendUser?.profileCompleted ?? false;
         const emailVerified = backendUser?.emailVerified ?? false;
+        const settingsCompleted = backendUser?.settingsCompleted ?? true;
 
         await setUser({
           id: userId,
@@ -91,19 +92,23 @@ export default function VerificationScreen() {
           name: `${firstName} ${lastName}`.trim(),
           profileCompleted,
           emailVerified,
+          settingsCompleted,
         });
       } else {
         throw new Error("Authentication failed: Missing User ID or Token from server response");
       }
 
-      // 4. Navigate based on profile/verification state
+      // 4. Navigate based on profile/verification/settings state
       const profileCompleted = backendUser?.profileCompleted ?? false;
       const emailVerified = backendUser?.emailVerified ?? false;
+      const settingsCompleted = backendUser?.settingsCompleted ?? true;
 
       if (!profileCompleted) {
         router.replace('/(tabs)/profile_setup?isFirstSetup=true' as any);
       } else if (!emailVerified) {
         router.replace('/verify-email-pending' as any);
+      } else if (!settingsCompleted) {
+        router.replace('/settings?firstSetup=true' as any);
       } else {
         router.replace('/(tabs)');
       }
