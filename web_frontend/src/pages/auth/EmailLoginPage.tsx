@@ -42,6 +42,7 @@ export default function EmailLoginPage() {
         email: user.email ?? "",
         profileCompleted: true,
         emailVerified: user.emailVerified ?? true,
+        settingsCompleted: user.settingsCompleted ?? false,
         plan: normalizePlan(user.plan),
       });
 

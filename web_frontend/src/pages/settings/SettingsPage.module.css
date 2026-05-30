@@ -4,6 +4,27 @@
   margin: 0 auto;
 }
 
+.firstSetupBanner {
+  background: linear-gradient(135deg, #fdf2f8, #ede9fe);
+  border-left: 4px solid #A83B5E;
+  color: #6B21A8;
+  padding: 14px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tabDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.timezoneSelect {
+  max-width: 220px;
+}
+
 .header {
   margin-bottom: 32px;
 }

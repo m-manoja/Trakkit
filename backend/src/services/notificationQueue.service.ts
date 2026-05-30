@@ -24,13 +24,22 @@ export function parseLocalDate(dateStr: string): Date {
 }
 
 export async function getUserTimezone(userId: string): Promise<string> {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('notification_settings')
     .select('timezone')
     .eq('user_id', userId)
-    .single();
-  if (error) return DEFAULT_TIMEZONE;
+    .maybeSingle();
   return normalizeTimezone(data?.timezone);
+}
+
+/** Returns the user's preferred daily notification time (HH:MM) for subscriptions and warranties. */
+async function getUserNotificationTime(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('notification_settings')
+    .select('notification_time')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return normalizeReminderTime(data?.notification_time);
 }
 
 export function getInitialSubscriptionDueDate(
@@ -186,7 +195,7 @@ export const scheduleSubscriptionReminders = async (
   billingCycle: string,
   reminderSchedule?: string
 ) => {
-  const tz = await getUserTimezone(userId);
+  const [tz, notifTime] = await Promise.all([getUserTimezone(userId), getUserNotificationTime(userId)]);
   const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
   const nextBillingDate = getInitialSubscriptionDueDate(startDate, billingCycle, tz);
   const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle, tz);
@@ -201,7 +210,7 @@ export const scheduleSubscriptionReminders = async (
     reference_type: 'subscription',
     title: `Subscription Renewal: ${serviceName}`,
     body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date, '08:00', tz),
+    scheduled_for: toScheduledFor(date, notifTime, tz),
   }));
 
   await insertQueueItems(queueItems);
@@ -216,7 +225,7 @@ export const scheduleSubscriptionRemindersForDate = async (
   billingCycle: string,
   reminderSchedule?: string
 ) => {
-  const tz = await getUserTimezone(userId);
+  const [tz, notifTime] = await Promise.all([getUserTimezone(userId), getUserNotificationTime(userId)]);
   const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
   const reminderDates = calculateReminderDates(nextBillingDate, finalSchedule, billingCycle, tz);
 
@@ -230,7 +239,7 @@ export const scheduleSubscriptionRemindersForDate = async (
     reference_type: 'subscription',
     title: `Subscription Renewal: ${serviceName}`,
     body: `Your ${billingCycle} subscription for ${serviceName} renews on ${nextBillingDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date, '08:00', tz),
+    scheduled_for: toScheduledFor(date, notifTime, tz),
   }));
 
   await insertQueueItems(queueItems);
@@ -273,7 +282,7 @@ export const scheduleWarrantyReminders = async (
   expiryDateStr: string,
   reminderSchedule?: string
 ) => {
-  const tz = await getUserTimezone(userId);
+  const [tz, notifTime] = await Promise.all([getUserTimezone(userId), getUserNotificationTime(userId)]);
   const finalSchedule = reminderSchedule || (await getGlobalReminderSchedule(userId));
   const expiryDate = parseLocalDate(expiryDateStr.split('T')[0] ?? expiryDateStr);
   const reminderDates = calculateReminderDates(expiryDate, finalSchedule, undefined, tz);
@@ -288,7 +297,7 @@ export const scheduleWarrantyReminders = async (
     reference_type: 'warranty',
     title: `Warranty Expiry: ${itemName}`,
     body: `Your warranty for ${itemName} is expiring on ${expiryDate.toDateString()}.`,
-    scheduled_for: toScheduledFor(date, '08:00', tz),
+    scheduled_for: toScheduledFor(date, notifTime, tz),
   }));
 
   await insertQueueItems(queueItems);

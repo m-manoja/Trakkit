@@ -224,6 +224,15 @@ export async function emailLogin(req: Request, res: Response) {
       { expiresIn: '30d' }
     );
 
+    // Check whether the user has explicitly saved their notification settings
+    const { data: notifSettings } = await supabase
+      .from('notification_settings')
+      .select('user_configured')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const settingsCompleted = notifSettings?.user_configured === true;
+
     return res.json({
       token,
       user: {
@@ -235,6 +244,7 @@ export async function emailLogin(req: Request, res: Response) {
         backupEmail: user.backup_email,
         backupPromptShown: user.backup_prompt_shown,
         emailVerified: (user as any).email_verified ?? true,
+        settingsCompleted,
         plan: user.plan ?? 'free',
         planActivatedAt: user.plan_activated_at ?? null,
       },

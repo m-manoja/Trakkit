@@ -13,6 +13,12 @@ const TEXTLK_API_URL = 'https://app.text.lk/api/http/sms/send';
 const MAX_DELIVERY_ATTEMPTS = 5;
 const STALE_LOCK_MS = 10 * 60 * 1000;
 
+const DEFAULT_NOTIFICATION_SETTINGS = {
+  email_notification: true,
+  sms_notification: false,
+  push_notification: true,
+};
+
 async function sendSms(phone: string, text: string): Promise<boolean> {
   const apiToken = process.env.TEXTLK_API_TOKEN;
   const senderId = process.env.TEXTLK_SENDER_ID;
@@ -130,23 +136,29 @@ async function processOneNotification(notification: NotificationRow): Promise<bo
   const { user_id, title, body, id } = notification;
   const attempts = notification.delivery_attempts ?? 0;
 
-  const { data: settings } = await supabase
+  const { data: settingsRow } = await supabase
     .from('notification_settings')
     .select('sms_notification, email_notification, push_notification')
     .eq('user_id', user_id)
-    .single();
+    .maybeSingle();
+
+  // Fall back to defaults when no settings row exists (user never saved settings)
+  const settings = settingsRow ?? DEFAULT_NOTIFICATION_SETTINGS;
 
   const { data: userData } = await supabase
     .from('users')
-    .select('phone, email')
+    .select('phone, email, backup_email')
     .eq('id', user_id)
     .single();
 
-  const smsText = `Trakkit Reminder\n${title}\n${body}`;
-  const wantsSms = Boolean(settings?.sms_notification && userData?.phone);
-  const wantsEmail = Boolean(settings?.email_notification && userData?.email);
+  // Use email or backup_email as the email address for notifications
+  const emailAddress = userData?.email || userData?.backup_email || null;
 
-  let wantsPush = Boolean(settings?.push_notification);
+  const smsText = `Trakkit Reminder\n${title}\n${body}`;
+  const wantsSms = Boolean(settings.sms_notification && userData?.phone);
+  const wantsEmail = Boolean(settings.email_notification && emailAddress);
+
+  let wantsPush = Boolean(settings.push_notification);
   if (wantsPush) {
     const { count: pushCount } = await supabase
       .from('push_tokens')
@@ -172,12 +184,12 @@ async function processOneNotification(notification: NotificationRow): Promise<bo
     results.push(await sendSms(userData.phone, smsText));
   }
 
-  if (wantsEmail && userData?.email) {
+  if (wantsEmail && emailAddress) {
     try {
-      await sendEmailNotification(userData.email, title, body);
+      await sendEmailNotification(emailAddress, title, body);
       results.push(true);
     } catch (emailErr) {
-      console.error(`[Worker] Email failed for ${userData.email}:`, emailErr);
+      console.error(`[Worker] Email failed for ${emailAddress}:`, emailErr);
       results.push(false);
     }
   }

@@ -16,6 +16,7 @@ export interface NotificationSettings {
   push_notification: boolean;
   reminder_schedule: string;
   timezone?: string;
+  notification_time?: string;
   [key: string]: unknown;
 }
 

@@ -81,6 +81,15 @@ export async function verifyOtp(req: Request, res: Response) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // Check whether the user has explicitly saved their notification settings
+    const { data: notifSettings } = await supabase
+      .from('notification_settings')
+      .select('user_configured')
+      .eq('user_id', userProfile.id)
+      .maybeSingle();
+
+    const settingsCompleted = notifSettings?.user_configured === true;
+
     // Generate JWT token
     const jwtToken = jwt.sign(
       {
@@ -103,6 +112,7 @@ export async function verifyOtp(req: Request, res: Response) {
         createdAt: userProfile.created_at,
         profileCompleted: userProfile.profile_completed,
         emailVerified: userProfile.email_verified ?? false,
+        settingsCompleted,
         plan: userProfile.plan ?? 'free',
         planActivatedAt: userProfile.plan_activated_at ?? null,
       },

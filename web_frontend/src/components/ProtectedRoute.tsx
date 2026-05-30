@@ -45,5 +45,15 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/verify-email-pending" replace />;
   }
 
+  // Block access until user has explicitly saved notification settings (first-time setup)
+  if (
+    user.profileCompleted === true &&
+    user.emailVerified !== false &&
+    user.settingsCompleted === false &&
+    location.pathname !== "/settings"
+  ) {
+    return <Navigate to="/settings?firstSetup=true" replace />;
+  }
+
   return <>{children}</>;
 }

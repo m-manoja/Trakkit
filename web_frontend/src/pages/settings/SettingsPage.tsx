@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
+import TimeSelect, { readTimeFromSelects } from "../../components/TimeSelect/TimeSelect";
+import { normalizeReminderTime } from "../../utils/reminderTime";
 import styles from "./SettingsPage.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
@@ -37,7 +40,12 @@ import { getDetectedTimezone } from "../../utils/dateFormat";
 export default function SettingsPage() {
   const { user, setUser } = useAuth();
   const { isPremium } = usePlan();
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium">("profile");
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isFirstSetup = searchParams.get("firstSetup") === "true";
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "sharing" | "premium">(
+    isFirstSetup ? "notifications" : "profile"
+  );
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -54,7 +62,11 @@ export default function SettingsPage() {
   const [pushNotif, setPushNotif] = useState(true);
   const [schedule, setSchedule] = useState("7,3,1");
   const [timezone, setTimezone] = useState("Asia/Colombo");
+  const [notifTime, setNotifTime] = useState("08:00");
+  const notifTimeRef = useRef("08:00");
   const { setTimezone: setGlobalTimezone } = useTimezone();
+
+  const NOTIF_TIME_SELECT_ID = "settings-notif-time-select";
   
   // UI state
   const [loading, setLoading] = useState(true);
@@ -101,6 +113,9 @@ export default function SettingsPage() {
           setPushNotif(notifData.push_notification);
           setSchedule(notifData.reminder_schedule || "7,3,1");
           setTimezone(notifData.timezone || getDetectedTimezone());
+          const t = normalizeReminderTime(notifData.notification_time as string | undefined);
+          setNotifTime(t);
+          notifTimeRef.current = t;
         }
         
       } catch (err) {
@@ -143,36 +158,52 @@ export default function SettingsPage() {
 
   const handleSaveNotifications = async () => {
     if (!user?.token) return;
-    
+
     if (!/^\d+(,\d+)*$/.test(schedule)) {
       setError("Invalid schedule format. Use comma separated numbers (e.g., 7,3,1)");
       return;
     }
 
+    const domTime = readTimeFromSelects(NOTIF_TIME_SELECT_ID);
+    const finalNotifTime = normalizeReminderTime(domTime ?? notifTimeRef.current);
+
     try {
       setSaving(true);
       setError(null);
       setSuccess(null);
-      
+
       await updateNotificationSettings({
         email_notification: emailNotif,
         sms_notification: smsNotif,
         push_notification: pushNotif,
         reminder_schedule: schedule,
         timezone,
+        notification_time: finalNotifTime,
       }, user.token);
       
       setGlobalTimezone(timezone);
+      setNotifTime(finalNotifTime);
+      notifTimeRef.current = finalNotifTime;
       setNotifSettings({
         email_notification: emailNotif,
         sms_notification: smsNotif,
         push_notification: pushNotif,
         reminder_schedule: schedule,
         timezone,
+        notification_time: finalNotifTime,
       });
-      
-      setSuccess("Notification preferences updated");
-      setTimeout(() => setSuccess(null), 3000);
+
+      // Mark settings as completed in the user session
+      if (user) {
+        setUser({ ...user, settingsCompleted: true });
+      }
+
+      if (isFirstSetup) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        setSuccess("Notification preferences updated");
+        setTimeout(() => setSuccess(null), 3000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update notification settings");
     } finally {
@@ -281,6 +312,12 @@ export default function SettingsPage() {
           <p className={styles.subtitle}>Manage your account settings and preferences.</p>
         </div>
 
+        {isFirstSetup && (
+          <div className={styles.firstSetupBanner}>
+            <strong>Welcome to Trakkit!</strong> Set your notification preferences below and save to continue to your dashboard.
+          </div>
+        )}
+
         {error && (
           <div className={styles.errorBanner}>
             <span>{error}</span>
@@ -294,27 +331,31 @@ export default function SettingsPage() {
         )}
 
         <div className={styles.tabs}>
-          <button 
-            className={`${styles.tab} ${activeTab === 'profile' ? styles.active : ''}`}
-            onClick={() => { setActiveTab('profile'); setError(null); setSuccess(null); }}
+          <button
+            type="button"
+            className={`${styles.tab} ${activeTab === 'profile' ? styles.active : ''} ${isFirstSetup ? styles.tabDisabled : ''}`}
+            onClick={() => { if (!isFirstSetup) { setActiveTab('profile'); setError(null); setSuccess(null); } }}
           >
             <User size={18} /> Profile
           </button>
-          <button 
+          <button
+            type="button"
             className={`${styles.tab} ${activeTab === 'notifications' ? styles.active : ''}`}
             onClick={() => { setActiveTab('notifications'); setError(null); setSuccess(null); }}
           >
             <Bell size={18} /> Notifications
           </button>
-          <button 
-            className={`${styles.tab} ${activeTab === 'sharing' ? styles.active : ''}`}
-            onClick={() => { setActiveTab('sharing'); setError(null); setSuccess(null); }}
+          <button
+            type="button"
+            className={`${styles.tab} ${activeTab === 'sharing' ? styles.active : ''} ${isFirstSetup ? styles.tabDisabled : ''}`}
+            onClick={() => { if (!isFirstSetup) { setActiveTab('sharing'); setError(null); setSuccess(null); } }}
           >
             <Users size={18} /> Sharing
           </button>
           <button
-            className={`${styles.tab} ${activeTab === 'premium' ? styles.active : ''}`}
-            onClick={() => { setActiveTab('premium'); setError(null); setSuccess(null); }}
+            type="button"
+            className={`${styles.tab} ${activeTab === 'premium' ? styles.active : ''} ${isFirstSetup ? styles.tabDisabled : ''}`}
+            onClick={() => { if (!isFirstSetup) { setActiveTab('premium'); setError(null); setSuccess(null); } }}
           >
             <Zap size={18} /> Premium
           </button>
@@ -547,15 +588,30 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <select
-                  className={styles.input}
+                  className={`${styles.input} ${styles.timezoneSelect}`}
+                  title="Timezone"
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  style={{ maxWidth: 220 }}
                 >
                   {[...new Set([timezone, getDetectedTimezone(), ...COMMON_TIMEZONES])].map((tz) => (
                     <option key={tz} value={tz}>{formatTimezoneLabel(tz)}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className={styles.preferenceRow}>
+                <div className={styles.preferenceInfo}>
+                  <Bell size={20} color="#6B7280" />
+                  <div className={styles.preferenceText}>
+                    <h4>Daily Notification Time</h4>
+                    <p>Time of day to send subscription and warranty alerts.</p>
+                  </div>
+                </div>
+                <TimeSelect
+                  selectId={NOTIF_TIME_SELECT_ID}
+                  value={notifTime}
+                  onChange={(t) => { notifTimeRef.current = t; setNotifTime(t); }}
+                />
               </div>
 
               <div className={styles.notifScheduleSection}>

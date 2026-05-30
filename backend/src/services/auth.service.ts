@@ -111,6 +111,19 @@ export async function verifyOtp(phone: string, token: string) {
     throw new AuthServiceError(insertError.message, 500);
   }
 
+  // Create default notification settings for the new user
+  await supabase.from("notification_settings").insert({
+    user_id: newUser.id,
+    email_notification: true,
+    sms_notification: false,
+    push_notification: true,
+    reminder_schedule: '7,3,1',
+    notification_time: '08:00',
+    user_configured: false,
+  }).then(({ error }) => {
+    if (error) console.error('Failed to create default notification settings for new user:', error.message);
+  });
+
   return newUser;
 }
 

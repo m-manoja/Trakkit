@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient.js';
-import { DEFAULT_TIMEZONE, isValidTimezone, normalizeTimezone } from '../utils/timezone.js';
+import { DEFAULT_TIMEZONE, isValidTimezone, normalizeTimezone, normalizeReminderTime } from '../utils/timezone.js';
 import { rescheduleAllNotificationsForUser } from '../services/notificationReschedule.service.js';
 import { registerPushToken, removePushToken } from '../services/push.service.js';
 
@@ -10,6 +10,7 @@ interface NotificationSettingsInput {
   push_notification: boolean;
   reminder_schedule: string;
   timezone?: string;
+  notification_time?: string;
 }
 
 const defaultSettings = {
@@ -18,6 +19,7 @@ const defaultSettings = {
   push_notification: true,
   reminder_schedule: '7,3,1',
   timezone: DEFAULT_TIMEZONE,
+  notification_time: '08:00',
 };
 
 export async function getNotificationSettings(req: Request, res: Response) {
@@ -66,7 +68,7 @@ export async function updateNotificationSettings(req: Request, res: Response) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { email_notification, sms_notification, push_notification, reminder_schedule, timezone } =
+  const { email_notification, sms_notification, push_notification, reminder_schedule, timezone, notification_time } =
     req.body as NotificationSettingsInput;
 
   if (typeof reminder_schedule !== 'string' || !/^\d+(,\d+)*$/.test(reminder_schedule)) {
@@ -80,7 +82,7 @@ export async function updateNotificationSettings(req: Request, res: Response) {
   try {
     const { data: previous } = await supabase
       .from('notification_settings')
-      .select('reminder_schedule, timezone')
+      .select('reminder_schedule, timezone, notification_time')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -91,7 +93,9 @@ export async function updateNotificationSettings(req: Request, res: Response) {
       push_notification: Boolean(push_notification),
       reminder_schedule,
       timezone: normalizeTimezone(timezone),
+      notification_time: normalizeReminderTime(notification_time),
       updated_at: new Date().toISOString(),
+      user_configured: true,
     };
 
     const { data, error } = await supabase
@@ -109,8 +113,11 @@ export async function updateNotificationSettings(req: Request, res: Response) {
     const timezoneChanged =
       previous != null &&
       normalizeTimezone(previous.timezone) !== normalizeTimezone(timezone);
+    const notifTimeChanged =
+      previous != null &&
+      normalizeReminderTime(previous.notification_time) !== normalizeReminderTime(notification_time);
 
-    if (scheduleChanged || timezoneChanged) {
+    if (scheduleChanged || timezoneChanged || notifTimeChanged) {
       rescheduleAllNotificationsForUser(userId).catch((e) =>
         console.error('[Settings] Reschedule after settings change failed:', e)
       );

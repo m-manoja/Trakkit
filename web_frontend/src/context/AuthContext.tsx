@@ -20,6 +20,7 @@ export type AuthUser = {
   profilePicture?: string;
   profileCompleted?: boolean;
   emailVerified?: boolean;
+  settingsCompleted?: boolean;
   token: string;
   plan?: UserPlan;
 } | null;
