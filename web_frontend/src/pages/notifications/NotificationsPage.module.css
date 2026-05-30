@@ -413,6 +413,10 @@
     margin-bottom: 1.5rem;
   }
 
+  .title {
+    font-size: 22px;
+  }
+
   .headerActions {
     width: 100%;
     flex-direction: column;
@@ -428,6 +432,27 @@
     justify-content: center;
   }
 
+  .notificationCard {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .notificationClickable {
+    gap: 12px;
+  }
+
+  .notificationTitle {
+    font-size: 14px;
+  }
+
+  .notificationBody {
+    font-size: 13px;
+  }
+
+  .notificationIconContainer {
+    padding: 8px;
+  }
+
   .modalOverlay {
     padding: 1rem;
     align-items: flex-end;
@@ -436,6 +461,17 @@
   .modalCard {
     max-height: 95dvh;
     border-radius: 20px 20px 12px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .notificationCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notificationClickable {
+    width: 100%;
   }
 }
 

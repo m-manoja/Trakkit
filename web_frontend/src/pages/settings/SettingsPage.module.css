@@ -489,6 +489,10 @@ input:checked + .slider:before {
     margin-bottom: 1.5rem;
   }
 
+  .title {
+    font-size: 22px;
+  }
+
   .tabs {
     gap: 0;
     overflow-x: auto;
@@ -582,6 +586,11 @@ input:checked + .slider:before {
   .modalFooter .btnPrimary {
     flex: 1;
     justify-content: center;
+  }
+
+  .timezoneSelect {
+    max-width: 100%;
+    width: 100%;
   }
 }
 

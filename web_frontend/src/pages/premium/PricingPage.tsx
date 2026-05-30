@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import CheckoutLayout from '../../components/CheckoutLayout';
+import Layout from '../../components/Layout';
 import styles from './PricingPage.module.css';
 import { useAuth } from '../../context/AuthContext';
 import { initiatePayment, type PaymentInitData } from '../../api/payment';
@@ -16,26 +16,24 @@ import {
   Calendar,
   Bell,
   Smartphone,
+  Infinity,
 } from 'lucide-react';
 
 // PayHere sandbox URL — switch to live URL after academic submission
 const PAYHERE_CHECKOUT_URL = 'https://sandbox.payhere.lk/pay/checkout';
 
-// Remove these — they are now returned by the backend
-// const frontendUrl = ...
-
 const FREE_FEATURES = [
-  { icon: Upload, text: 'Up to 10 document uploads', included: true },
-  { icon: Bell,   text: 'Personal reminders & notifications', included: true },
-  { icon: Users,  text: 'Family sharing mode', included: false },
-  { icon: Calendar, text: 'Google Calendar sync', included: false },
+  { icon: Upload,   text: 'Up to 10 document uploads',       included: true },
+  { icon: Bell,     text: 'Personal reminders & notifications', included: true },
+  { icon: Users,    text: 'Family sharing mode',             included: false },
+  { icon: Calendar, text: 'Google Calendar sync',            included: false },
 ];
 
 const PREMIUM_FEATURES = [
-  { icon: Upload,   text: 'Unlimited document uploads', included: true },
-  { icon: Bell,     text: 'Personal reminders & notifications', included: true },
-  { icon: Users,    text: 'Family sharing for warranties, subscriptions, reminders & to-dos', included: true },
-  { icon: Calendar, text: 'Sync all events to your Google Calendar (Gmail)', included: true },
+  { icon: Upload,   text: 'Unlimited document uploads' },
+  { icon: Bell,     text: 'Personal reminders & notifications' },
+  { icon: Users,    text: 'Family sharing for warranties, subscriptions, reminders & to-dos' },
+  { icon: Calendar, text: 'Sync all events to your Google Calendar (Gmail)' },
 ];
 
 export default function PricingPage() {
@@ -50,6 +48,7 @@ export default function PricingPage() {
       sessionStorage.removeItem('trakkit_payment_source');
     }
   }, [user?.token, refreshPlan, searchParams]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentInitData | null>(null);
@@ -66,8 +65,7 @@ export default function PricingPage() {
       const data = await initiatePayment(user.token);
       setPaymentData(data);
       sessionStorage.setItem('trakkit_pending_order_id', data.order_id);
-
-      // Small timeout so React renders the hidden form before we submit it
+      
       setTimeout(() => {
         formRef.current?.submit();
       }, 100);
@@ -78,13 +76,14 @@ export default function PricingPage() {
   };
 
   return (
-    <CheckoutLayout>
+    <Layout>
       <div className={styles.pageWrapper}>
+
         {/* ── Header ── */}
         <div className={styles.header}>
           <div className={styles.badge}>
-            <Star size={12} />
-            One-Time Upgrade
+            <Star size={11} />
+            One-Time Upgrade · No Subscriptions
           </div>
           <h1 className={styles.title}>
             Simple, honest<br />
@@ -103,16 +102,18 @@ export default function PricingPage() {
           </div>
         )}
 
-
+        {/* ── Cards Grid ── */}
         <div className={styles.cardsGrid}>
 
           {/* Free Card */}
           <div className={`${styles.card} ${styles.freeCard}`}>
             <div className={`${styles.planIcon} ${styles.freeIcon}`}>
-              <Shield size={24} />
+              <Shield size={26} />
             </div>
             <h2 className={styles.planName}>Free Plan</h2>
-            <p className={styles.planDesc}>Everything you need to get started tracking your important items.</p>
+            <p className={styles.planDesc}>
+              Everything you need to get started tracking your important items.
+            </p>
             <div className={styles.priceRow}>
               <span className={styles.currency}>LKR</span>
               <span className={styles.amount}>0</span>
@@ -122,8 +123,8 @@ export default function PricingPage() {
               {FREE_FEATURES.map((f, i) => (
                 <li key={i} className={styles.featureItem}>
                   {f.included
-                    ? <Check size={16} className={`${styles.featureIcon} ${styles.checkIcon}`} />
-                    : <X size={16} className={`${styles.featureIcon} ${styles.xIcon}`} />
+                    ? <Check size={14} className={`${styles.featureIcon} ${styles.checkIcon}`} />
+                    : <X     size={14} className={`${styles.featureIcon} ${styles.xIcon}`} />
                   }
                   <span className={f.included ? '' : styles.lockedText}>{f.text}</span>
                 </li>
@@ -136,12 +137,14 @@ export default function PricingPage() {
 
           {/* Premium Card */}
           <div className={`${styles.card} ${styles.premiumCard}`}>
-            <div className={styles.popularBadge}>Best Value</div>
+            <div className={styles.popularBadge}>⚡ Best Value</div>
             <div className={`${styles.planIcon} ${styles.premiumIcon}`}>
-              <Zap size={24} />
+              <Zap size={26} />
             </div>
             <h2 className={styles.planName}>Premium Plan</h2>
-            <p className={styles.planDesc}>Unlimited uploads, family sharing, and Google Calendar sync.</p>
+            <p className={styles.planDesc}>
+              Unlimited uploads, family sharing, and Google Calendar sync — forever.
+            </p>
             <div className={styles.priceRow}>
               <span className={styles.currency}>LKR</span>
               <span className={styles.amount}>999</span>
@@ -150,7 +153,7 @@ export default function PricingPage() {
             <ul className={styles.featuresList}>
               {PREMIUM_FEATURES.map((f, i) => (
                 <li key={i} className={styles.featureItem}>
-                  <Check size={16} className={`${styles.featureIcon} ${styles.checkIcon}`} />
+                  <Check size={14} className={`${styles.featureIcon} ${styles.checkIcon}`} />
                   <span>{f.text}</span>
                 </li>
               ))}
@@ -178,13 +181,6 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <hr className={styles.divider} />
-
-        <div className={styles.guaranteeNote}>
-          <Shield size={16} />
-          Secured by PayHere · Safe &amp; encrypted checkout
-        </div>
-
         {searchParams.get('source') === 'mobile' && (
           <div className={styles.mobileNote}>
             <Smartphone size={16} />
@@ -196,8 +192,6 @@ export default function PricingPage() {
         )}
 
         {/* ── Hidden PayHere Form ── */}
-        {/* PayHere works by submitting a standard HTML form to their URL.
-            We build the form in React state after getting data from our backend. */}
         {paymentData && (
           <form
             ref={formRef}
@@ -225,6 +219,6 @@ export default function PricingPage() {
           </form>
         )}
       </div>
-    </CheckoutLayout>
+    </Layout>
   );
 }

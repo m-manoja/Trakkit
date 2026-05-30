@@ -344,6 +344,7 @@ input:checked + .slider:before {
   align-items: center;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  min-width: 0;
 }
 
 .todoItem:hover {
@@ -392,6 +393,8 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .todoTitle {
@@ -582,5 +585,20 @@ input:checked + .slider:before {
   .modalFooter .submitButton {
     flex: 1;
     justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .todoItem {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .todoTitle {
+    font-size: 0.95rem;
+  }
+
+  .itemActions {
+    margin-left: auto;
   }
 }

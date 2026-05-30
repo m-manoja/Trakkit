@@ -720,6 +720,10 @@
     gap: 1rem;
   }
 
+  .title {
+    font-size: 1.6rem;
+  }
+
   .headerActions {
     width: 100%;
     flex-direction: column;
@@ -778,5 +782,17 @@
   .modalFooter .submitButton {
     flex: 1;
     justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .infoRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .infoValue {
+    font-size: 0.85rem;
   }
 }

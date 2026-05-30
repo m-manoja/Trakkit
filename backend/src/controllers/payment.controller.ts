@@ -9,7 +9,11 @@ import config from '../config.js';
 const PAYHERE_MERCHANT_ID = process.env.PAYHERE_MERCHANT_ID ?? '';
 const PAYHERE_MERCHANT_SECRET = process.env.PAYHERE_MERCHANT_SECRET ?? '';
 const PAYHERE_MERCHANT_SECRET_MOBILE = process.env.PAYHERE_MERCHANT_SECRET_MOBILE ?? PAYHERE_MERCHANT_SECRET;
-const PAYHERE_CHECKOUT_URL = 'https://sandbox.payhere.lk/pay/checkout';
+const PAYHERE_CHECKOUT_URL =
+  process.env.PAYHERE_CHECKOUT_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://www.payhere.lk/pay/checkout'
+    : 'https://sandbox.payhere.lk/pay/checkout');
 
 function getBackendLocalUrl(): string {
   const port = process.env.PORT || '5000';

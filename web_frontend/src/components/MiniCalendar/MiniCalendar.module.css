@@ -238,3 +238,33 @@
 .eventType[data-type="warranty"]     { color: #F97316;        background-color: rgba(249, 115, 22, 0.082); }
 .eventType[data-type="reminder"]     { color: #8B5CF6;        background-color: rgba(139, 92, 246, 0.082); }
 .eventType[data-type="todo"]         { color: #10B981;        background-color: rgba(16, 185, 129, 0.082); }
+
+@media (max-width: 480px) {
+  .dayNum {
+    font-size: 0.75rem;
+    width: 24px;
+    height: 24px;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .legend {
+    gap: 8px;
+    margin-top: 1rem;
+  }
+
+  .legendLabel {
+    font-size: 0.7rem;
+  }
+
+  .detailsContainer {
+    padding: 1rem;
+  }
+
+  .cell {
+    border-radius: 6px;
+  }
+}

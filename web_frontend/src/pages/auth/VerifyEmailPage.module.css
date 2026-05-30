@@ -129,3 +129,22 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 480px) {
+  .page {
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    align-items: flex-start;
+  }
+
+  .card {
+    padding: 2rem 1.25rem;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+  }
+
+  .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}

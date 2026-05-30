@@ -40,6 +40,7 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 body {
@@ -54,6 +55,17 @@ body {
 #root {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Prevent images and other elements from causing horizontal overflow */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
 /* Better touch targets on mobile */

@@ -7,6 +7,9 @@
 .main {
   flex: 1;
   overflow-y: auto;
+  margin-left: 260px;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .container {
@@ -26,6 +29,12 @@
 @media (max-width: 768px) {
   .layout {
     flex-direction: column;
+  }
+
+  .main {
+    margin-left: 0;
+    height: auto;
+    min-height: 100vh;
   }
   
   .mobileHeader {
