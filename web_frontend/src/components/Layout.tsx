@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar/Sidebar";
 import styles from "./Layout.module.css";
 import logoImg from "../assets/icon.png";
@@ -35,8 +35,8 @@ export default function Layout({ children }: LayoutProps) {
            <img src={logoImg} alt="Trakkit" className={styles.mobileLogo} />
            <span className={styles.mobileLogoText}>Trakkit</span>
         </div>
-        <button className={styles.menuButton} onClick={() => setIsMobileMenuOpen(true)}>
-          <Menu size={28} />
+        <button className={styles.menuButton} onClick={() => setIsMobileMenuOpen(prev => !prev)}>
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 

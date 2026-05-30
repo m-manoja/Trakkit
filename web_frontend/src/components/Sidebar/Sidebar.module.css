@@ -231,11 +231,13 @@
 
 @media (max-width: 768px) {
   .sidebar {
+    position: relative;
     width: 280px;
     height: 100vh;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+    height: 100dvh;
+    box-shadow: none;
   }
-  
+
   .closeBtn {
     display: flex;
     align-items: center;
