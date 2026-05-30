@@ -47,7 +47,7 @@ export default function DetailsModal({
         
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{title}</h2>
-          <button onClick={onClose} className={styles.closeBtn}>
+          <button onClick={onClose} className={styles.closeBtn} aria-label="Close">
             <X size={18} strokeWidth={2.5} />
           </button>
         </div>

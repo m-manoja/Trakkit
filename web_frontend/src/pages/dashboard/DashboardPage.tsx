@@ -395,40 +395,40 @@ export default function DashboardPage() {
               <h2 className={alertStyles.title}>
                 {selectedExpiringItem.type} Details
               </h2>
-              <button className={alertStyles.closeBtn} onClick={() => setSelectedExpiringItem(null)}>
+              <button className={alertStyles.closeBtn} onClick={() => setSelectedExpiringItem(null)} aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             <div className={alertStyles.body}>
               {selectedExpiringItem.type === 'Warranty' && warranties.find(w => w.id === selectedExpiringItem.id) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className={styles.detailContent}>
                   {(() => {
                     const w = warranties.find(w => w.id === selectedExpiringItem.id)!;
                     return (
                       <>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.25rem' }}>{w.product_name}</h3>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Category:</strong> <span>{w.category || 'N/A'}</span></p>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Status:</strong> <span>{w.status}</span></p>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Expiry Date:</strong> <span>{formatDate(w.expiry_date)}</span></p>
-                        {w.purchase_date && <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Purchase Date:</strong> <span>{formatDate(w.purchase_date)}</span></p>}
-                        {w.purchase_place && <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Purchased At:</strong> <span>{w.purchase_place}</span></p>}
+                        <h3 className={styles.detailTitle}>{w.product_name}</h3>
+                        <p className={styles.detailRow}><strong>Category:</strong> <span>{w.category || 'N/A'}</span></p>
+                        <p className={styles.detailRow}><strong>Status:</strong> <span>{w.status}</span></p>
+                        <p className={styles.detailRow}><strong>Expiry Date:</strong> <span>{formatDate(w.expiry_date)}</span></p>
+                        {w.purchase_date && <p className={styles.detailRow}><strong>Purchase Date:</strong> <span>{formatDate(w.purchase_date)}</span></p>}
+                        {w.purchase_place && <p className={styles.detailRow}><strong>Purchased At:</strong> <span>{w.purchase_place}</span></p>}
                       </>
                     );
                   })()}
                 </div>
               )}
-              
+
               {selectedExpiringItem.type === 'Subscription' && subscriptions.find(s => s.id === selectedExpiringItem.id) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className={styles.detailContent}>
                   {(() => {
                     const s = subscriptions.find(s => s.id === selectedExpiringItem.id)!;
                     return (
                       <>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.25rem' }}>{s.service_name}</h3>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Category:</strong> <span>{s.category || 'N/A'}</span></p>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Billing Cycle:</strong> <span>{s.billing_cycle}</span></p>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Next Billing:</strong> <span>{formatDate(s.next_billing_date)}</span></p>
-                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Amount:</strong> <span>${s.amount?.toFixed(2)}</span></p>
+                        <h3 className={styles.detailTitle}>{s.service_name}</h3>
+                        <p className={styles.detailRow}><strong>Category:</strong> <span>{s.category || 'N/A'}</span></p>
+                        <p className={styles.detailRow}><strong>Billing Cycle:</strong> <span>{s.billing_cycle}</span></p>
+                        <p className={styles.detailRow}><strong>Next Billing:</strong> <span>{formatDate(s.next_billing_date)}</span></p>
+                        <p className={styles.detailRow}><strong>Amount:</strong> <span>${s.amount?.toFixed(2)}</span></p>
                       </>
                     );
                   })()}
@@ -442,14 +442,13 @@ export default function DashboardPage() {
               >
                 Close
               </button>
-              <button 
-                className={alertStyles.btnPrimary} 
+              <button
+                className={`${alertStyles.btnPrimary} ${styles.manageBtnFlex}`}
                 onClick={() => {
                   const path = selectedExpiringItem.type === 'Warranty' ? '/warranties' : '/subscriptions';
                   setSelectedExpiringItem(null);
                   navigate(path);
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
                 Manage
                 <ArrowRight size={16} />

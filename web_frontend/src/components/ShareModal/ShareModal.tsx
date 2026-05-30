@@ -156,7 +156,6 @@ export default function ShareModal({
             className={styles.btnSecondary}
             onClick={handleLookup}
             disabled={loading}
-            style={{ width: '100%' }}
           >
             {loading ? <Loader2 size={16} className="spin" /> : 'Find account'}
           </button>

@@ -24,6 +24,13 @@ interface DashboardData {
   todos: any[];
 }
 
+interface DashboardEvent {
+  date: string;
+  label: string;
+  type: string;
+  details: { label: string; value: string }[];
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string) {
@@ -70,24 +77,56 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function getUpcomingEvents(data: DashboardData) {
-  const events: { date: string; label: string; type: string }[] = [];
+function getUpcomingEvents(data: DashboardData): DashboardEvent[] {
+  const events: DashboardEvent[] = [];
 
   data.subscriptions.forEach(s => {
     const date = s.next_billing_date || s.start_date;
-    if (date) events.push({ date, label: s.service_name, type: 'subscription' });
+    if (date) {
+      const details: { label: string; value: string }[] = [
+        { label: 'Billing Date', value: formatDate(date) },
+        { label: 'Amount', value: s.amount ? `Rs ${s.amount}` : '—' },
+        { label: 'Billing Cycle', value: s.billing_cycle || '—' },
+        { label: 'Status', value: s.status || '—' },
+      ];
+      if (s.category) details.push({ label: 'Category', value: s.category });
+      events.push({ date, label: s.service_name, type: 'subscription', details });
+    }
   });
 
   data.warranties.forEach(w => {
-    if (w.expiry_date) events.push({ date: w.expiry_date, label: `${w.product_name} warranty`, type: 'warranty' });
+    if (w.expiry_date) {
+      const details: { label: string; value: string }[] = [
+        { label: 'Expires', value: formatDate(w.expiry_date) },
+      ];
+      if (w.store_name) details.push({ label: 'Store', value: w.store_name });
+      if (w.purchase_date) details.push({ label: 'Purchased', value: formatDate(w.purchase_date) });
+      events.push({ date: w.expiry_date, label: `${w.product_name} warranty`, type: 'warranty', details });
+    }
   });
 
   data.reminders.forEach(r => {
-    if (r.reminder_date) events.push({ date: r.reminder_date, label: r.title || r.name, type: 'reminder' });
+    if (r.reminder_date) {
+      const details: { label: string; value: string }[] = [
+        { label: 'Date', value: formatDate(r.reminder_date) },
+      ];
+      if (r.reminder_time) details.push({ label: 'Time', value: r.reminder_time });
+      if (r.type) details.push({ label: 'Type', value: r.type });
+      if (r.remind) details.push({ label: 'Remind', value: r.remind });
+      if (r.description) details.push({ label: 'Note', value: r.description });
+      events.push({ date: r.reminder_date, label: r.title || r.name, type: 'reminder', details });
+    }
   });
 
   data.todos.forEach(t => {
-    if (!t.is_completed && t.reminder_date) events.push({ date: t.reminder_date, label: t.task_name, type: 'todo' });
+    if (!t.is_completed && t.reminder_date) {
+      const details: { label: string; value: string }[] = [
+        { label: 'Due Date', value: formatDate(t.reminder_date) },
+        { label: 'Status', value: 'Pending' },
+      ];
+      if (t.description) details.push({ label: 'Note', value: t.description });
+      events.push({ date: t.reminder_date, label: t.task_name, type: 'todo', details });
+    }
   });
 
   return events
@@ -334,6 +373,8 @@ export default function DashboardHome() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(null);
+  const [eventDetailVisible, setEventDetailVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -485,7 +526,7 @@ export default function DashboardHome() {
             </View>
           ) : (
             todayEvents.map((e, i) => (
-              <EventRow key={i} event={e} showDate={false} />
+              <EventRow key={i} event={e} showDate={false} onPress={() => { setSelectedEvent(e); setEventDetailVisible(true); }} />
             ))
           )}
         </View>
@@ -505,7 +546,7 @@ export default function DashboardHome() {
             </View>
           ) : (
             upcomingEvents.map((e, i) => (
-              <EventRow key={i} event={e} showDate />
+              <EventRow key={i} event={e} showDate onPress={() => { setSelectedEvent(e); setEventDetailVisible(true); }} />
             ))
           )}
         </View>
@@ -518,6 +559,16 @@ export default function DashboardHome() {
         </View>
 
       </ScrollView>
+
+      <EventDetailModal
+        visible={eventDetailVisible}
+        event={selectedEvent}
+        onClose={() => setEventDetailVisible(false)}
+        onManage={() => {
+          setEventDetailVisible(false);
+          if (selectedEvent) router.push(TYPE_ROUTES[selectedEvent.type] as any);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -563,14 +614,14 @@ function QuickAction({ icon, label, color, onPress }: { icon: string; label: str
   );
 }
 
-function EventRow({ event, showDate }: { event: { date: string; label: string; type: string }; showDate: boolean }) {
+function EventRow({ event, showDate, onPress }: { event: DashboardEvent; showDate: boolean; onPress?: () => void }) {
   const color = TYPE_COLORS[event.type] || '#999';
   const icon = TYPE_ICONS[event.type] || 'ellipse-outline';
   const days = daysUntil(event.date);
   const urgency = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : days <= 3 ? `In ${days} days` : null;
 
   return (
-    <View style={styles.eventRow}>
+    <TouchableOpacity style={styles.eventRow} onPress={onPress} activeOpacity={onPress ? 0.7 : 1} disabled={!onPress}>
       <View style={[styles.eventIconBox, { backgroundColor: color + '18' }]}>
         <Ionicons name={icon as any} size={16} color={color} />
       </View>
@@ -589,8 +640,79 @@ function EventRow({ event, showDate }: { event: { date: string; label: string; t
         <View style={[styles.typePill, { backgroundColor: color + '15' }]}>
           <Text style={[styles.typePillText, { color }]}>{event.type.charAt(0).toUpperCase() + event.type.slice(1)}</Text>
         </View>
+        {onPress && <Ionicons name="chevron-forward" size={12} color="#CCC" />}
       </View>
-    </View>
+    </TouchableOpacity>
+  );
+}
+
+function EventDetailModal({
+  visible,
+  event,
+  onClose,
+  onManage,
+}: {
+  visible: boolean;
+  event: DashboardEvent | null;
+  onClose: () => void;
+  onManage: () => void;
+}) {
+  if (!event) return null;
+  const color = TYPE_COLORS[event.type] || '#999';
+  const icon = TYPE_ICONS[event.type] || 'ellipse-outline';
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={detailStyles.overlay} activeOpacity={1} onPress={onClose}>
+        <View style={detailStyles.card} onStartShouldSetResponder={() => true}>
+
+          {/* Header */}
+          <View style={detailStyles.header}>
+            <View style={detailStyles.headerLeft}>
+              <View style={[detailStyles.iconBox, { backgroundColor: color + '18' }]}>
+                <Ionicons name={icon as any} size={20} color={color} />
+              </View>
+              <View style={[detailStyles.typeBadge, { backgroundColor: color + '18' }]}>
+                <Text style={[detailStyles.typeBadgeText, { color }]}>
+                  {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={detailStyles.closeBtn} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <Ionicons name="close" size={20} color="#888" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Title */}
+          <Text style={detailStyles.title} numberOfLines={2}>{event.label}</Text>
+
+          {/* Divider */}
+          <View style={detailStyles.divider} />
+
+          {/* Detail fields */}
+          <View style={detailStyles.fieldsContainer}>
+            {event.details.map((field, idx) => (
+              <View key={idx} style={detailStyles.fieldRow}>
+                <Text style={detailStyles.fieldLabel}>{field.label}</Text>
+                <Text style={detailStyles.fieldValue} numberOfLines={3}>{field.value}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Footer */}
+          <View style={detailStyles.footer}>
+            <TouchableOpacity onPress={onClose} style={detailStyles.btnClose}>
+              <Text style={detailStyles.btnCloseText}>Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onManage} style={[detailStyles.btnManage, { backgroundColor: color }]}>
+              <Text style={detailStyles.btnManageText}>Manage</Text>
+              <Ionicons name="arrow-forward-outline" size={14} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 }
 
@@ -799,4 +921,104 @@ const calStyles = StyleSheet.create({
   sheetEventLabel: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 4 },
   sheetTypeBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   sheetTypeBadgeText: { fontSize: 11, fontWeight: '700' },
+});
+
+// ─── EVENT DETAIL MODAL STYLES ────────────────────────────────────────────────
+
+const detailStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 20,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBox: {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  typeBadge: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  },
+  typeBadgeText: { fontSize: 12, fontWeight: '700' },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 14,
+    lineHeight: 24,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 14,
+  },
+  fieldsContainer: { gap: 10, marginBottom: 20 },
+  fieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: '#888',
+    fontWeight: '500',
+    flex: 1,
+  },
+  fieldValue: {
+    fontSize: 13,
+    color: '#1A1A1A',
+    fontWeight: '600',
+    flex: 2,
+    textAlign: 'right',
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  btnClose: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  btnCloseText: { fontSize: 14, fontWeight: '700', color: '#555' },
+  btnManage: {
+    flex: 2,
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  btnManageText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
 });

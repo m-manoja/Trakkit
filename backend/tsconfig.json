@@ -10,7 +10,8 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,         // Allows default imports from CommonJS
     "allowSyntheticDefaultImports": true, // Treats non-default exports as default
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src"
