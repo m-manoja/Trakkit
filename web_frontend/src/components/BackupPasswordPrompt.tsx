@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { setBackupPassword, dismissBackupPrompt } from "../api/users";
 import { ShieldCheck, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import styles from "./BackupPasswordPrompt.module.css";
+import { useAlert } from "../context/AlertContext";
 
 interface Props {
   visible: boolean;
@@ -19,31 +20,32 @@ export default function BackupPasswordPrompt({ visible, onDone }: Props) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dismissing, setDismissing] = useState(false);
+  const { showAlert } = useAlert();
 
   if (!visible) return null;
 
   const handleSave = async () => {
     const finalEmail = (user as any)?.email || email.trim();
     if (!finalEmail) {
-      alert("Please enter an email address.");
+      showAlert("Please enter an email address.");
       return;
     }
     if (password.length < 8) {
-      alert("Password must be at least 8 characters.");
+      showAlert("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      alert("Passwords do not match.");
+      showAlert("Passwords do not match.");
       return;
     }
 
     setLoading(true);
     try {
       await setBackupPassword(finalEmail, password, token);
-      alert("✅ Backup login set! You can now log in with your email & password if you lose access to your phone.");
+      showAlert("✅ Backup login set! You can now log in with your email & password if you lose access to your phone.");
       onDone();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save backup login.");
+      showAlert(err instanceof Error ? err.message : "Failed to save backup login.");
     } finally {
       setLoading(false);
     }

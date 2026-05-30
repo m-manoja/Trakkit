@@ -9,10 +9,12 @@ import {
   Trash2, 
   RefreshCw,
   Loader2,
-  Share2,
+  Share2
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./SubscriptionsPage.module.css";
+import SubscriptionFormModal from "./SubscriptionFormModal";
+import DetailsModal from "../../components/DetailsModal/DetailsModal";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
 import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
@@ -24,12 +26,13 @@ import {
   renewSubscription,
   type Subscription 
 } from "../../api/subscriptions";
-import SubscriptionFormModal from "./SubscriptionFormModal";
+import { useAlert } from "../../context/AlertContext";
 
 // Force TS Language Server refresh
 export default function SubscriptionsPage() {
   const { user } = useAuth();
   const { isPremium, isFree } = usePlan();
+  const { showAlert, showConfirm } = useAlert();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -39,6 +42,7 @@ export default function SubscriptionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -46,6 +50,7 @@ export default function SubscriptionsPage() {
   const [bulkShareMode, setBulkShareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   const loadSubscriptions = async () => {
     if (!user?.id || !user?.token) return;
@@ -70,10 +75,25 @@ export default function SubscriptionsPage() {
 
   useEffect(() => {
     if (location.state?.openModal) {
-      setIsModalOpen(true);
+      if (location.state?.itemId) {
+        setPendingItemId(location.state.itemId);
+      } else {
+        setIsModalOpen(true);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (pendingItemId && subscriptions.length > 0) {
+      const item = subscriptions.find(s => s.id === pendingItemId);
+      if (item) {
+        setSelectedSubscription(item);
+        setDetailsModalOpen(true);
+      }
+      setPendingItemId(null);
+    }
+  }, [pendingItemId, subscriptions]);
 
   const handleOpenModal = (subscription?: Subscription) => {
     setSelectedSubscription(subscription || null);
@@ -89,28 +109,31 @@ export default function SubscriptionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!user?.token || !window.confirm("Are you sure you want to delete this subscription?")) return;
+    if (!user?.token) return;
+    const isConfirmed = await showConfirm("Are you sure you want to delete this subscription?");
+    if (!isConfirmed) return;
     
     try {
       await deleteSubscription(id, user.token);
       loadSubscriptions();
     } catch (err) {
       console.error("Failed to delete:", err);
-      alert("Failed to delete subscription");
+      showAlert("Failed to delete subscription");
     }
   };
 
   const handleRenew = async (subscription: Subscription) => {
     if (!user?.token || subscription.status === 'Active') return;
 
-    if (!window.confirm(`Would you like to renew ${subscription.service_name}?`)) return;
+    const isConfirmed = await showConfirm(`Would you like to renew ${subscription.service_name}?`);
+    if (!isConfirmed) return;
 
     try {
       await renewSubscription(subscription.id, user.token);
       loadSubscriptions();
     } catch (err) {
       console.error("Failed to renew:", err);
-      alert("Failed to renew subscription");
+      showAlert("Failed to renew subscription");
     }
   };
 
@@ -125,7 +148,7 @@ export default function SubscriptionsPage() {
       loadSubscriptions();
     } catch (err) {
       console.error("Save error:", err);
-      alert(err instanceof Error ? err.message : "Failed to save subscription");
+      showAlert(err instanceof Error ? err.message : "Failed to save subscription");
     } finally {
       setIsSaving(false);
     }
@@ -156,7 +179,7 @@ export default function SubscriptionsPage() {
       .filter((s) => selectedIds.has(s.id))
       .map((s) => ({ itemType: 'subscription' as const, itemId: s.id, label: s.service_name }));
     if (!items.length) {
-      alert('Select at least one subscription.');
+      showAlert('Select at least one subscription.');
       return;
     }
     openShare(items);
@@ -313,6 +336,25 @@ export default function SubscriptionsPage() {
           onSubmit={handleSaveSubscription}
           isSaving={isSaving}
         />
+
+        {selectedSubscription && (
+          <DetailsModal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            title="Subscription Details"
+            entityName={selectedSubscription.service_name}
+            fields={[
+              { label: "Category", value: selectedSubscription.category || 'N/A' },
+              { label: "Billing Cycle", value: selectedSubscription.billing_cycle },
+              { label: "Next Billing", value: selectedSubscription.next_billing_date ? formatDate(selectedSubscription.next_billing_date) : 'N/A' },
+              { label: "Amount", value: `$${selectedSubscription.amount?.toFixed(2)}` }
+            ]}
+            onManage={() => {
+              setDetailsModalOpen(false);
+              handleOpenModal(selectedSubscription);
+            }}
+          />
+        )}
 
         {user?.token && (
           <ShareModal

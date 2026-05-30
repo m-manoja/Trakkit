@@ -1,0 +1,138 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--surface, #ffffff);
+  border-radius: var(--radius, 14px);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,0.1));
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border, #EBEBEB);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1E1E1E);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #6B6B6B);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.closeBtn:hover {
+  background: var(--bg, #F4EFEF);
+  color: var(--text-primary, #1E1E1E);
+}
+
+.body {
+  padding: 1.5rem;
+  font-size: 1rem;
+  color: var(--text-secondary, #6B6B6B);
+  line-height: 1.5;
+}
+
+.footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border, #EBEBEB);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btnPrimary {
+  background: var(--primary, #B9375D);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-dark, #96284a);
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--text-primary, #1E1E1E);
+  border: 1px solid var(--border, #EBEBEB);
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btnSecondary:hover {
+  background: var(--bg, #F4EFEF);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dark mode overrides if needed, using general variables */
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background: var(--surface, #1f2937);
+  }
+  .header, .footer {
+    border-color: var(--border, #374151);
+  }
+  .title {
+    color: var(--text-primary, #f9fafb);
+  }
+  .body {
+    color: var(--text-secondary, #d1d5db);
+  }
+  .closeBtn {
+    color: var(--text-secondary, #9ca3af);
+  }
+  .closeBtn:hover {
+    background: var(--bg, #374151);
+    color: var(--text-primary, #f9fafb);
+  }
+}

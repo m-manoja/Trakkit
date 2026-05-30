@@ -20,10 +20,13 @@ import PricingPage from "./pages/premium/PricingPage";
 import PaymentSuccessPage from "./pages/premium/PaymentSuccessPage";
 import PaymentCancelPage from "./pages/premium/PaymentCancelPage";
 
+import { AlertProvider } from "./context/AlertContext";
+
 export default function App() {
   return (
     <AuthProvider>
       <TimezoneProvider>
+      <AlertProvider>
       <BrowserRouter>
         <Routes>
           {/* Public auth routes */}
@@ -138,6 +141,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      </AlertProvider>
       </TimezoneProvider>
     </AuthProvider>
   );

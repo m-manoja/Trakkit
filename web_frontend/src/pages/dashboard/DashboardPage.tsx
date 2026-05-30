@@ -12,9 +12,12 @@ import {
   Plus,
   Loader2,
   BellRing,
+  X,
+  ArrowRight
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./DashboardPage.module.css";
+import alertStyles from "../../context/AlertContext.module.css";
 import { useAuth } from "../../context/AuthContext";
 import GoogleCalendarSync from "../../components/GoogleCalendarSync/GoogleCalendarSync";
 import { 
@@ -27,6 +30,7 @@ import {
   type Todo,
   type Reminder
 } from "../../api/dashboard";
+import { toggleTodo } from "../../api/todos";
 import MiniCalendar, { type CalEvent } from "../../components/MiniCalendar/MiniCalendar";
 
 export default function DashboardPage() {
@@ -41,6 +45,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedExpiringItem, setSelectedExpiringItem] = useState<{ id: string, type: 'Warranty' | 'Subscription' } | null>(null);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -72,6 +77,22 @@ export default function DashboardPage() {
 
     loadDashboardData();
   }, [user]);
+
+  const handleToggleTodo = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!user?.token) return;
+
+    // Optimistic update
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, is_completed: !t.is_completed } : t));
+
+    try {
+      await toggleTodo(id, user.token);
+    } catch (err) {
+      console.error("Failed to toggle todo:", err);
+      // Revert optimistic update
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, is_completed: !t.is_completed } : t));
+    }
+  };
 
   // Derived stats
   const activeWarranties = warranties.filter(w => w.status === 'Active').length;
@@ -132,10 +153,10 @@ export default function DashboardPage() {
 
   // Calculate all events for the Calendar
   const allEvents: CalEvent[] = [
-    ...warranties.map(w => ({ date: w.expiry_date, type: "warranty", label: `${w.product_name} warranty` })),
-    ...subscriptions.map(s => ({ date: s.next_billing_date, type: "subscription", label: s.service_name })),
-    ...todos.filter(t => !t.is_completed && t.reminder_date).map(t => ({ date: t.reminder_date!, type: "todo", label: t.task_name })),
-    ...reminders.filter(r => r.reminder_date).map(r => ({ date: r.reminder_date, type: "reminder", label: r.title }))
+    ...warranties.map(w => ({ date: w.expiry_date, type: "warranty", label: `${w.product_name} warranty`, path: '/warranties', itemId: w.id })),
+    ...subscriptions.map(s => ({ date: s.next_billing_date, type: "subscription", label: s.service_name, path: '/subscriptions', itemId: s.id })),
+    ...todos.filter(t => !t.is_completed && t.reminder_date).map(t => ({ date: t.reminder_date!, type: "todo", label: t.task_name, path: '/todos', itemId: t.id })),
+    ...reminders.filter(r => r.reminder_date).map(r => ({ date: r.reminder_date, type: "reminder", label: r.title, path: '/reminders', itemId: r.id }))
   ];
 
   const todayStr = todayLK();
@@ -284,7 +305,11 @@ export default function DashboardPage() {
               <div className={styles.list}>
                 {expiringSoon.length > 0 ? (
                   expiringSoon.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className={styles.listItem}>
+                    <div 
+                      key={`${item.type}-${item.id}`} 
+                      className={`${styles.listItem} ${styles.listItemClickable}`}
+                      onClick={() => setSelectedExpiringItem({ id: item.id, type: item.type as 'Warranty' | 'Subscription' })}
+                    >
                       <div className={styles.itemIcon}>
                         {item.type === "Warranty" ? <ShieldCheck size={18} /> : <CreditCard size={18} />}
                       </div>
@@ -312,8 +337,12 @@ export default function DashboardPage() {
               <div className={styles.list}>
                 {upcomingTodos.length > 0 ? (
                   upcomingTodos.slice(0, 5).map((todo) => (
-                    <div key={todo.id} className={styles.listItem}>
-                      <div className={styles.todoCheckbox}></div>
+                    <div 
+                      key={todo.id} 
+                      className={`${styles.listItem} ${styles.listItemClickable}`}
+                      onClick={() => navigate('/todos')}
+                    >
+                      <div className={styles.todoCheckbox} onClick={(e) => handleToggleTodo(e, todo.id)}></div>
                       <div className={styles.itemContent}>
                         <p className={styles.itemName}>{todo.task_name}</p>
                         <p className={styles.itemSub}>{todo.has_reminder ? `Reminder: ${formatDate(todo.reminder_date!)}${todo.reminder_time ? `, ${formatTime12h(todo.reminder_time)}` : ''}` : 'No reminder set'}</p>
@@ -355,6 +384,78 @@ export default function DashboardPage() {
           >
             Upgrade to Premium
           </button>
+        </div>
+      )}
+
+      {/* Modal for Expiring Item Details */}
+      {selectedExpiringItem && (
+        <div className={alertStyles.overlay} onClick={() => setSelectedExpiringItem(null)}>
+          <div className={alertStyles.modal} onClick={e => e.stopPropagation()}>
+            <div className={alertStyles.header}>
+              <h2 className={alertStyles.title}>
+                {selectedExpiringItem.type} Details
+              </h2>
+              <button className={alertStyles.closeBtn} onClick={() => setSelectedExpiringItem(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={alertStyles.body}>
+              {selectedExpiringItem.type === 'Warranty' && warranties.find(w => w.id === selectedExpiringItem.id) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {(() => {
+                    const w = warranties.find(w => w.id === selectedExpiringItem.id)!;
+                    return (
+                      <>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.25rem' }}>{w.product_name}</h3>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Category:</strong> <span>{w.category || 'N/A'}</span></p>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Status:</strong> <span>{w.status}</span></p>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Expiry Date:</strong> <span>{formatDate(w.expiry_date)}</span></p>
+                        {w.purchase_date && <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Purchase Date:</strong> <span>{formatDate(w.purchase_date)}</span></p>}
+                        {w.purchase_place && <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Purchased At:</strong> <span>{w.purchase_place}</span></p>}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              
+              {selectedExpiringItem.type === 'Subscription' && subscriptions.find(s => s.id === selectedExpiringItem.id) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {(() => {
+                    const s = subscriptions.find(s => s.id === selectedExpiringItem.id)!;
+                    return (
+                      <>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.25rem' }}>{s.service_name}</h3>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Category:</strong> <span>{s.category || 'N/A'}</span></p>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Billing Cycle:</strong> <span>{s.billing_cycle}</span></p>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Next Billing:</strong> <span>{formatDate(s.next_billing_date)}</span></p>
+                        <p style={{ margin: 0, display: 'flex', justifyContent: 'space-between' }}><strong>Amount:</strong> <span>${s.amount?.toFixed(2)}</span></p>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+            <div className={alertStyles.footer}>
+              <button 
+                className={alertStyles.btnSecondary} 
+                onClick={() => setSelectedExpiringItem(null)}
+              >
+                Close
+              </button>
+              <button 
+                className={alertStyles.btnPrimary} 
+                onClick={() => {
+                  const path = selectedExpiringItem.type === 'Warranty' ? '/warranties' : '/subscriptions';
+                  setSelectedExpiringItem(null);
+                  navigate(path);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                Manage
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>

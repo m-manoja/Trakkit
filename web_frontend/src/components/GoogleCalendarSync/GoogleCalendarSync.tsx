@@ -10,6 +10,7 @@ import {
   syncGoogleCalendar,
 } from '../../api/googleCalendar';
 import styles from './GoogleCalendarSync.module.css';
+import { useAlert } from '../../context/AlertContext';
 
 export default function GoogleCalendarSync() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function GoogleCalendarSync() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { showConfirm } = useAlert();
   const syncInFlightRef = useRef(false);
   const oauthSyncStartedRef = useRef(false);
 
@@ -117,9 +119,10 @@ export default function GoogleCalendarSync() {
 
   const handleDisconnect = async () => {
     if (!user?.token) return;
-    if (!window.confirm('Disconnect Google Calendar from Trakkit?')) return;
+    const isDisconnectConfirmed = await showConfirm('Disconnect Google Calendar from Trakkit?');
+    if (!isDisconnectConfirmed) return;
 
-    const removeEvents = window.confirm(
+    const removeEvents = await showConfirm(
       'Remove Trakkit events from your Google Calendar?\n\n' +
         'Only events created by Trakkit sync will be deleted. Your other Google events are not affected.\n\n' +
         'OK — remove them\n' +

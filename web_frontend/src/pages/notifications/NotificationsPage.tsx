@@ -16,6 +16,7 @@ import {
 } from "../../api/notifications";
 import { API_BASE_URL } from "../../api/config";
 import styles from "./NotificationsPage.module.css";
+import { useAlert } from "../../context/AlertContext";
 
 // ── Type metadata ─────────────────────────────────────────────────────────────
 const TYPE_META: Record<string, { label: string; route: string; Icon: React.ElementType }> = {
@@ -86,6 +87,7 @@ function renderFields(type: string, detail: any) {
 export default function NotificationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showAlert, showConfirm } = useAlert();
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,20 +148,21 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.filter(n => n.id !== id));
       if (selectedNotif?.id === id) setSelectedNotif(null);
     } catch {
-      alert("Could not delete notification.");
+      showAlert("Could not delete notification.");
     }
   };
 
   const handleClearAll = async () => {
     if (!user?.token || notifications.length === 0) return;
-    if (!confirm("Are you sure you want to clear all your notifications?")) return;
+    const isConfirmed = await showConfirm("Are you sure you want to clear all your notifications?");
+    if (!isConfirmed) return;
     try {
       setIsClearing(true);
       await clearAllNotifications(user.token);
       setNotifications([]);
       setSelectedNotif(null);
     } catch {
-      alert("Could not clear notifications.");
+      showAlert("Could not clear notifications.");
     } finally {
       setIsClearing(false);
     }

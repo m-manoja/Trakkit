@@ -1,12 +1,15 @@
 import { useState, useMemo } from "react";
 import { formatMonthYear, formatWeekdayDate } from "../../utils/dateFormat";
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, Bell, X } from "lucide-react";
 import styles from "./MiniCalendar.module.css";
+import alertStyles from "../../context/AlertContext.module.css";
 
 export interface CalEvent {
   date: string;
   type: string;
   label: string;
+  path?: string;
+  itemId?: string;
 }
 
 interface MiniCalendarProps {
@@ -20,8 +23,11 @@ const TYPE_COLORS: Record<string, string> = {
   todo: "#10B981",               // Green
 };
 
+import { useNavigate } from "react-router-dom";
+
 export default function MiniCalendar({ events }: MiniCalendarProps) {
   const today = new Date();
+  const navigate = useNavigate();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -151,41 +157,70 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
         ))}
       </div>
 
-      {/* Selected Day Details */}
+      {/* Selected Day Details Modal */}
       {selectedDay && (
-        <div className={styles.detailsContainer}>
-          <div className={styles.detailsHeader}>
-            <h4>{selectedDateLabel}</h4>
-            <span className={styles.detailsCount}>
-              {selectedEvents.length} event{selectedEvents.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-          <div className={styles.detailsList}>
-            {selectedEvents.length === 0 ? (
-              <p className={styles.noEvents}>Nothing scheduled for this day</p>
-            ) : (
-              selectedEvents.map((ev, i) => (
-                <div key={i} className={styles.eventItem}>
-                  <div
-                    className={styles.eventIcon}
-                    data-type={ev.type}
-                  >
-                    {ev.type === "warranty" ? <ShieldCheckIcon size={16} /> : 
-                     ev.type === "subscription" ? <Clock size={16} /> :
-                     ev.type === "todo" ? <CheckCircle size={16} /> : <Bell size={16} />}
+        <div className={alertStyles.overlay} onClick={() => setSelectedDay(null)}>
+          <div className={alertStyles.modal} onClick={e => e.stopPropagation()}>
+            <div className={alertStyles.header}>
+              <h2 className={alertStyles.title}>
+                {selectedDateLabel}
+              </h2>
+              <button className={alertStyles.closeBtn} onClick={() => setSelectedDay(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={alertStyles.body}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  {selectedEvents.length} event{selectedEvents.length !== 1 ? "s" : ""} scheduled
+                </p>
+                {selectedEvents.length === 0 ? (
+                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>Nothing scheduled for this day.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {selectedEvents.map((ev, i) => (
+                      <div 
+                        key={i} 
+                        className={styles.eventItem}
+                        style={{ cursor: ev.path ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}
+                        onClick={() => {
+                          if (ev.path) {
+                            setSelectedDay(null);
+                            navigate(ev.path, { state: { openModal: true, itemId: ev.itemId, returnTo: '/dashboard' } });
+                          }
+                        }}
+                      >
+                        <div
+                          className={styles.eventIcon}
+                          data-type={ev.type}
+                        >
+                          {ev.type === "warranty" ? <ShieldCheckIcon size={16} /> : 
+                           ev.type === "subscription" ? <Clock size={16} /> :
+                           ev.type === "todo" ? <CheckCircle size={16} /> : <Bell size={16} />}
+                        </div>
+                        <div className={styles.eventInfo} style={{ flex: 1 }}>
+                          <p className={styles.eventTitle}>{ev.label}</p>
+                          <span
+                            className={styles.eventType}
+                            data-type={ev.type}
+                          >
+                            {ev.type.charAt(0).toUpperCase() + ev.type.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className={styles.eventInfo}>
-                    <p className={styles.eventTitle}>{ev.label}</p>
-                    <span
-                      className={styles.eventType}
-                      data-type={ev.type}
-                    >
-                      {ev.type.charAt(0).toUpperCase() + ev.type.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+                )}
+              </div>
+            </div>
+            <div className={alertStyles.footer}>
+              <button 
+                className={alertStyles.btnSecondary} 
+                onClick={() => setSelectedDay(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

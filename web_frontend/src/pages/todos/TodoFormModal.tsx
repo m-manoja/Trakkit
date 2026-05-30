@@ -6,11 +6,15 @@ import { getNotificationSettings } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeReminderTime } from "../../utils/reminderTime";
 import TimeSelect, { readTimeFromSelects } from "../../components/TimeSelect/TimeSelect";
+import { useAlert } from "../../context/AlertContext";
+
+import { type Todo } from "../../api/todos";
 
 const TODO_TIME_SELECT_ID = "todo-form-time-select";
 
 interface TodoFormModalProps {
   isOpen: boolean;
+  initialData?: Todo | null;
   onClose: () => void;
   onSubmit: (formData: Record<string, unknown>) => void;
   isSaving: boolean;
@@ -18,12 +22,14 @@ interface TodoFormModalProps {
 
 export default function TodoFormModal({
   isOpen,
+  initialData,
   onClose,
   onSubmit,
   isSaving
 }: TodoFormModalProps) {
   const { user } = useAuth();
   const token = user?.token;
+  const { showAlert } = useAlert();
 
   const [formData, setFormData] = useState({
     task_name: "",
@@ -63,15 +69,43 @@ export default function TodoFormModal({
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    reminderTimeRef.current = "08:00";
-    setFormData({
-      task_name: "",
-      has_reminder: false,
-      reminder_date: new Date().toISOString().split('T')[0],
-      reminder_time: "08:00",
-      reminder_schedule: defaultReminderSchedule,
-    });
-  }, [isOpen]);
+    if (initialData) {
+      const hasReminder = Boolean(initialData.has_reminder && initialData.reminder_date);
+      let dateVal = new Date().toISOString().split('T')[0];
+      let timeVal = "08:00";
+      
+      if (hasReminder && initialData.reminder_date) {
+        const d = new Date(initialData.reminder_date);
+        if (!isNaN(d.getTime())) {
+          dateVal = d.toISOString().split('T')[0];
+        }
+        // Use reminder_time or extract from reminder_date if we have a time component
+        if ((initialData as any).reminder_time) {
+          timeVal = (initialData as any).reminder_time;
+        } else if (initialData.reminder_date.includes('T')) {
+          timeVal = d.toISOString().split('T')[1].substring(0, 5);
+        }
+      }
+      
+      reminderTimeRef.current = timeVal;
+      setFormData({
+        task_name: initialData.task_name || "",
+        has_reminder: hasReminder,
+        reminder_date: dateVal,
+        reminder_time: timeVal,
+        reminder_schedule: initialData.reminder_schedule || defaultReminderSchedule,
+      });
+    } else {
+      reminderTimeRef.current = "08:00";
+      setFormData({
+        task_name: "",
+        has_reminder: false,
+        reminder_date: new Date().toISOString().split('T')[0],
+        reminder_time: "08:00",
+        reminder_schedule: defaultReminderSchedule,
+      });
+    }
+  }, [isOpen, initialData, defaultReminderSchedule]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -92,11 +126,11 @@ export default function TodoFormModal({
     const reminderTime = normalizeReminderTime(domTime ?? reminderTimeRef.current);
 
     if (!formData.task_name.trim()) {
-      alert("Please enter a task name.");
+      showAlert("Please enter a task name.");
       return;
     }
     if (formData.has_reminder && formData.reminder_date < today) {
-      alert("Reminder date cannot be in the past. Please choose today or a future date.");
+      showAlert("Reminder date cannot be in the past. Please choose today or a future date.");
       return;
     }
     
@@ -113,7 +147,7 @@ export default function TodoFormModal({
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2>Add Todo List</h2>
+          <h2>{initialData ? "Edit Task" : "Add Todo List"}</h2>
           <button type="button" className={styles.closeButton} onClick={onClose} title="Close">
             <X size={20} />
           </button>
@@ -178,7 +212,11 @@ export default function TodoFormModal({
                     className={styles.formInput}
                     placeholder={`Default: ${defaultReminderSchedule}`}
                     value={formData.reminder_schedule}
-                    onChange={(e) => patchForm({ reminder_schedule: e.target.value })}
+                    onChange={(e) => {
+                      if (/^[0-9,]*$/.test(e.target.value)) {
+                        patchForm({ reminder_schedule: e.target.value });
+                      }
+                    }}
                   />
                   <small className={styles.inputHelp}>
                     Enter comma-separated days (e.g. 7,3,1). Leave blank to use default.
@@ -205,7 +243,7 @@ export default function TodoFormModal({
               {isSaving ? (
                 <><Loader2 size={18} className={styles.spinner} /> Saving...</>
               ) : (
-                "Add Task"
+                initialData ? "Save Changes" : "Add Task"
               )}
             </button>
           </div>

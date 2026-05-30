@@ -10,10 +10,12 @@ import {
   Eye, 
   Download,
   Loader2,
-  Share2,
+  Share2
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./WarrantiesPage.module.css";
+import WarrantyFormModal from "./WarrantyFormModal";
+import DetailsModal from "../../components/DetailsModal/DetailsModal";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
 import { getPremiumUsage, type PremiumUsage } from "../../api/payment";
@@ -26,13 +28,14 @@ import {
   claimWarranty,
   type Warranty 
 } from "../../api/warranties";
-import WarrantyFormModal from "./WarrantyFormModal";
+import { useAlert } from "../../context/AlertContext";
 
 export default function WarrantiesPage() {
   const { user } = useAuth();
   const { isPremium, isFree } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showAlert, showConfirm } = useAlert();
   
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [usage, setUsage] = useState<PremiumUsage | null>(null);
@@ -41,6 +44,7 @@ export default function WarrantiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -48,6 +52,7 @@ export default function WarrantiesPage() {
   const [bulkShareMode, setBulkShareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   const loadWarranties = async () => {
     if (!user?.id || !user?.token) return;
@@ -78,10 +83,25 @@ export default function WarrantiesPage() {
 
   useEffect(() => {
     if (location.state?.openModal) {
-      setIsModalOpen(true);
+      if (location.state?.itemId) {
+        setPendingItemId(location.state.itemId);
+      } else {
+        setIsModalOpen(true);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (pendingItemId && warranties.length > 0) {
+      const item = warranties.find(w => w.id === pendingItemId);
+      if (item) {
+        setSelectedWarranty(item);
+        setDetailsModalOpen(true);
+      }
+      setPendingItemId(null);
+    }
+  }, [pendingItemId, warranties]);
 
   const handleOpenModal = (warranty?: Warranty) => {
     setSelectedWarranty(warranty || null);
@@ -97,27 +117,30 @@ export default function WarrantiesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!user?.token || !window.confirm("Are you sure you want to delete this warranty?")) return;
+    if (!user?.token) return;
+    const isConfirmed = await showConfirm("Are you sure you want to delete this warranty?");
+    if (!isConfirmed) return;
     
     try {
       await deleteWarranty(id, user.token);
       loadWarranties();
     } catch (err) {
       console.error("Failed to delete:", err);
-      alert("Failed to delete warranty");
+      showAlert("Failed to delete warranty");
     }
   };
 
   const handleClaim = async (warranty: Warranty) => {
     if (!user?.token) return;
-    if (!window.confirm(`Are you sure you want to claim the warranty for "${warranty.product_name}"? This action cannot be undone.`)) return;
+    const isConfirmed = await showConfirm(`Are you sure you want to claim the warranty for "${warranty.product_name}"? This action cannot be undone.`);
+    if (!isConfirmed) return;
 
     try {
       await claimWarranty(warranty.id, user.token);
       loadWarranties();
     } catch (err: any) {
       console.error("Claim error:", err);
-      alert(err?.message || "Failed to claim warranty");
+      showAlert(err?.message || "Failed to claim warranty");
     }
   };
 
@@ -132,12 +155,12 @@ export default function WarrantiesPage() {
     } catch (err: any) {
       console.error("Save error:", err);
       if (err.error_code === 'DOCUMENT_LIMIT_REACHED') {
-        const upgrade = window.confirm(
+        const upgrade = await showConfirm(
           `${err.message}\n\nGo to the pricing page to upgrade?`
         );
         if (upgrade) navigate('/pricing');
       } else {
-        alert("Failed to save warranty");
+        showAlert("Failed to save warranty");
       }
     } finally {
       setIsSaving(false);
@@ -173,7 +196,7 @@ export default function WarrantiesPage() {
         label: w.product_name,
       }));
     if (!items.length) {
-      alert('Select at least one warranty.');
+      showAlert('Select at least one warranty.');
       return;
     }
     openShare(items);
@@ -393,6 +416,26 @@ export default function WarrantiesPage() {
           onSubmit={handleSaveWarranty}
           isSaving={isSaving}
         />
+
+        {selectedWarranty && (
+          <DetailsModal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            title="Warranty Details"
+            entityName={selectedWarranty.product_name}
+            fields={[
+              { label: "Category", value: selectedWarranty.category || 'N/A' },
+              { label: "Status", value: selectedWarranty.status },
+              { label: "Expiry Date", value: formatDate(selectedWarranty.expiry_date) },
+              ...(selectedWarranty.purchase_date ? [{ label: "Purchase Date", value: formatDate(selectedWarranty.purchase_date) }] : []),
+              ...(selectedWarranty.purchase_place ? [{ label: "Purchased At", value: selectedWarranty.purchase_place }] : [])
+            ]}
+            onManage={() => {
+              setDetailsModalOpen(false);
+              handleOpenModal(selectedWarranty);
+            }}
+          />
+        )}
 
         {user?.token && (
           <ShareModal

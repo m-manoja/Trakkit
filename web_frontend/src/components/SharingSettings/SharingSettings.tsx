@@ -12,6 +12,7 @@ import {
   type ShareItemType,
 } from '../../api/sharing';
 import styles from './SharingSettings.module.css';
+import { useAlert } from '../../context/AlertContext';
 
 const TYPE_LABELS: Record<ShareItemType, string> = {
   warranty: 'Warranty',
@@ -104,6 +105,7 @@ export default function SharingSettings() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const { showAlert, showConfirm } = useAlert();
 
   const load = async () => {
     if (!user?.token) return;
@@ -128,13 +130,15 @@ export default function SharingSettings() {
   }, [user?.token, isPremium]);
 
   const handleRevoke = async (shareId: string) => {
-    if (!user?.token || !window.confirm('Stop sharing this item? They will no longer receive alerts.')) return;
+    if (!user?.token) return;
+    const isConfirmed = await showConfirm('Stop sharing this item? They will no longer receive alerts.');
+    if (!isConfirmed) return;
     try {
       setRevokingId(shareId);
       await revokeShare(shareId, user.token);
       await load();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to revoke');
+      showAlert(err instanceof Error ? err.message : 'Failed to revoke');
     } finally {
       setRevokingId(null);
     }

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 import styles from "./SubscriptionsPage.module.css";
 import { type Subscription } from "../../api/subscriptions";
+import { useAlert } from "../../context/AlertContext";
 
 interface SubscriptionFormModalProps {
   isOpen: boolean;
@@ -60,10 +61,12 @@ export default function SubscriptionFormModal({
 
   if (!isOpen) return null;
 
+  const { showAlert } = useAlert();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.service_name || !formData.amount || !formData.billing_cycle || !formData.category) {
-      alert("Please fill in all mandatory fields.");
+      showAlert("Please fill in all mandatory fields.");
       return;
     }
     onSubmit({
@@ -157,7 +160,11 @@ export default function SubscriptionFormModal({
                   className={styles.formInput}
                   placeholder="e.g. 7,3,1"
                   value={formData.reminder_schedule}
-                  onChange={(e) => setFormData({...formData, reminder_schedule: e.target.value})}
+                  onChange={(e) => {
+                    if (/^[0-9,]*$/.test(e.target.value)) {
+                      setFormData({...formData, reminder_schedule: e.target.value});
+                    }
+                  }}
                 />
               </div>
             </div>

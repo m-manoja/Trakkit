@@ -8,10 +8,12 @@ import {
   Edit2, 
   Trash2, 
   Loader2,
-  Share2,
+  Share2
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./RemindersPage.module.css";
+import ReminderFormModal from "./ReminderFormModal";
+import DetailsModal from "../../components/DetailsModal/DetailsModal";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
 import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
@@ -22,12 +24,13 @@ import {
   saveReminder, 
   type Reminder 
 } from "../../api/reminders";
-import ReminderFormModal from "./ReminderFormModal";
+import { useAlert } from "../../context/AlertContext";
 
 // Force TS Language Server refresh
 export default function RemindersPage() {
   const { user } = useAuth();
   const { isPremium, isFree } = usePlan();
+  const { showAlert, showConfirm } = useAlert();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -37,6 +40,7 @@ export default function RemindersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -44,6 +48,7 @@ export default function RemindersPage() {
   const [bulkShareMode, setBulkShareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   const loadReminders = async () => {
     if (!user?.id || !user?.token) return;
@@ -68,10 +73,25 @@ export default function RemindersPage() {
 
   useEffect(() => {
     if (location.state?.openModal) {
-      setIsModalOpen(true);
+      if (location.state?.itemId) {
+        setPendingItemId(location.state.itemId);
+      } else {
+        setIsModalOpen(true);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (pendingItemId && reminders.length > 0) {
+      const item = reminders.find(r => r.id === pendingItemId);
+      if (item) {
+        setSelectedReminder(item);
+        setDetailsModalOpen(true);
+      }
+      setPendingItemId(null);
+    }
+  }, [pendingItemId, reminders]);
 
   const handleOpenModal = (reminder?: Reminder) => {
     setSelectedReminder(reminder || null);
@@ -87,14 +107,16 @@ export default function RemindersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!user?.token || !window.confirm("Are you sure you want to delete this reminder?")) return;
+    if (!user?.token) return;
+    const isConfirmed = await showConfirm("Are you sure you want to delete this reminder?");
+    if (!isConfirmed) return;
     
     try {
       await deleteReminder(id, user.token);
       loadReminders();
     } catch (err) {
       console.error("Failed to delete:", err);
-      alert("Failed to delete reminder");
+      showAlert("Failed to delete reminder");
     }
   };
 
@@ -109,7 +131,7 @@ export default function RemindersPage() {
       loadReminders();
     } catch (err) {
       console.error("Save error:", err);
-      alert(err instanceof Error ? err.message : "Failed to save reminder");
+      showAlert(err instanceof Error ? err.message : "Failed to save reminder");
     } finally {
       setIsSaving(false);
     }
@@ -139,7 +161,7 @@ export default function RemindersPage() {
       .filter((r) => selectedIds.has(r.id))
       .map((r) => ({ itemType: 'reminder' as const, itemId: r.id, label: r.title }));
     if (!items.length) {
-      alert('Select at least one reminder.');
+      showAlert('Select at least one reminder.');
       return;
     }
     openShare(items);
@@ -295,6 +317,25 @@ export default function RemindersPage() {
           onSubmit={handleSaveReminder}
           isSaving={isSaving}
         />
+
+        {selectedReminder && (
+          <DetailsModal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            title="Reminder Details"
+            entityName={selectedReminder.title}
+            fields={[
+              { label: "Date", value: formatDate(selectedReminder.reminder_date) },
+              ...(selectedReminder.reminder_time ? [{ label: "Time", value: selectedReminder.reminder_time }] : []),
+              ...(selectedReminder.repeat_cycle && selectedReminder.repeat_cycle !== 'None' ? [{ label: "Repeats", value: selectedReminder.repeat_cycle }] : []),
+              ...(selectedReminder.description ? [{ label: "Description", value: selectedReminder.description }] : [])
+            ]}
+            onManage={() => {
+              setDetailsModalOpen(false);
+              handleOpenModal(selectedReminder);
+            }}
+          />
+        )}
 
         {user?.token && (
           <ShareModal

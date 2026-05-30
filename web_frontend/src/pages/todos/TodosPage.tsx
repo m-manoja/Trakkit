@@ -9,12 +9,14 @@ import {
   Loader2,
   CheckCircle,
   Circle,
-  Share2,
+  Share2
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./TodosPage.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { usePlan } from "../../hooks/usePlan";
+import TodoFormModal from "./TodoFormModal";
+import DetailsModal from "../../components/DetailsModal/DetailsModal";
 import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
 import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
@@ -24,11 +26,12 @@ import {
   toggleTodo,
   type Todo 
 } from "../../api/todos";
-import TodoFormModal from "./TodoFormModal";
+import { useAlert } from "../../context/AlertContext";
 
 export default function TodosPage() {
   const { user } = useAuth();
   const { isPremium, isFree } = usePlan();
+  const { showAlert, showConfirm } = useAlert();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -38,12 +41,15 @@ export default function TodosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareItems, setShareItems] = useState<ShareModalItem[]>([]);
   const [bulkShareMode, setBulkShareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   const loadTodos = async () => {
     if (!user?.id || !user?.token) return;
@@ -67,31 +73,50 @@ export default function TodosPage() {
 
   useEffect(() => {
     if (location.state?.openModal) {
-      setIsModalOpen(true);
+      if (location.state?.itemId) {
+        setPendingItemId(location.state.itemId);
+      } else {
+        setIsModalOpen(true);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  const handleOpenModal = () => {
+  useEffect(() => {
+    if (pendingItemId && todos.length > 0) {
+      const item = todos.find(t => t.id === pendingItemId);
+      if (item) {
+        setSelectedTodo(item);
+        setDetailsModalOpen(true);
+      }
+      setPendingItemId(null);
+    }
+  }, [pendingItemId, todos]);
+
+  const handleOpenModal = (todo?: Todo) => {
+    setSelectedTodo(todo || null);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setSelectedTodo(null);
     if (location.state?.returnTo) {
       navigate(location.state.returnTo);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!user?.token || !window.confirm("Are you sure you want to delete this task?")) return;
+    if (!user?.token) return;
+    const isConfirmed = await showConfirm("Are you sure you want to delete this task?");
+    if (!isConfirmed) return;
     
     try {
       await deleteTodo(id, user.token);
       loadTodos();
     } catch (err) {
       console.error("Failed to delete:", err);
-      alert("Failed to delete task");
+      showAlert("Failed to delete task");
     }
   };
 
@@ -113,12 +138,12 @@ export default function TodosPage() {
     try {
       setIsSaving(true);
       formData.userId = user.id;
-      await saveTodo(null, formData, user.token);
+      await saveTodo(selectedTodo?.id || null, formData, user.token);
       handleCloseModal();
       loadTodos();
     } catch (err: any) {
       console.error("Save error:", err);
-      alert(err.message || "Failed to save task");
+      showAlert(err.message || "Failed to save task");
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +173,7 @@ export default function TodosPage() {
       .filter((t) => selectedIds.has(t.id))
       .map((t) => ({ itemType: 'todo' as const, itemId: t.id, label: t.task_name }));
     if (!items.length) {
-      alert('Select at least one task.');
+      showAlert('Select at least one task.');
       return;
     }
     openShare(items);
@@ -258,11 +283,11 @@ export default function TodosPage() {
                 
                 <div className={styles.itemActions}>
                   {isPremium && !bulkShareMode && (
-                    <button type="button" className={styles.deleteButton} title="Share" onClick={() => openShare([{ itemType: 'todo', itemId: todo.id, label: todo.task_name }])}>
+                    <button type="button" className={styles.deleteButton} title="Share" onClick={(e) => { e.stopPropagation(); openShare([{ itemType: 'todo', itemId: todo.id, label: todo.task_name }]); }}>
                       <Share2 size={20} />
                     </button>
                   )}
-                  <button className={styles.deleteButton} title="Delete" onClick={() => handleDelete(todo.id)}>
+                  <button className={styles.deleteButton} title="Delete" onClick={(e) => { e.stopPropagation(); handleDelete(todo.id); }}>
                     <Trash2 size={20} />
                   </button>
                 </div>
@@ -273,10 +298,31 @@ export default function TodosPage() {
 
         <TodoFormModal 
           isOpen={isModalOpen}
+          initialData={selectedTodo}
           onClose={handleCloseModal}
           onSubmit={handleSaveTodo}
           isSaving={isSaving}
         />
+
+        {selectedTodo && (
+          <DetailsModal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            title="To-Do Details"
+            entityName={selectedTodo.task_name}
+            fields={[
+              { label: "Status", value: selectedTodo.is_completed ? 'Completed' : 'Pending' },
+              ...(selectedTodo.has_reminder && selectedTodo.reminder_date ? [
+                { label: "Reminder", value: `${formatDate(selectedTodo.reminder_date)}${(selectedTodo as any).reminder_time ? `, ${formatTime12h((selectedTodo as any).reminder_time)}` : ''}` },
+                { label: "Schedule", value: `${selectedTodo.reminder_schedule || '7,3,1'} days prior` }
+              ] : [])
+            ]}
+            onManage={() => {
+              setDetailsModalOpen(false);
+              handleOpenModal(selectedTodo);
+            }}
+          />
+        )}
 
         {user?.token && (
           <ShareModal

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, UploadCloud, File, Loader2 } from "lucide-react";
 import styles from "./WarrantiesPage.module.css";
 import { type Warranty } from "../../api/warranties";
+import { useAlert } from "../../context/AlertContext";
 
 const CATEGORIES = ['Electronics', 'Appliances', 'Furniture', 'Vehicles', 'Other'];
 const DURATIONS = ['6', '12', '18', '24', '36', '48', '60'];
@@ -76,10 +77,12 @@ export default function WarrantyFormModal({
     }
   };
 
+  const { showAlert } = useAlert();
+
   const handleSubmitWrapper = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.purchase_date > today) {
-      alert("Purchase date cannot be in the future. Please enter the actual purchase date.");
+      showAlert("Purchase date cannot be in the future. Please enter the actual purchase date.");
       return;
     }
     const submitData = new FormData();
@@ -239,7 +242,11 @@ export default function WarrantyFormModal({
                 className={styles.formInput} 
                 placeholder="e.g. 30,14,7"
                 value={formData.reminder_schedule}
-                onChange={(e) => setFormData({...formData, reminder_schedule: e.target.value})}
+                onChange={(e) => {
+                  if (/^[0-9,]*$/.test(e.target.value)) {
+                    setFormData({...formData, reminder_schedule: e.target.value});
+                  }
+                }}
               />
             </div>
 

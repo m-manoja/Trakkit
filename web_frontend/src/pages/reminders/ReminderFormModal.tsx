@@ -4,6 +4,7 @@ import styles from "./RemindersPage.module.css";
 import { type Reminder } from "../../api/reminders";
 import { normalizeReminderTime } from "../../utils/reminderTime";
 import TimeSelect, { readTimeFromSelects } from "../../components/TimeSelect/TimeSelect";
+import { useAlert } from "../../context/AlertContext";
 
 const REMINDER_TIME_SELECT_ID = "reminder-form-time-select";
 
@@ -39,6 +40,7 @@ export default function ReminderFormModal({
   const [formData, setFormData] = useState(emptyForm());
   const reminderTimeRef = useRef("08:00");
   const initializedRef = useRef(false);
+  const { showAlert } = useAlert();
 
   const patchForm = (patch: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -81,11 +83,11 @@ export default function ReminderFormModal({
     const reminderTime = normalizeReminderTime(domTime ?? reminderTimeRef.current);
 
     if (!formData.title || !formData.type) {
-      alert("Please enter a Name and Type (*)");
+      showAlert("Please enter a Name and Type (*)");
       return;
     }
     if (formData.reminder_date < today) {
-      alert("Reminder date cannot be in the past. Please choose today or a future date.");
+      showAlert("Reminder date cannot be in the past. Please choose today or a future date.");
       return;
     }
 
@@ -211,7 +213,11 @@ export default function ReminderFormModal({
                   className={styles.formInput}
                   placeholder="e.g. 7,3,1"
                   value={formData.reminder_schedule}
-                  onChange={(e) => patchForm({ reminder_schedule: e.target.value })}
+                  onChange={(e) => {
+                    if (/^[0-9,]*$/.test(e.target.value)) {
+                      patchForm({ reminder_schedule: e.target.value });
+                    }
+                  }}
                 />
               </div>
             )}
