@@ -140,7 +140,7 @@ export default function ProfileSetupPage() {
               title={!isFirstSetup ? "Please use the Settings page to change your email" : ""}
             />
             {!isFirstSetup && (
-              <p style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+              <p className="profile-setup-note">
                 Use the Settings page to update your email.
               </p>
             )}
