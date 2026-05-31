@@ -84,7 +84,7 @@ export default function ProfileSetupPage() {
       setUser({ ...user, firstName, lastName, email, profileCompleted: true, emailVerified: false });
 
       if (email.trim()) {
-        sendEmailVerification(user.token, email.trim()).catch(() => {});
+        sendEmailVerification(user.token, email.trim(), "link").catch(() => {});
       }
 
       navigate("/verify-email-pending", { replace: true });

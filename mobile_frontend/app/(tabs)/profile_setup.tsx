@@ -144,7 +144,7 @@ export default function ProfileSetupScreen() {
       if (!isEditing) {
         // First-time setup: mark profile complete, trigger email verification
         await setUser({ ...updatedUser, profileCompleted: true, emailVerified: false });
-        sendEmailVerification(user.token, form.email.trim()).catch(() => {});
+        sendEmailVerification(user.token, form.email.trim(), 'link').catch(() => {});
         router.replace('/verify-email-pending' as any);
       } else {
         await setUser(updatedUser);

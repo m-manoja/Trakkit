@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../middlewares/async.middleware.js";
-import { login, verifyOtp, forgotPassword, resetPassword, sendVerifyEmail, verifyEmail } from "../controllers/auth.controller.js";
+import { login, verifyOtp, forgotPassword, resetPassword, sendVerifyEmail, verifyEmail, verifyEmailByLink } from "../controllers/auth.controller.js";
 import { emailLogin } from "../controllers/users.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -13,5 +13,6 @@ router.post("/forgot-password", asyncHandler(forgotPassword));
 router.post("/reset-password", asyncHandler(resetPassword));
 router.post("/verify-email/send", protect, asyncHandler(sendVerifyEmail));
 router.post("/verify-email/confirm", protect, asyncHandler(verifyEmail));
+router.get("/verify-email/link", asyncHandler(verifyEmailByLink));
 
 export default router;

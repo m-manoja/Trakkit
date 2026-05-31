@@ -53,7 +53,7 @@ export default function VerifyEmailPendingScreen() {
     if (!user?.token || !email) return;
     setResending(true);
     try {
-      await sendEmailVerification(user.token, email);
+      await sendEmailVerification(user.token, email, 'link');
       Alert.alert('Sent!', `A new verification link has been sent to ${email}.`);
     } catch (err: any) {
       Alert.alert('Failed', err.message || 'Could not resend the verification email.');

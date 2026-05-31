@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
+import { View, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { TimezoneProvider } from '../src/context/TimezoneContext';
 import PushNotificationRegistrar from '../src/components/PushNotificationRegistrar';
@@ -57,35 +58,70 @@ function AuthGuard() {
   return null;
 }
 
+function RootNavigator() {
+  const { loading } = useAuth();
+
+  // While the persisted session is being restored, show a splash instead of the
+  // login screen. Otherwise the login form renders during the async restore window,
+  // letting the user start typing a phone number before a saved session silently
+  // redirects them into the previous account — which looks like "logged in without OTP".
+  if (loading) {
+    return (
+      <View style={styles.splash}>
+        <Image source={require('../assets/images/icon.png')} style={styles.splashLogo} />
+        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 24 }} />
+      </View>
+    );
+  }
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: COLORS.background },
+      }}
+    >
+      <Stack.Screen name="login" />
+      <Stack.Screen name="verification" />
+      <Stack.Screen name="email_login" />
+      <Stack.Screen name="pricing" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="verify-email-pending" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="google-calendar-callback" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{
+          gestureEnabled: false,
+          headerBackVisible: false,
+        }}
+      />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   return (
     <AuthProvider>
       <TimezoneProvider>
       <PushNotificationRegistrar />
       <AuthGuard />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: COLORS.background },
-        }}
-      >
-        <Stack.Screen name="login" />
-        <Stack.Screen name="verification" />
-        <Stack.Screen name="email_login" />
-        <Stack.Screen name="pricing" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="verify-email-pending" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="google-calendar-callback" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            gestureEnabled: false,
-            headerBackVisible: false,
-          }}
-        />
-      </Stack>
+      <RootNavigator />
       </TimezoneProvider>
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background,
+  },
+  splashLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+  },
+});

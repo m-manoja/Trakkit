@@ -112,11 +112,15 @@ export async function resetPassword(token: string, password: string): Promise<vo
   if (!response.ok) throw new Error(result?.error || "Failed to reset password");
 }
 
-export async function sendEmailVerification(token: string, email: string): Promise<void> {
+export async function sendEmailVerification(
+  token: string,
+  email: string,
+  mode: "code" | "link" = "code"
+): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, mode }),
   });
 
   const result = await response.json().catch(() => ({}));

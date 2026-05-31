@@ -266,14 +266,70 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
 
 // ─── EMAIL VERIFICATION ───────────────────────────────────────────────────────
 
-export async function requestEmailVerification(userId: string, email: string): Promise<void> {
+export async function requestEmailVerification(
+  userId: string,
+  email: string,
+  mode: 'code' | 'link' = 'code'
+): Promise<void> {
+  // First-login verification uses a clickable link; the email-change flow in
+  // settings uses a 6-digit code. Both share this endpoint, hence the `mode`.
+  if (mode === 'link') {
+    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    const token = jwt.sign(
+      { userId, email: email.toLowerCase(), type: 'email-verify' },
+      secret,
+      { expiresIn: '24h' }
+    );
+    // NODE_ENV is forced to 'development' by the `dev` script and 'production' on Vercel.
+    // In dev the link must point at the local server, not the deployed Vercel backend.
+    const localUrl = `http://localhost:${process.env.PORT || 5000}`;
+    const backendUrl = (
+      process.env.NODE_ENV === 'production'
+        ? process.env.BACKEND_PUBLIC_URL || localUrl
+        : process.env.DEV_BACKEND_URL || localUrl
+    ).replace(/\/$/, '');
+    const verifyUrl = `${backendUrl}/api/auth/verify-email/link?token=${encodeURIComponent(token)}`;
+    await sendEmailVerificationEmail(email, verifyUrl);
+    return;
+  }
+
   const code = generateOtp();
-  emailOtpStore.set(userId, { 
-    code, 
-    newEmail: email.toLowerCase(), 
-    expiresAt: Date.now() + OTP_TTL_MS 
+  emailOtpStore.set(userId, {
+    code,
+    newEmail: email.toLowerCase(),
+    expiresAt: Date.now() + OTP_TTL_MS
   });
   await sendOtpEmail(email, code);
+}
+
+/**
+ * Confirms email verification from a clickable link (first-login flow).
+ * The token is a self-contained JWT, so no server-side store lookup is needed.
+ */
+export async function confirmEmailVerificationByLink(token: string): Promise<{ email: string }> {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  let payload: any;
+  try {
+    payload = jwt.verify(token, secret);
+  } catch {
+    throw new AuthServiceError('Verification link is invalid or expired', 400);
+  }
+
+  if (payload.type !== 'email-verify') {
+    throw new AuthServiceError('Invalid token', 400);
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ email_verified: true, email: payload.email })
+    .eq('id', payload.userId);
+
+  if (error) {
+    console.error('Update failed in DB:', error);
+    throw new AuthServiceError(`Failed to verify email: ${error.message}`, 500);
+  }
+
+  return { email: payload.email };
 }
 
 export async function confirmEmailVerification(userId: string, token: string): Promise<{ email: string }> {

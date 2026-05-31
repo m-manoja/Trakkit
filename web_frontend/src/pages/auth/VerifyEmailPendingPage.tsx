@@ -21,7 +21,7 @@ export default function VerifyEmailPendingPage() {
     setResending(true);
     setResent(false);
     try {
-      await sendEmailVerification(user.token, email);
+      await sendEmailVerification(user.token, email, "link");
       setResent(true);
     } catch {
       // silently ignore — email service error

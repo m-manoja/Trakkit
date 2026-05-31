@@ -21,13 +21,18 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   const fullPath = location.pathname + location.search;
 
-  // When the pricing page is opened from the mobile app, always require a fresh login
-  // even if a stale web session exists in localStorage. The flag is set by OTPVerificationPage
-  // after the user successfully authenticates for this mobile upgrade session.
+  // When the pricing page is opened from the mobile app, show it publicly so the user
+  // can review the plans first. The "Upgrade Now" button (in PricingPage) gates the
+  // actual payment behind a fresh login — we deliberately skip every auth/profile check
+  // here so a logged-out (or stale-session) mobile visitor still sees the page.
   const isMobileUpgrade =
     location.pathname === '/pricing' && location.search.includes('source=mobile');
 
-  if (!user || (isMobileUpgrade && !sessionStorage.getItem('trakkit_mobile_login_done'))) {
+  if (isMobileUpgrade) {
+    return <>{children}</>;
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: fullPath }} />;
   }
 

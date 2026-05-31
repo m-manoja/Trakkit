@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import styles from './PricingPage.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -38,15 +38,12 @@ const PREMIUM_FEATURES = [
 export default function PricingPage() {
   const { user, refreshPlan } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user?.token) refreshPlan();
-    if (searchParams.get('source') === 'mobile') {
-      sessionStorage.setItem('trakkit_payment_source', 'mobile');
-    } else {
-      sessionStorage.removeItem('trakkit_payment_source');
-    }
-  }, [user?.token, refreshPlan, searchParams]);
+  const isMobile = searchParams.get('source') === 'mobile';
+  // A fresh login is required before a mobile visitor can pay. The flag is set by
+  // OTPVerificationPage once they authenticate for this upgrade session.
+  const mobileLoginDone = () => sessionStorage.getItem('trakkit_mobile_login_done') === '1';
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +52,17 @@ export default function PricingPage() {
 
   const isPremium = user?.plan === 'premium';
 
-  const handleUpgrade = async () => {
+  useEffect(() => {
+    if (user?.token) refreshPlan();
+    if (isMobile) {
+      sessionStorage.setItem('trakkit_payment_source', 'mobile');
+    } else {
+      sessionStorage.removeItem('trakkit_payment_source');
+    }
+  }, [user?.token, refreshPlan, isMobile]);
+
+  // Kick off the PayHere checkout. Assumes the user is authenticated.
+  const startPayment = async () => {
     if (!user?.token) return;
     setLoading(true);
     setError(null);
@@ -64,7 +71,7 @@ export default function PricingPage() {
       const data = await initiatePayment(user.token);
       setPaymentData(data);
       sessionStorage.setItem('trakkit_pending_order_id', data.order_id);
-      
+
       setTimeout(() => {
         formRef.current?.submit();
       }, 100);
@@ -74,8 +81,33 @@ export default function PricingPage() {
     }
   };
 
-  return (
-    <Layout>
+  const handleUpgrade = () => {
+    // Mobile flow: force a fresh login before paying. Remember the intent so we can
+    // resume checkout automatically once the user returns from the login screen.
+    if (isMobile && (!user?.token || !mobileLoginDone())) {
+      sessionStorage.setItem('trakkit_mobile_upgrade_intent', '1');
+      navigate('/login', { state: { from: '/pricing?source=mobile' } });
+      return;
+    }
+    startPayment();
+  };
+
+  // After a mobile visitor logs in, they land back here — resume checkout automatically.
+  useEffect(() => {
+    if (
+      isMobile &&
+      user?.token &&
+      mobileLoginDone() &&
+      !isPremium &&
+      sessionStorage.getItem('trakkit_mobile_upgrade_intent') === '1'
+    ) {
+      sessionStorage.removeItem('trakkit_mobile_upgrade_intent');
+      startPayment();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resume once when auth is ready
+  }, [isMobile, user?.token, isPremium]);
+
+  const body = (
       <div className={styles.pageWrapper}>
 
         {/* ── Header ── */}
@@ -218,6 +250,13 @@ export default function PricingPage() {
           </form>
         )}
       </div>
-    </Layout>
   );
+
+  // Mobile upgrade flow: render a clean, standalone page (no app sidebar) so a
+  // logged-out visitor isn't shown the authenticated app shell.
+  if (isMobile) {
+    return <div className={styles.standalonePage}>{body}</div>;
+  }
+
+  return <Layout>{body}</Layout>;
 }

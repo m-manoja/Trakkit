@@ -36,14 +36,18 @@ export async function forgotPassword(email: string) {
   return true;
 }
 
-export async function sendEmailVerification(token: string, email: string) {
+export async function sendEmailVerification(
+  token: string,
+  email: string,
+  mode: "code" | "link" = "code"
+) {
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-email/send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, mode }),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result?.error || "Failed to send verification email");
