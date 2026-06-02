@@ -3,6 +3,11 @@ import * as reminderService from '../services/reminder.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
 import { normalizeReminderTime } from '../utils/timezone.js';
 
+// Accepts both the new 'recurring' type and the legacy 'repeat' value.
+function isRecurringType(type: string): boolean {
+    return type === 'recurring' || type === 'repeat';
+}
+
 function userIdFromRequest(req: Request): string | undefined {
     const user = (req as any).user;
     return user?.id || user?.userId;
@@ -39,7 +44,7 @@ export const addReminder = async (req: Request, res: Response) => {
             title,
             type,
             reminder_date,
-            repeat_cycle: type === 'repeat' ? (repeat_cycle || 'Every week') : null,
+            repeat_cycle: isRecurringType(type) ? (repeat_cycle || 'Every week') : null,
             remind_time: remind_time || 'On the day',
             reminder_schedule,
             reminder_time: normalizeReminderTime(reminder_time),
@@ -72,7 +77,7 @@ export const updateReminder = async (req: Request, res: Response) => {
             title,
             type,
             reminder_date,
-            repeat_cycle: type === 'repeat' ? repeat_cycle : null,
+            repeat_cycle: isRecurringType(type) ? repeat_cycle : null,
             remind_time,
             reminder_schedule,
             reminder_time: normalizeReminderTime(reminder_time),

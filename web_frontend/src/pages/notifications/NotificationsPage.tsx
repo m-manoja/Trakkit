@@ -46,7 +46,7 @@ function renderFields(type: string, detail: any) {
           {detail.reminder_date && <FieldRow label="Date"   value={formatDate(detail.reminder_date)} />}
           {detail.type          && <FieldRow label="Type"   value={detail.type} />}
           {detail.remind_time   && <FieldRow label="Remind" value={detail.remind_time} />}
-          {detail.repeat_cycle  && <FieldRow label="Repeat" value={detail.repeat_cycle} />}
+          {detail.repeat_cycle  && <FieldRow label="Recurring" value={detail.repeat_cycle} />}
           {detail.description   && <FieldRow label="Notes"  value={detail.description} />}
         </>
       );

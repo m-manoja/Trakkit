@@ -288,9 +288,9 @@ export default function RemindersPage() {
                     <span className={styles.infoLabel}>Remind</span>
                     <span className={styles.infoValue}>{rem.remind_time}</span>
                   </div>
-                  {rem.type === 'repeat' && rem.repeat_cycle && (
+                  {(rem.type === 'recurring' || rem.type === 'repeat') && rem.repeat_cycle && (
                     <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Repeat</span>
+                      <span className={styles.infoLabel}>Recurring</span>
                       <span className={styles.infoValue}>{rem.repeat_cycle}</span>
                     </div>
                   )}
@@ -327,7 +327,7 @@ export default function RemindersPage() {
             fields={[
               { label: "Date", value: formatDate(selectedReminder.reminder_date) },
               ...(selectedReminder.reminder_time ? [{ label: "Time", value: selectedReminder.reminder_time }] : []),
-              ...(selectedReminder.repeat_cycle && selectedReminder.repeat_cycle !== 'None' ? [{ label: "Repeats", value: selectedReminder.repeat_cycle }] : []),
+              ...(selectedReminder.repeat_cycle && selectedReminder.repeat_cycle !== 'None' ? [{ label: "Recurring", value: selectedReminder.repeat_cycle }] : []),
               ...(selectedReminder.description ? [{ label: "Description", value: selectedReminder.description }] : [])
             ]}
             onManage={() => {

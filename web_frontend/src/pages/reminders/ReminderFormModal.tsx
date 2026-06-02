@@ -16,8 +16,14 @@ interface ReminderFormModalProps {
   isSaving: boolean;
 }
 
-const REMINDER_TYPES = ['one time', 'repeat'];
-const REPEAT_CYCLES = ['Everyday', 'Every week', 'Every month', 'Every year'];
+const REMINDER_TYPES = ['one time', 'recurring'];
+const RECURRING_CYCLES = ['Everyday', 'Every week', 'Every month', 'Every year'];
+const CUSTOM_DAYS_RE = /^every\s+(\d+)\s+days?$/i;
+
+// Treat legacy 'repeat' records as recurring for backward compatibility.
+const isRecurringType = (type: string) => type === 'recurring' || type === 'repeat';
+const isCustomCycle = (cycle: string) => CUSTOM_DAYS_RE.test(cycle.trim());
+const buildCustomCycle = (days: string) => `Every ${days || '2'} days`;
 
 const emptyForm = (reminderSchedule = "7,3,1") => ({
   title: "",
@@ -25,6 +31,7 @@ const emptyForm = (reminderSchedule = "7,3,1") => ({
   reminder_date: new Date().toISOString().split('T')[0],
   reminder_time: "08:00",
   repeat_cycle: "",
+  custom_days: "2",
   remind_time: "On the day",
   description: "",
   reminder_schedule: reminderSchedule,
@@ -57,12 +64,15 @@ export default function ReminderFormModal({
     if (initialData) {
       const time = normalizeReminderTime(initialData.reminder_time);
       reminderTimeRef.current = time;
+      const cycle = initialData.repeat_cycle || "";
+      const customMatch = cycle.match(CUSTOM_DAYS_RE);
       setFormData({
         title: initialData.title,
         type: initialData.type,
         reminder_date: new Date(initialData.reminder_date).toISOString().split('T')[0],
         reminder_time: time,
-        repeat_cycle: initialData.repeat_cycle || "",
+        repeat_cycle: cycle,
+        custom_days: customMatch ? customMatch[1] : "2",
         remind_time: initialData.remind_time || "On the day",
         description: initialData.description || "",
         reminder_schedule: initialData.reminder_schedule || "7,3,1",
@@ -96,7 +106,7 @@ export default function ReminderFormModal({
       type: formData.type,
       reminder_date: new Date(formData.reminder_date).toISOString(),
       reminder_time: reminderTime,
-      repeat_cycle: formData.type === 'repeat' ? formData.repeat_cycle : null,
+      repeat_cycle: isRecurringType(formData.type) ? formData.repeat_cycle : null,
       remind_time: formData.remind_time,
       reminder_schedule: (formData.remind_time === 'Before the day' || formData.remind_time === 'On and before')
         ? formData.reminder_schedule
@@ -167,14 +177,14 @@ export default function ReminderFormModal({
               </div>
             </div>
 
-            {formData.type === 'repeat' && (
+            {isRecurringType(formData.type) && (
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Reminder cycle (if repeat) *</label>
+                <label className={styles.formLabel}>Reminder cycle (if recurring) *</label>
                 <div className={styles.radioGroupGrid}>
-                  {REPEAT_CYCLES.map(cycle => (
+                  {RECURRING_CYCLES.map(cycle => (
                     <label key={cycle} className={styles.radioLabelContainer}>
-                      <input 
-                        type="radio" 
+                      <input
+                        type="radio"
                         name="repeat_cycle"
                         value={cycle}
                         checked={formData.repeat_cycle === cycle}
@@ -183,7 +193,33 @@ export default function ReminderFormModal({
                       <span>{cycle}</span>
                     </label>
                   ))}
+                  <label className={styles.radioLabelContainer}>
+                    <input
+                      type="radio"
+                      name="repeat_cycle"
+                      checked={isCustomCycle(formData.repeat_cycle)}
+                      onChange={() => patchForm({ repeat_cycle: buildCustomCycle(formData.custom_days) })}
+                    />
+                    <span>Custom</span>
+                  </label>
                 </div>
+                {isCustomCycle(formData.repeat_cycle) && (
+                  <div className={styles.customDaysRow}>
+                    <span>Every</span>
+                    <input
+                      type="number"
+                      min={1}
+                      className={styles.formInput}
+                      value={formData.custom_days}
+                      onChange={(e) => {
+                        const days = e.target.value.replace(/[^0-9]/g, '');
+                        patchForm({ custom_days: days, repeat_cycle: buildCustomCycle(days) });
+                      }}
+                      aria-label="Recurring interval in days"
+                    />
+                    <span>day(s)</span>
+                  </div>
+                )}
               </div>
             )}
 

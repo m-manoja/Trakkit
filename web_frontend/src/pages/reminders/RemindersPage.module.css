@@ -228,6 +228,20 @@
   margin-top: 0.25rem;
 }
 
+.customDaysRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.customDaysRow .formInput {
+  width: 80px;
+  text-align: center;
+}
+
 .radioLabelContainer {
   display: flex;
   align-items: center;

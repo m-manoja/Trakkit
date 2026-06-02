@@ -63,6 +63,19 @@ export function toLocalDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Parses a custom recurring cycle like "Every 3 days" / "Every 4 day".
+ * Returns the day interval (> 0) or null if the cycle is not a custom-day cycle.
+ */
+export function customDayInterval(cycle: string): number | null {
+  const match = cycle.toLowerCase().trim().match(/^every\s+(\d+)\s+days?$/);
+  if (match) {
+    const n = parseInt(match[1]!, 10);
+    if (n > 0) return n;
+  }
+  return null;
+}
+
 export function getNextOccurrence(
   startDateStr: string,
   cycle: string,
@@ -70,10 +83,13 @@ export function getNextOccurrence(
 ): Date {
   const next = parseLocalDate(startDateStr.split('T')[0] ?? startDateStr);
   const normalizedCycle = cycle.toLowerCase();
+  const customDays = customDayInterval(normalizedCycle);
   const todayYmd = todayYmdInTz(timezone);
 
   while (dateToYmdInTz(next, timezone) < todayYmd) {
-    if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
+    if (customDays) {
+      next.setDate(next.getDate() + customDays);
+    } else if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
       next.setDate(next.getDate() + 7);
     } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
       next.setMonth(next.getMonth() + 1);
@@ -91,7 +107,10 @@ export function getNextOccurrence(
 export function advanceOneCycle(date: Date, cycle: string): Date {
   const next = new Date(date);
   const normalizedCycle = cycle.toLowerCase();
-  if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
+  const customDays = customDayInterval(normalizedCycle);
+  if (customDays) {
+    next.setDate(next.getDate() + customDays);
+  } else if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
     next.setDate(next.getDate() + 7);
   } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
     next.setMonth(next.getMonth() + 1);
@@ -116,7 +135,10 @@ export function calculateReminderDates(
   let daysArray = scheduleStr.split(',').map((d) => parseInt(d.trim(), 10)).filter((d) => !isNaN(d));
 
   const normalizedCycle = cycle?.toLowerCase();
-  if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
+  const customDays = normalizedCycle ? customDayInterval(normalizedCycle) : null;
+  if (customDays) {
+    daysArray = daysArray.filter((d) => d < customDays);
+  } else if (normalizedCycle === 'weekly' || normalizedCycle === 'every week') {
     daysArray = daysArray.filter((d) => d < 7);
   } else if (normalizedCycle === 'monthly' || normalizedCycle === 'every month') {
     daysArray = daysArray.filter((d) => d < 28);

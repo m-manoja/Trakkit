@@ -18,6 +18,12 @@ import Header from '../../src/components/Header';
 import ShareModal from '../../src/components/ShareModal';
 import { ShareHeaderActions, SharePageNotices, shareCardStyles } from '../../src/components/SharePageHeader';
 
+const CUSTOM_DAYS_RE = /^every\s+(\d+)\s+days?$/i;
+// Treat legacy 'repeat' records as recurring for backward compatibility.
+const isRecurringType = (type: string) => type === 'recurring' || type === 'repeat';
+const isCustomCycle = (cycle?: string | null) => !!cycle && CUSTOM_DAYS_RE.test(cycle.trim());
+const buildCustomCycle = (days: string) => `Every ${days || '2'} days`;
+
 export default function RemindersScreen() {
   const { user, loading: authLoading } = useAuth();
   const { isPremium, isFree } = usePlan();
@@ -45,6 +51,7 @@ export default function RemindersScreen() {
     reminder_date: Date;
     reminder_time: string;
     repeat_cycle: string | null;
+    custom_days: string;
     remind_time: string;
     description: string;
     reminder_schedule: string;
@@ -54,13 +61,14 @@ export default function RemindersScreen() {
     reminder_date: new Date(),
     reminder_time: '08:00',
     repeat_cycle: null,
+    custom_days: '2',
     remind_time: 'On the day',
     description: '',
     reminder_schedule: ''
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
-  const reminderTypes = ['one time', 'repeat'];
+  const reminderTypes = ['one time', 'recurring'];
 
   // --- API: FETCH ---
   const fetchReminders = useCallback(async () => {
@@ -120,7 +128,7 @@ export default function RemindersScreen() {
         type,
         reminder_date: localDateStr,
         reminder_time: currentReminderTime,
-        repeat_cycle: type === 'repeat' ? repeat_cycle : null,
+        repeat_cycle: isRecurringType(type) ? repeat_cycle : null,
         remind_time,
         reminder_schedule: (remind_time === 'Before the day' || remind_time === 'On and before') ? (reminder_schedule.trim() || defaultReminderSchedule) : null,
         description: description.trim(),
@@ -169,12 +177,14 @@ export default function RemindersScreen() {
     setEditId(item.id);
     const editTime = item.reminder_time || '08:00';
     reminderTimeRef.current = editTime;
+    const customMatch = (item.repeat_cycle || '').match(CUSTOM_DAYS_RE);
     setFormData({
       title: item.title,
       type: item.type,
       reminder_date: new Date(item.reminder_date),
       reminder_time: editTime,
       repeat_cycle: item.repeat_cycle,
+      custom_days: customMatch ? customMatch[1] : '2',
       remind_time: item.remind_time,
       description: item.description || '',
       reminder_schedule: item.reminder_schedule || defaultReminderSchedule
@@ -185,7 +195,7 @@ export default function RemindersScreen() {
   const resetForm = () => {
     setEditId(null);
     reminderTimeRef.current = '08:00';
-    setFormData({ title: '', type: '', reminder_date: new Date(), reminder_time: '08:00', repeat_cycle: null, remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
+    setFormData({ title: '', type: '', reminder_date: new Date(), reminder_time: '08:00', repeat_cycle: null, custom_days: '2', remind_time: 'On the day', description: '', reminder_schedule: defaultReminderSchedule });
   };
 
   const openPicker = (title: string, options: string[], field: string) => {
@@ -286,7 +296,7 @@ export default function RemindersScreen() {
             </View>
             {item.repeat_cycle && (
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Repeat</Text>
+                <Text style={styles.infoLabel}>Recurring</Text>
                 <Text style={styles.infoValue}>{item.repeat_cycle}</Text>
               </View>
             )}
@@ -407,10 +417,10 @@ export default function RemindersScreen() {
                 <Ionicons name="time-outline" size={20} color="#666" />
               </TouchableOpacity>
 
-              {/* Cycle Section - Only show for repeat type */}
-              {formData.type === 'repeat' && (
+              {/* Cycle Section - Only show for recurring type */}
+              {isRecurringType(formData.type) && (
                 <>
-                  <Text style={styles.sectionLabel}>Reminder cycle (if repeat)</Text>
+                  <Text style={styles.sectionLabel}>Reminder cycle (if recurring)</Text>
                   <View style={styles.radioGrid}>
                     <View style={styles.radioCol}>
                       <RadioButton label="Everyday" value="Everyday" field="repeat_cycle" />
@@ -421,6 +431,34 @@ export default function RemindersScreen() {
                       <RadioButton label="Every year" value="Every year" field="repeat_cycle" />
                     </View>
                   </View>
+                  <TouchableOpacity
+                    style={styles.radioRow}
+                    onPress={() => setFormData({ ...formData, repeat_cycle: buildCustomCycle(formData.custom_days) })}
+                  >
+                    <Ionicons
+                      name={isCustomCycle(formData.repeat_cycle) ? 'radio-button-on' : 'radio-button-off'}
+                      size={22}
+                      color={isCustomCycle(formData.repeat_cycle) ? COLORS.primary : '#666'}
+                    />
+                    <Text style={styles.radioLabel}>Custom</Text>
+                  </TouchableOpacity>
+                  {isCustomCycle(formData.repeat_cycle) && (
+                    <View style={styles.customDaysRow}>
+                      <Text style={styles.radioLabel}>Every</Text>
+                      <View style={styles.customDaysInput}>
+                        <TextInput
+                          keyboardType="number-pad"
+                          value={formData.custom_days}
+                          onChangeText={(t) => {
+                            const days = t.replace(/[^0-9]/g, '');
+                            setFormData({ ...formData, custom_days: days, repeat_cycle: buildCustomCycle(days) });
+                          }}
+                          style={{ textAlign: 'center', color: '#333' }}
+                        />
+                      </View>
+                      <Text style={styles.radioLabel}>day(s)</Text>
+                    </View>
+                  )}
                 </>
               )}
 
@@ -670,6 +708,8 @@ const styles = StyleSheet.create({
   radioCol: { width: '48%' },
   radioRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   radioLabel: { marginLeft: 10, fontSize: 14, color: '#333' },
+  customDaysRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 4 },
+  customDaysInput: { width: 70, height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#CCC', justifyContent: 'center', paddingHorizontal: 8, marginHorizontal: 4 },
   modalFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 30, paddingBottom: 10 },
   cancelBtn: { width: '45%', height: 48, borderRadius: 10, borderWidth: 1, borderColor: '#CCC', justifyContent: 'center', alignItems: 'center' },
   cancelBtnText: { fontWeight: 'bold', fontSize: 15 },

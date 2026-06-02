@@ -63,7 +63,7 @@ function ItemDetails({ entry }: { entry: ShareListEntry }) {
         { label: 'Type', value: String(item.type || '—') },
         { label: 'Date', value: formatDate(item.reminder_date) },
         { label: 'Remind', value: String(item.remind_time || '—') },
-        { label: 'Repeat', value: String(item.repeat_cycle || '—') },
+        { label: 'Recurring', value: String(item.repeat_cycle || '—') },
         { label: 'Description', value: String(item.description || '—') }
       );
       break;

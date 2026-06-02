@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 import { TimezoneProvider } from "./context/TimezoneContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import LoginPage from "./pages/auth/LoginPage";
 import EmailLoginPage from "./pages/auth/EmailLoginPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
@@ -19,12 +21,15 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import PricingPage from "./pages/premium/PricingPage";
 import PaymentSuccessPage from "./pages/premium/PaymentSuccessPage";
 import PaymentCancelPage from "./pages/premium/PaymentCancelPage";
+import AdminPortalPage from "./pages/admin/AdminPortalPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
 
 import { AlertProvider } from "./context/AlertContext";
 
 export default function App() {
   return (
     <AuthProvider>
+      <AdminAuthProvider>
       <TimezoneProvider>
       <AlertProvider>
       <BrowserRouter>
@@ -118,6 +123,17 @@ export default function App() {
             }
           />
 
+          {/* Admin portal — fully separate auth, its own login */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPortalPage />
+              </AdminRoute>
+            }
+          />
+
           {/* Payment result pages — no sidebar, standalone pages */}
           <Route
             path="/payment/success"
@@ -143,6 +159,7 @@ export default function App() {
       </BrowserRouter>
       </AlertProvider>
       </TimezoneProvider>
+      </AdminAuthProvider>
     </AuthProvider>
   );
 }
