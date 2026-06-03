@@ -119,7 +119,7 @@ export default function LoginPage() {
           </button>
 
           <p className={styles.hint}>
-            <button type="button" className={styles.lostPhoneLink} onClick={() => navigate("/login/email")}>
+            <button type="button" className={styles.lostPhoneLink} onClick={() => navigate("/login/email", { state: { from: returnTo } })}>
               Lost your phone number?
             </button>
           </p>

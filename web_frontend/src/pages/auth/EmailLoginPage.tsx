@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { emailLogin } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import { normalizePlan } from "../../utils/plan";
@@ -7,6 +7,8 @@ import styles from "./EmailLoginPage.module.css";
 
 export default function EmailLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { from?: string } | null)?.from;
   const { setUser } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -46,7 +48,15 @@ export default function EmailLoginPage() {
         plan: normalizePlan(user.plan),
       });
 
-      navigate("/dashboard", { replace: true });
+      // Mark a fresh authentication for the mobile upgrade flow so the pricing
+      // page trusts this session instead of any stale one. Mirrors OTPVerificationPage.
+      if (returnTo?.includes('source=mobile')) {
+        sessionStorage.setItem('trakkit_mobile_login_done', '1');
+      }
+
+      // Return to wherever login was requested from (e.g. the mobile checkout),
+      // falling back to the dashboard for a normal sign-in.
+      navigate(returnTo || "/dashboard", { replace: true });
     } catch (e: unknown) {
       setError(
         e instanceof Error ? e.message : "Incorrect email or password."
@@ -67,7 +77,7 @@ export default function EmailLoginPage() {
 
       <div className={styles.card}>
         {/* Back */}
-        <button type="button" className={styles.backRow} onClick={() => navigate("/login")}>
+        <button type="button" className={styles.backRow} onClick={() => navigate("/login", { state: { from: returnTo } })}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
