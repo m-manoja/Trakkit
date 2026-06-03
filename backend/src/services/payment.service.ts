@@ -234,7 +234,7 @@ export async function getUserPlan(userId: string): Promise<{ plan: string; plan_
     .from('users')
     .select('plan, plan_activated_at')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
 

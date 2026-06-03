@@ -182,7 +182,7 @@ export async function getConnectionStatus(userId: string): Promise<{
     .from('users')
     .select('google_refresh_token, google_calendar_email')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
 
@@ -259,7 +259,7 @@ async function getAuthenticatedCalendar(userId: string) {
     .from('users')
     .select('google_refresh_token, google_calendar_email')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
   if (!data?.google_refresh_token) {
