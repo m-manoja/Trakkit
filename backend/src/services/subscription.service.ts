@@ -12,6 +12,19 @@ import {
 import { dateToYmdInTz, todayYmdInTz } from '../utils/timezone.js';
 import { removeSharesForItem } from './sharing.service.js';
 
+// The manage/billing link is whatever the user pasted in. We only keep it if it's a
+// valid http(s) URL, otherwise null. We never guess or auto-fill it.
+const sanitizeManageUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const trimmed = value.trim();
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? trimmed : null;
+  } catch {
+    return null;
+  }
+};
+
 export const createSubscription = async (userId: string, data: any) => {
   const {
     service_name,
@@ -24,6 +37,7 @@ export const createSubscription = async (userId: string, data: any) => {
 
   const tz = await getUserTimezone(userId);
   const next_billing_date = toLocalDateStr(getInitialSubscriptionDueDate(start_date, billing_cycle, tz));
+  const manage_url = sanitizeManageUrl(data.manage_url);
 
   const { data: result, error } = await supabase
     .from('subscriptions')
@@ -38,7 +52,8 @@ export const createSubscription = async (userId: string, data: any) => {
         next_billing_date,
         description,
         status: 'Active',
-        reminder_schedule: data.reminder_schedule || null
+        reminder_schedule: data.reminder_schedule || null,
+        manage_url
       }
     ])
     .select();
@@ -143,7 +158,8 @@ export const updateSubscription = async (id: string, userId: string, updateData:
       next_billing_date: next_billing_date,
       description: updateData.description,
       status: updateData.status,
-      reminder_schedule: updateData.reminder_schedule || null
+      reminder_schedule: updateData.reminder_schedule || null,
+      manage_url: sanitizeManageUrl(updateData.manage_url)
     })
     .eq('id', id)
     .eq('userId', userId)

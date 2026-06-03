@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Edit2 } from 'lucide-react';
+import { X, Edit2, ExternalLink } from 'lucide-react';
 import styles from './DetailsModal.module.css';
 
 export interface DetailField {
@@ -15,6 +15,8 @@ interface DetailsModalProps {
   icon?: React.ReactNode;
   fields: DetailField[];
   onManage: () => void;
+  /** When set, shows a button that opens the provider's account/billing page in a new tab. */
+  manageUrl?: string;
 }
 
 export default function DetailsModal({
@@ -24,7 +26,8 @@ export default function DetailsModal({
   entityName,
   icon,
   fields,
-  onManage
+  onManage,
+  manageUrl
 }: DetailsModalProps) {
   
   // Prevent background scrolling when open
@@ -70,6 +73,14 @@ export default function DetailsModal({
 
         <div className={styles.modalFooter}>
           <button onClick={onClose} className={styles.btnCancel}>Close</button>
+          {manageUrl && (
+            <button
+              onClick={() => window.open(manageUrl, '_blank', 'noopener')}
+              className={styles.btnManageExternal}
+            >
+              Manage on site <ExternalLink size={16} />
+            </button>
+          )}
           <button onClick={onManage} className={styles.btnManage}>
             Manage <Edit2 size={16} />
           </button>

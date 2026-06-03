@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { formatDate, formatDateTime, isToday, isYesterday } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, RefreshControl, StatusBar, Animated, Modal,
+  ActivityIndicator, Alert, RefreshControl, StatusBar, Animated, Modal, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
 import { useAuth } from '../../src/context/AuthContext';
+import { API_BASE_URL } from '../../src/api/config';
 import { COLORS } from '../../src/theme/colors';
 import {
   fetchNotifications,
@@ -84,6 +86,23 @@ export default function NotificationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
+  // Manage/billing link for the selected subscription notification (best-effort).
+  const [subManageUrl, setSubManageUrl] = useState<string | null>(null);
+
+  // When a subscription notification is opened, load that subscription's manage link.
+  useEffect(() => {
+    setSubManageUrl(null);
+    if (!selectedNotif || selectedNotif.reference_type !== 'subscription' || !token) return;
+    axios
+      .get(`${API_BASE_URL}/api/subscriptions/${selectedNotif.reference_id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const sub = res.data?.data || res.data;
+        setSubManageUrl(sub?.manage_url || null);
+      })
+      .catch(() => { /* link is best-effort */ });
+  }, [selectedNotif, token]);
 
   const loadNotifications = useCallback(async () => {
     if (!token) return;
@@ -302,6 +321,17 @@ export default function NotificationsScreen() {
 
                   {/* Divider */}
                   <View style={styles.detailDivider} />
+
+                  {/* Jump to the provider's account/billing page */}
+                  {selectedNotif.reference_type === 'subscription' && subManageUrl && (
+                    <TouchableOpacity
+                      style={styles.detailManageBtn}
+                      onPress={() => Linking.openURL(subManageUrl)}
+                    >
+                      <Ionicons name="open-outline" size={20} color={cfg.color} style={{ marginRight: 8 }} />
+                      <Text style={[styles.detailManageBtnText, { color: cfg.color }]}>Manage on provider's site</Text>
+                    </TouchableOpacity>
+                  )}
 
                   {/* Navigation button */}
                   <TouchableOpacity
@@ -562,6 +592,22 @@ const styles = StyleSheet.create({
   },
   detailNavBtnText: {
     color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  detailManageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  detailManageBtnText: {
     fontWeight: '700',
     fontSize: 15,
   },

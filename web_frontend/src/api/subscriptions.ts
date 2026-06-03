@@ -12,6 +12,7 @@ export interface Subscription {
   status?: string;
   description?: string;
   reminder_schedule?: string;
+  manage_url?: string | null;
 }
 
 export async function fetchSubscriptions(userId: string, token: string): Promise<Subscription[]> {
@@ -51,3 +52,4 @@ export async function saveSubscription(
 export async function renewSubscription(id: string, token: string): Promise<Subscription> {
   return apiRequest<Subscription>(`/api/subscriptions/${id}/renew`, "PUT", undefined, token);
 }
+

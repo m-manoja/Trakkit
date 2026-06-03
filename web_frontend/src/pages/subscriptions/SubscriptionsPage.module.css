@@ -221,6 +221,19 @@
   min-height: 100px;
 }
 
+.formHint {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #6B7280;
+}
+
+.optionalTag {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #9CA3AF;
+}
+
 .modalFooter {
   padding: 1.5rem 2rem;
   border-top: 1px solid rgba(229, 231, 235, 0.5);
@@ -465,6 +478,28 @@
   border-color: #ef4444;
   color: white;
   background: #ef4444;
+}
+
+.manageButton {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #B9375D;
+  background: white;
+  color: #B9375D;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.manageButton:hover {
+  background: #B9375D;
+  color: white;
 }
 
 .emptyState {

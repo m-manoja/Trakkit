@@ -9,7 +9,8 @@ import {
   Trash2, 
   RefreshCw,
   Loader2,
-  Share2
+  Share2,
+  ExternalLink
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./SubscriptionsPage.module.css";
@@ -20,11 +21,11 @@ import { usePlan } from "../../hooks/usePlan";
 import ShareModal, { type ShareModalItem } from "../../components/ShareModal/ShareModal";
 import PremiumUpgradeCard from "../../components/PremiumUpgradeCard/PremiumUpgradeCard";
 import { 
-  fetchSubscriptions, 
-  deleteSubscription, 
-  saveSubscription, 
+  fetchSubscriptions,
+  deleteSubscription,
+  saveSubscription,
   renewSubscription,
-  type Subscription 
+  type Subscription
 } from "../../api/subscriptions";
 import { useAlert } from "../../context/AlertContext";
 
@@ -275,6 +276,16 @@ export default function SubscriptionsPage() {
                     </div>
                   </div>
                   <div className={styles.cardActions}>
+                    {sub.manage_url && (
+                      <button
+                        type="button"
+                        className={styles.iconButton}
+                        title="Manage on provider's site (pay, change plan, or cancel)"
+                        onClick={() => window.open(sub.manage_url!, '_blank', 'noopener')}
+                      >
+                        <ExternalLink size={18} />
+                      </button>
+                    )}
                     {isPremium && !bulkShareMode && (
                       <button type="button" className={styles.iconButton} title="Share" onClick={() => openShare([{ itemType: 'subscription', itemId: sub.id, label: sub.service_name }])}>
                         <Share2 size={18} />
@@ -316,14 +327,26 @@ export default function SubscriptionsPage() {
                   )}
                 </div>
 
-                <button 
+                <button
                   className={`${styles.claimButton} ${sub.status !== 'Active' ? styles.claimButtonActive : ''}`}
                   disabled={sub.status === 'Active'}
                   onClick={() => handleRenew(sub)}
                 >
-                  <RefreshCw size={16} /> 
+                  <RefreshCw size={16} />
                   {sub.status === 'Active' ? 'Renewed' : 'Renew Now'}
                 </button>
+
+                {sub.manage_url && (
+                  <button
+                    type="button"
+                    className={styles.manageButton}
+                    title="Opens the provider's account page — pay, change plan, or cancel"
+                    onClick={() => window.open(sub.manage_url!, '_blank', 'noopener')}
+                  >
+                    <ExternalLink size={16} />
+                    Manage / Pay on provider's site
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -349,6 +372,7 @@ export default function SubscriptionsPage() {
               { label: "Next Billing", value: selectedSubscription.next_billing_date ? formatDate(selectedSubscription.next_billing_date) : 'N/A' },
               { label: "Amount", value: `$${selectedSubscription.amount?.toFixed(2)}` }
             ]}
+            manageUrl={selectedSubscription.manage_url || undefined}
             onManage={() => {
               setDetailsModalOpen(false);
               handleOpenModal(selectedSubscription);

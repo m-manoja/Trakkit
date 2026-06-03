@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import * as paymentService from '../services/payment.service.js';
 import { PREMIUM_AMOUNT, PREMIUM_CURRENCY } from '../services/payment.service.js';
 import { supabase } from '../config/supabaseClient.js';
-import config from '../config.js';
+import config from '../config/env.js';
 
 const PAYHERE_MERCHANT_ID = process.env.PAYHERE_MERCHANT_ID ?? '';
 const PAYHERE_MERCHANT_SECRET = process.env.PAYHERE_MERCHANT_SECRET ?? '';

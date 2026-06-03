@@ -19,6 +19,7 @@ export type Subscription = {
   billing_cycle: string;
   next_billing_date: string;
   category: string;
+  manage_url?: string | null;
 };
 
 export type Todo = {

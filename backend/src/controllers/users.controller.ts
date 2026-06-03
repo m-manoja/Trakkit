@@ -3,7 +3,7 @@ import { updateUserProfile, getUserProfile } from "../services/users.service.js"
 import { requestOtp, verifyOtp as verifyOtpService, verifyOtpOnly, setBackupPassword, dismissBackupPrompt, loginWithEmail } from "../services/auth.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
-import config from '../config.js';
+import config from '../config/env.js';
 
 // Reuse the same sanitizer as auth controller
 const sanitizePhone = (phone: string): string => {

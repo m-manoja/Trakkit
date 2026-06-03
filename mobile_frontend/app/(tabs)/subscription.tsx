@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { formatDate } from '../../src/utils/dateFormat';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Platform
+  StatusBar, Modal, ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl, Platform, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -47,7 +47,8 @@ export default function SubscriptionInitial() {
     category: '',
     start_date: new Date(),
     description: '',
-    reminder_schedule: ''
+    reminder_schedule: '',
+    manage_url: ''
   });
   const [defaultReminderSchedule, setDefaultReminderSchedule] = useState('7,3,1');
 
@@ -138,14 +139,15 @@ export default function SubscriptionInitial() {
       category: item.category,
       start_date: new Date(item.start_date),
       description: item.description || '',
-      reminder_schedule: item.reminder_schedule || defaultReminderSchedule
+      reminder_schedule: item.reminder_schedule || defaultReminderSchedule,
+      manage_url: item.manage_url || ''
     });
     setIsFormVisible(true);
   };
 
   // --- API: SAVE ---
   const handleSave = async () => {
-    const { service_name, amount, billing_cycle, category, start_date, description, reminder_schedule } = formData;
+    const { service_name, amount, billing_cycle, category, start_date, description, reminder_schedule, manage_url } = formData;
 
     if (!service_name.trim() || !amount || !billing_cycle || !category) {
       Alert.alert("Required Fields", "Please fill in all mandatory fields (*)");
@@ -162,6 +164,7 @@ export default function SubscriptionInitial() {
         start_date: start_date.toISOString().split('T')[0],
         description: description.trim(),
         reminder_schedule: reminder_schedule.trim() || defaultReminderSchedule,
+        manage_url: manage_url.trim(),
         userId: user?.id
       };
 
@@ -189,7 +192,7 @@ export default function SubscriptionInitial() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ service_name: '', amount: '', billing_cycle: '', category: '', start_date: new Date(), description: '', reminder_schedule: defaultReminderSchedule });
+    setFormData({ service_name: '', amount: '', billing_cycle: '', category: '', start_date: new Date(), description: '', reminder_schedule: defaultReminderSchedule, manage_url: '' });
   };
 
   const openPicker = (title: string, options: string[], field: string) => {
@@ -240,6 +243,11 @@ export default function SubscriptionInitial() {
             )}
             {!sharing.bulkShareMode && (
               <>
+                {item.manage_url ? (
+                  <TouchableOpacity onPress={() => Linking.openURL(item.manage_url)} style={styles.actionIcon}>
+                    <Ionicons name="open-outline" size={22} color={COLORS.primary} />
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionIcon}>
                   <Ionicons name="create-outline" size={22} color="#555" />
                 </TouchableOpacity>
@@ -381,6 +389,7 @@ export default function SubscriptionInitial() {
               {showDatePicker && <DateTimePicker value={formData.start_date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (d) setFormData({ ...formData, start_date: d }); }} />}
               <FormInput label="Remind me (days before)" placeholder="e.g. 7,3,1" value={formData.reminder_schedule} onChangeText={(t: string) => setFormData({ ...formData, reminder_schedule: t })} />
               <FormInput label="Description" placeholder="Add a note..." value={formData.description} onChangeText={(t: string) => setFormData({ ...formData, description: t })} multiline={true} numberOfLines={3} />
+              <FormInput label="Manage / billing link" placeholder="https://… (provider account: pay, change plan, or cancel)" value={formData.manage_url} onChangeText={(t: string) => setFormData({ ...formData, manage_url: t })} keyboardType="url" autoCapitalize="none" />
               <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={isActionLoading}>
                 {isActionLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitBtnText}>{editId ? "Update" : "Save"}</Text>}
               </TouchableOpacity>
@@ -417,11 +426,11 @@ export default function SubscriptionInitial() {
   );
 }
 
-const FormInput = ({ label, placeholder, value, onChangeText, containerStyle, keyboardType, multiline, numberOfLines }: any) => (
+const FormInput = ({ label, placeholder, value, onChangeText, containerStyle, keyboardType, multiline, numberOfLines, autoCapitalize }: any) => (
   <View style={[styles.inputGroup, containerStyle]}>
     <Text style={styles.inputLabel}>{label}</Text>
     <View style={[styles.inputWrapper, multiline && { height: 80, alignItems: 'flex-start', paddingTop: 10 }]}>
-      <TextInput placeholder={placeholder} style={[styles.textInput, multiline && { textAlignVertical: 'top', width: '100%' }]} value={value} onChangeText={onChangeText} keyboardType={keyboardType} placeholderTextColor="#B0B0B0" multiline={multiline} numberOfLines={numberOfLines} />
+      <TextInput placeholder={placeholder} style={[styles.textInput, multiline && { textAlignVertical: 'top', width: '100%' }]} value={value} onChangeText={onChangeText} keyboardType={keyboardType} placeholderTextColor="#B0B0B0" multiline={multiline} numberOfLines={numberOfLines} autoCapitalize={autoCapitalize} />
     </View>
   </View>
 );

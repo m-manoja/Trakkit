@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import {
   Bell, Trash2, CheckCircle, Clock, Search, Loader2,
-  X, ArrowRight, AlarmClock, ShieldCheck, CreditCard, CheckSquare,
+  X, ArrowRight, AlarmClock, ShieldCheck, CreditCard, CheckSquare, ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -249,7 +249,7 @@ export default function NotificationsPage() {
                     <h3 className={styles.notificationTitle}>
                       {notif.title}
                       {notif.status === "failed" && (
-                        <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>Delivery failed</span>
+                        <span className={styles.failedBadge}>Delivery failed</span>
                       )}
                     </h3>
                     <p className={styles.notificationBody}>{notif.body}</p>
@@ -325,6 +325,17 @@ export default function NotificationsPage() {
                 <div className={styles.modalFields}>
                   {renderFields(selectedNotif.reference_type, itemDetail)}
                 </div>
+              )}
+
+              {/* Jump straight to the provider's account/billing page (if the user saved a link) */}
+              {selectedNotif.reference_type === "subscription" && itemDetail?.manage_url && (
+                <button
+                  className={styles.modalManageBtn}
+                  onClick={() => window.open(itemDetail.manage_url, "_blank", "noopener")}
+                >
+                  <ExternalLink size={18} style={{ marginRight: 8 }} />
+                  Manage on provider's site
+                </button>
               )}
 
               {/* Navigate to the page */}

@@ -31,6 +31,7 @@ export default function SubscriptionFormModal({
     start_date: new Date().toISOString().split('T')[0],
     description: "",
     reminder_schedule: "7,3,1",
+    manage_url: "",
   });
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function SubscriptionFormModal({
           start_date: new Date(initialData.start_date).toISOString().split('T')[0],
           description: initialData.description || "",
           reminder_schedule: initialData.reminder_schedule || "7,3,1",
+          manage_url: initialData.manage_url || "",
         });
       } else {
         setFormData({
@@ -54,6 +56,7 @@ export default function SubscriptionFormModal({
           start_date: new Date().toISOString().split('T')[0],
           description: "",
           reminder_schedule: "7,3,1",
+          manage_url: "",
         });
       }
     }
@@ -176,6 +179,17 @@ export default function SubscriptionFormModal({
                 placeholder="Optional notes about this subscription"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Manage / billing link <span className={styles.optionalTag}>(optional)</span></label>
+              <input
+                type="url"
+                className={styles.formInput}
+                placeholder="https://… paste the page where you pay/manage this"
+                value={formData.manage_url}
+                onChange={(e) => setFormData({...formData, manage_url: e.target.value})}
               />
             </div>
           </form>

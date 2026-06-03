@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import config from '../config.js';
+import config from '../config/env.js';
 import { ADMIN_SCOPE } from '../utils/admin.js';
 
 export interface AdminRequest extends Request {

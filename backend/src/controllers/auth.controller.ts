@@ -10,7 +10,7 @@ import {
 } from "../services/auth.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
-import config from '../config.js';
+import config from '../config/env.js';
 
 // Helper function to standardize phone numbers
 const sanitizePhone = (phone: string): string => {

@@ -177,6 +177,12 @@
   margin-bottom: 4px;
 }
 
+.failedBadge {
+  color: #dc2626;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
 .notificationBody {
   font-size: 14px;
   color: var(--text-secondary);
@@ -403,6 +409,27 @@
 
 .modalNavBtn:hover {
   background: var(--primary-dark);
+}
+
+.modalManageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 10px;
+  background: #fff;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modalManageBtn:hover {
+  background: #FDF2F5;
 }
 
 @media (max-width: 768px) {

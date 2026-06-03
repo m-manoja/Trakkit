@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import config from '../config.js';
+import config from '../config/env.js';
 import * as adminService from '../services/admin.service.js';
 import { ADMIN_SCOPE, verifyAdminCredentials } from '../utils/admin.js';
 

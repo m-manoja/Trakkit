@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import jwt from 'jsonwebtoken';
-import config from '../config.js';
+import config from '../config/env.js';
 import { supabase } from '../config/supabaseClient.js';
 import { getUserPlan } from './payment.service.js';
 import * as warrantyService from './warranty.service.js';
