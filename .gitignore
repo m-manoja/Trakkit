@@ -6,6 +6,8 @@ node_modules/
 dist/
 dist-ssr/
 coverage/
+backend/api/index.js
+backend/api/index.js.map
 
 # Local environment variables
 .env
