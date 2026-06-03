@@ -50,16 +50,23 @@ export default function PricingPage() {
   const [paymentData, setPaymentData] = useState<PaymentInitData | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const isPremium = user?.plan === 'premium';
+  // For the mobile-upgrade flow the browser may already hold a *different* user's
+  // session (the phone's browser is logged in separately from the app). Until the
+  // visitor logs in fresh as themselves, ignore that stale session so we never show
+  // someone else's plan or skip the login gate. See handleUpgrade / mobileLoginDone.
+  const effectiveUser = isMobile && !mobileLoginDone() ? null : user;
+  const isPremium = effectiveUser?.plan === 'premium';
 
   useEffect(() => {
-    if (user?.token) refreshPlan();
+    // Only sync the plan when we trust the session (desktop, or a freshly
+    // authenticated mobile visitor). Avoids fetching a stale account's plan.
+    if (effectiveUser?.token) refreshPlan();
     if (isMobile) {
       sessionStorage.setItem('trakkit_payment_source', 'mobile');
     } else {
       sessionStorage.removeItem('trakkit_payment_source');
     }
-  }, [user?.token, refreshPlan, isMobile]);
+  }, [effectiveUser?.token, refreshPlan, isMobile]);
 
   // Kick off the PayHere checkout. Assumes the user is authenticated.
   const startPayment = async () => {
