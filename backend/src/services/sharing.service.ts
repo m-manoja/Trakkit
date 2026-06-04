@@ -27,13 +27,16 @@ async function queueInstantNotification(
   userId: string,
   title: string,
   body: string,
+  referenceType: string,
   referenceId: string,
   fromUserId?: string
 ) {
   const { error } = await supabase.from('scheduled_notifications').insert({
     user_id: userId,
     reference_id: referenceId,
-    reference_type: 'share',
+    // Reuse the item's real reference_type (warranty/subscription/manual_reminder/todo);
+    // scheduled_notifications.reference_type has a CHECK constraint that rejects unknown values.
+    reference_type: referenceType,
     title,
     body,
     scheduled_for: new Date().toISOString(),
@@ -508,7 +511,8 @@ export async function createShares(
       recipientUserId,
       `${ownerName} shared something with you`,
       `${ownerName} shared ${summary}. Open Trakkit to accept and get reminders.`,
-      created[0]?.item_id ?? recipientUserId,
+      REFERENCE_TYPE_MAP[created[0].item_type as ShareItemType],
+      created[0].item_id,
       ownerUserId
     );
   }
@@ -582,6 +586,7 @@ export async function respondToShare(
     share.owner_user_id,
     `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} your share`,
     `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} ${label}.`,
+    REFERENCE_TYPE_MAP[share.item_type as ShareItemType],
     share.item_id,
     recipientUserId
   );
