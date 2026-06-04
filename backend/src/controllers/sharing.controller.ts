@@ -61,6 +61,29 @@ export async function revokeShare(req: Request, res: Response) {
   }
 }
 
+export async function respondToShare(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const shareId = req.params.shareId;
+    if (!shareId) return res.status(400).json({ success: false, message: 'Share id required.' });
+
+    const { action } = req.body as { action?: 'accept' | 'decline' };
+    if (action !== 'accept' && action !== 'decline') {
+      return res.status(400).json({ success: false, message: "action must be 'accept' or 'decline'." });
+    }
+
+    await sharingService.respondToShare(shareId, userId, action);
+    return res.json({
+      success: true,
+      message: action === 'accept' ? 'Share accepted.' : 'Share declined.',
+    });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+}
+
 export async function listSent(req: Request, res: Response) {
   try {
     const userId = getUserId(req);

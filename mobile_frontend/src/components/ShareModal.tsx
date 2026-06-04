@@ -88,7 +88,7 @@ export default function ShareModal({ visible, onClose, items, token, title = 'Sh
       setError(null);
       const payload = items.map(({ itemType, itemId }) => ({ itemType, itemId }));
       const result = await createShare(resolvedUserId, payload, token);
-      let message = `Shared with ${result.recipientDisplayName}.`;
+      let message = `Shared with ${result.recipientDisplayName}. They'll be asked to accept.`;
       if (result.skipped?.length) {
         message += ` Already shared: ${result.skipped.join(', ')}.`;
       }

@@ -1,6 +1,7 @@
 import { API_BASE_URL } from './config';
 
 export type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
+export type ShareStatus = 'pending' | 'accepted' | 'declined';
 
 export interface ShareItemPayload {
   itemType: ShareItemType;
@@ -20,6 +21,7 @@ export interface ShareListEntry {
   itemId: string;
   itemLabel: string;
   item: Record<string, unknown> | null;
+  status: ShareStatus;
   createdAt: string;
   otherUser: {
     id: string;
@@ -86,6 +88,25 @@ export async function revokeShare(shareId: string, token: string): Promise<void>
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(json.message || 'Failed to remove share');
+  }
+}
+
+export async function respondToShare(
+  shareId: string,
+  action: 'accept' | 'decline',
+  token: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/sharing/received/${shareId}/respond`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.message || 'Failed to respond to share');
   }
 }
 

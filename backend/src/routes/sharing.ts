@@ -10,6 +10,7 @@ router.post('/', protect, asyncHandler(sharingController.createShare));
 router.get('/sent', protect, asyncHandler(sharingController.listSent));
 router.get('/received', protect, asyncHandler(sharingController.listReceived));
 router.get('/received/:shareId', protect, asyncHandler(sharingController.getReceivedDetail));
+router.post('/received/:shareId/respond', protect, asyncHandler(sharingController.respondToShare));
 router.delete('/:shareId', protect, asyncHandler(sharingController.revokeShare));
 
 export default router;

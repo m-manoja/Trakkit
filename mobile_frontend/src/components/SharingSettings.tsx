@@ -18,6 +18,7 @@ import {
   fetchSentShares,
   fetchReceivedShares,
   revokeShare,
+  respondToShare,
   type ShareListEntry,
   type ShareItemType,
 } from '../api/sharing';
@@ -104,6 +105,7 @@ export default function SharingSettings() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user?.token) return;
@@ -154,6 +156,34 @@ export default function SharingSettings() {
     );
   };
 
+  const handleRespond = (shareId: string, action: 'accept' | 'decline') => {
+    if (!user?.token) return;
+    const runRespond = async () => {
+      try {
+        setRespondingId(shareId);
+        await respondToShare(shareId, action, user.token);
+        await load();
+      } catch (err: unknown) {
+        Alert.alert('Error', err instanceof Error ? err.message : 'Failed to respond');
+      } finally {
+        setRespondingId(null);
+      }
+    };
+
+    if (action === 'decline') {
+      Alert.alert(
+        'Decline share',
+        'Decline this share? It will be removed and you won’t get reminders.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Decline', style: 'destructive', onPress: runRespond },
+        ]
+      );
+    } else {
+      runRespond();
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingRow}>
@@ -177,11 +207,24 @@ export default function SharingSettings() {
             sent.map((entry) => (
               <View key={entry.id} style={styles.card}>
                 <Text style={styles.cardTitle}>{entry.itemLabel}</Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{TYPE_LABELS[entry.itemType]}</Text>
+                <View style={styles.badgeRow}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{TYPE_LABELS[entry.itemType]}</Text>
+                  </View>
+                  {entry.status === 'pending' && (
+                    <View style={[styles.statusPill, styles.statusPending]}>
+                      <Text style={styles.statusPendingText}>Pending</Text>
+                    </View>
+                  )}
+                  {entry.status === 'accepted' && (
+                    <View style={[styles.statusPill, styles.statusAccepted]}>
+                      <Text style={styles.statusAcceptedText}>Accepted</Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.meta}>
-                  Shared with <Text style={styles.metaStrong}>{entry.otherUser.displayName}</Text> ·{' '}
+                  {entry.status === 'pending' ? 'Waiting for ' : 'Shared with '}
+                  <Text style={styles.metaStrong}>{entry.otherUser.displayName}</Text> ·{' '}
                   {formatLKDate(entry.createdAt)}
                 </Text>
                 <TouchableOpacity
@@ -209,7 +252,8 @@ export default function SharingSettings() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Shared with you</Text>
         <Text style={styles.sectionDesc}>
-          Read-only reminders others shared with you. Alerts follow your notification preferences.
+          Read-only reminders others shared with you. Accept to start receiving alerts (they follow
+          your notification preferences); decline to remove the share.
         </Text>
         {received.length === 0 ? (
           <Text style={styles.empty}>Nothing has been shared with you yet.</Text>
@@ -233,6 +277,26 @@ export default function SharingSettings() {
                 </Text>
               </TouchableOpacity>
               {expandedId === entry.id ? <ItemDetails entry={entry} /> : null}
+              {entry.status === 'pending' ? (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={styles.acceptBtn}
+                    onPress={() => handleRespond(entry.id, 'accept')}
+                    disabled={respondingId === entry.id}
+                  >
+                    <Text style={styles.acceptBtnText}>
+                      {respondingId === entry.id ? 'Saving…' : 'Accept'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.declineBtn}
+                    onPress={() => handleRespond(entry.id, 'decline')}
+                    disabled={respondingId === entry.id}
+                  >
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </View>
           ))
         )}
@@ -257,15 +321,37 @@ const styles = StyleSheet.create({
     borderColor: '#EEE',
   },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 6 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(185, 55, 93, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    marginBottom: 8,
   },
   badgeText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  statusPending: { backgroundColor: '#FEF3C7' },
+  statusPendingText: { fontSize: 11, fontWeight: '700', color: '#92400E' },
+  statusAccepted: { backgroundColor: '#DCFCE7' },
+  statusAcceptedText: { fontSize: 11, fontWeight: '700', color: '#166534' },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  acceptBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+  },
+  acceptBtnText: { color: 'white', fontWeight: '700', fontSize: 13 },
+  declineBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FFF',
+  },
+  declineBtnText: { color: '#B91C1C', fontWeight: '600', fontSize: 13 },
   meta: { fontSize: 13, color: '#6B7280', marginBottom: 10 },
   metaStrong: { fontWeight: '700', color: '#374151' },
   revokeBtn: {

@@ -8,6 +8,7 @@ import {
   fetchSentShares,
   fetchReceivedShares,
   revokeShare,
+  respondToShare,
   type ShareListEntry,
   type ShareItemType,
 } from '../../api/sharing';
@@ -105,6 +106,7 @@ export default function SharingSettings() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const { showAlert, showConfirm } = useAlert();
 
   const load = async () => {
@@ -144,6 +146,23 @@ export default function SharingSettings() {
     }
   };
 
+  const handleRespond = async (shareId: string, action: 'accept' | 'decline') => {
+    if (!user?.token) return;
+    if (action === 'decline') {
+      const ok = await showConfirm('Decline this share? It will be removed and you won’t get reminders.');
+      if (!ok) return;
+    }
+    try {
+      setRespondingId(shareId);
+      await respondToShare(shareId, action, user.token);
+      await load();
+    } catch (err: unknown) {
+      showAlert(err instanceof Error ? err.message : 'Failed to respond');
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <p className={styles.loadingRow}>
@@ -170,11 +189,21 @@ export default function SharingSettings() {
                     <div>
                       <p className={styles.cardTitle}>{entry.itemLabel}</p>
                       <span className={styles.badge}>{TYPE_LABELS[entry.itemType]}</span>
+                      {entry.status === 'pending' && (
+                        <span className={`${styles.statusPill} ${styles.statusPending}`}>
+                          Pending
+                        </span>
+                      )}
+                      {entry.status === 'accepted' && (
+                        <span className={`${styles.statusPill} ${styles.statusAccepted}`}>
+                          Accepted
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className={styles.meta}>
-                    Shared with <strong>{entry.otherUser.displayName}</strong> ·{' '}
-                    {formatLKDate(entry.createdAt)}
+                    {entry.status === 'pending' ? 'Waiting for ' : 'Shared with '}
+                    <strong>{entry.otherUser.displayName}</strong> · {formatLKDate(entry.createdAt)}
                   </p>
                   <button
                     type="button"
@@ -201,7 +230,8 @@ export default function SharingSettings() {
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>Shared with you</h3>
         <p className={styles.sectionDesc}>
-          Read-only reminders others shared with you. Alerts follow your notification preferences.
+          Read-only reminders others shared with you. Accept to start receiving alerts (they follow
+          your notification preferences); decline to remove the share.
         </p>
         {received.length === 0 ? (
           <p className={styles.empty}>Nothing has been shared with you yet.</p>
@@ -227,6 +257,26 @@ export default function SharingSettings() {
                   {expandedId === entry.id ? 'Hide details' : 'View details'}
                 </button>
                 {expandedId === entry.id && <ItemDetails entry={entry} />}
+                {entry.status === 'pending' && (
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.acceptBtn}
+                      onClick={() => handleRespond(entry.id, 'accept')}
+                      disabled={respondingId === entry.id}
+                    >
+                      {respondingId === entry.id ? 'Saving…' : 'Accept'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.declineBtn}
+                      onClick={() => handleRespond(entry.id, 'decline')}
+                      disabled={respondingId === entry.id}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

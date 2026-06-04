@@ -14,8 +14,10 @@ import {
   scheduleManualReminder,
 } from './notificationQueue.service.js';
 import { todayYmdInTz, dateToYmdInTz } from '../utils/timezone.js';
+import { sendExpoPushToUser } from './push.service.js';
 
 export type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
+export type ShareStatus = 'pending' | 'accepted' | 'declined';
 
 const REFERENCE_TYPE_MAP: Record<ShareItemType, string> = {
   warranty: 'warranty',
@@ -307,6 +309,7 @@ export async function syncShareNotificationsForItem(
     .eq('owner_user_id', ownerUserId)
     .eq('item_type', itemType)
     .eq('item_id', itemId)
+    .eq('status', 'accepted')
     .is('revoked_at', null);
 
   if (error || !shares?.length) return;
@@ -425,11 +428,19 @@ export async function createShares(
 
   if (!recipient) throw new Error('Recipient not found.');
 
+  const { data: owner } = await supabase
+    .from('users')
+    .select('first_name, last_name')
+    .eq('id', ownerUserId)
+    .maybeSingle();
+  const ownerName = displayName(owner || {});
+
   const created: any[] = [];
   const skipped: string[] = [];
+  const createdLabels: string[] = [];
 
   for (const { itemType, itemId } of items) {
-    await fetchOwnedItem(ownerUserId, itemType, itemId);
+    const ownedItem = await fetchOwnedItem(ownerUserId, itemType, itemId);
 
     const { data: existing } = await supabase
       .from('item_shares')
@@ -442,7 +453,7 @@ export async function createShares(
       .maybeSingle();
 
     if (existing) {
-      skipped.push(itemLabel(itemType, await fetchOwnedItem(ownerUserId, itemType, itemId)));
+      skipped.push(itemLabel(itemType, ownedItem));
       continue;
     }
 
@@ -453,13 +464,27 @@ export async function createShares(
         recipient_user_id: recipientUserId,
         item_type: itemType,
         item_id: itemId,
+        status: 'pending',
       })
       .select()
       .single();
 
     if (error) throw new Error(error.message);
     created.push(row);
-    await syncShareNotificationsForItem(ownerUserId, itemType, itemId);
+    createdLabels.push(itemLabel(itemType, ownedItem));
+    // Notifications are scheduled only once the recipient accepts (see respondToShare).
+  }
+
+  if (createdLabels.length) {
+    const summary =
+      createdLabels.length === 1
+        ? `"${createdLabels[0]}"`
+        : `${createdLabels.length} items`;
+    await sendExpoPushToUser(
+      recipientUserId,
+      `${ownerName} shared something with you`,
+      `${ownerName} shared ${summary}. Open Trakkit to accept and get reminders.`
+    );
   }
 
   return {
@@ -467,6 +492,73 @@ export async function createShares(
     recipientDisplayName: displayName(recipient),
     skipped,
   };
+}
+
+export async function respondToShare(
+  shareId: string,
+  recipientUserId: string,
+  action: 'accept' | 'decline'
+) {
+  const { data: share, error } = await supabase
+    .from('item_shares')
+    .select('*')
+    .eq('id', shareId)
+    .eq('recipient_user_id', recipientUserId)
+    .is('revoked_at', null)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!share) throw new Error('Share not found.');
+  if (share.status === 'accepted' && action === 'accept') return share;
+
+  if (action === 'accept') {
+    const { error: updErr } = await supabase
+      .from('item_shares')
+      .update({ status: 'accepted' })
+      .eq('id', shareId);
+    if (updErr) throw new Error(updErr.message);
+
+    await syncShareNotificationsForItem(
+      share.owner_user_id,
+      share.item_type as ShareItemType,
+      share.item_id
+    );
+  } else {
+    const { error: updErr } = await supabase
+      .from('item_shares')
+      .update({ status: 'declined', revoked_at: new Date().toISOString() })
+      .eq('id', shareId);
+    if (updErr) throw new Error(updErr.message);
+
+    await supabase
+      .from('scheduled_notifications')
+      .delete()
+      .eq('reference_id', share.item_id)
+      .eq('user_id', recipientUserId)
+      .eq('shared_from_user_id', share.owner_user_id)
+      .eq('status', 'pending');
+  }
+
+  // Let the owner know how the recipient responded.
+  const { data: recipient } = await supabase
+    .from('users')
+    .select('first_name, last_name')
+    .eq('id', recipientUserId)
+    .maybeSingle();
+  const recipientName = displayName(recipient || {});
+  let label = 'a shared item';
+  try {
+    label = `"${itemLabel(share.item_type as ShareItemType, await fetchItemForRecipient(share.item_type as ShareItemType, share.item_id))}"`;
+  } catch {
+    /* item may be gone; keep generic label */
+  }
+  await sendExpoPushToUser(
+    share.owner_user_id,
+    `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} your share`,
+    `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} ${label}.`
+  );
+
+  return { ...share, status: action === 'accept' ? 'accepted' : 'declined' };
 }
 
 export async function revokeShare(shareId: string, ownerUserId: string) {
@@ -553,6 +645,7 @@ async function enrichShares(shares: any[], perspective: 'sent' | 'received') {
       itemId: share.item_id,
       itemLabel: label,
       item,
+      status: (share.status as ShareStatus) || 'accepted',
       createdAt: share.created_at,
       otherUser: otherUser
         ? {
