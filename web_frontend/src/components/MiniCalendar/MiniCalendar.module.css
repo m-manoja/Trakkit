@@ -193,10 +193,27 @@
   margin: 0.5rem 0;
 }
 
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.eventCount {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
 .eventItem {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: default;
+}
+
+.eventItemClickable {
+  cursor: pointer;
 }
 
 .eventIcon {

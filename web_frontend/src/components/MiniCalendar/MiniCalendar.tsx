@@ -165,24 +165,23 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
               <h2 className={alertStyles.title}>
                 {selectedDateLabel}
               </h2>
-              <button className={alertStyles.closeBtn} onClick={() => setSelectedDay(null)}>
+              <button className={alertStyles.closeBtn} onClick={() => setSelectedDay(null)} title="Close" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             <div className={alertStyles.body}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              <div className={styles.eventList}>
+                <p className={styles.eventCount}>
                   {selectedEvents.length} event{selectedEvents.length !== 1 ? "s" : ""} scheduled
                 </p>
                 {selectedEvents.length === 0 ? (
-                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>Nothing scheduled for this day.</p>
+                  <p className={styles.noEvents}>Nothing scheduled for this day.</p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className={styles.eventList}>
                     {selectedEvents.map((ev, i) => (
-                      <div 
-                        key={i} 
-                        className={styles.eventItem}
-                        style={{ cursor: ev.path ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}
+                      <div
+                        key={i}
+                        className={`${styles.eventItem} ${ev.path ? styles.eventItemClickable : ''}`}
                         onClick={() => {
                           if (ev.path) {
                             setSelectedDay(null);
@@ -198,7 +197,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
                            ev.type === "subscription" ? <Clock size={16} /> :
                            ev.type === "todo" ? <CheckCircle size={16} /> : <Bell size={16} />}
                         </div>
-                        <div className={styles.eventInfo} style={{ flex: 1 }}>
+                        <div className={styles.eventInfo}>
                           <p className={styles.eventTitle}>{ev.label}</p>
                           <span
                             className={styles.eventType}

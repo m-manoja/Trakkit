@@ -70,6 +70,22 @@ function getMonthlySpend(subscriptions: any[]): number {
     }, 0);
 }
 
+function getMonthlyByCategory(subscriptions: any[]): { category: string; amount: number }[] {
+  const map = new Map<string, number>();
+  subscriptions
+    .filter(s => (s.status || '').toLowerCase() === 'active')
+    .forEach(s => {
+      const amt = parseFloat(s.amount) || 0;
+      const cycle = (s.billing_cycle || '').toLowerCase();
+      const monthly = cycle === 'weekly' ? amt * 4 : cycle === 'yearly' ? amt / 12 : amt;
+      const category = s.category || 'Other';
+      map.set(category, (map.get(category) || 0) + monthly);
+    });
+  return Array.from(map.entries())
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -421,6 +437,8 @@ export default function DashboardHome() {
     ...data.todos.filter(t => !t.is_completed && isThisWeek(t.reminder_date)),
   ].length;
 
+  const spendByCategory = getMonthlyByCategory(data.subscriptions);
+  const maxCategorySpend = spendByCategory[0]?.amount || 0;
   const allEvents = getUpcomingEvents(data);
   const upcomingEvents = showAllUpcoming ? allEvents : allEvents.slice(0, 5);
   const todayEvents = allEvents.filter(e => isToday(e.date));
@@ -550,6 +568,38 @@ export default function DashboardHome() {
             ))
           )}
         </View>
+
+        {/* ─── SPEND BY CATEGORY ─── */}
+        {spendByCategory.length > 0 && (
+          <>
+            <SectionHeader title="Spend by Category" subtitle={`Rs ${monthlySpend.toFixed(0)} / month`} />
+            <View style={styles.card}>
+              <View style={{ paddingVertical: 6 }}>
+                {spendByCategory.map((c) => (
+                  <View key={c.category} style={styles.spendRow}>
+                    <View style={styles.spendRowTop}>
+                      <Text style={styles.spendCategory}>{c.category}</Text>
+                      <Text style={styles.spendAmount}>
+                        Rs {c.amount.toFixed(0)}
+                        <Text style={styles.spendPercent}>
+                          {'  '}({monthlySpend ? Math.round((c.amount / monthlySpend) * 100) : 0}%)
+                        </Text>
+                      </Text>
+                    </View>
+                    <View style={styles.spendBarTrack}>
+                      <View
+                        style={[
+                          styles.spendBarFill,
+                          { width: `${maxCategorySpend ? (c.amount / maxCategorySpend) * 100 : 0}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
 
         {/* ─── CALENDAR ─── */}
         <SectionHeader title="Calendar" />
@@ -838,6 +888,15 @@ const styles = StyleSheet.create({
   urgencyText: { fontSize: 10, fontWeight: '700' },
   typePill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   typePillText: { fontSize: 10, fontWeight: '700' },
+
+  // Spend by category
+  spendRow: { marginBottom: 14 },
+  spendRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
+  spendCategory: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
+  spendAmount: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  spendPercent: { fontSize: 12, fontWeight: '500', color: '#999' },
+  spendBarTrack: { height: 8, borderRadius: 8, backgroundColor: '#F0F0F0', overflow: 'hidden' },
+  spendBarFill: { height: '100%', borderRadius: 8, backgroundColor: COLORS.primary },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 28, gap: 6 },

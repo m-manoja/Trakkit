@@ -100,6 +100,26 @@
   color: #111827;
 }
 
+.filterSelect {
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
+}
+
+.filterSelect:focus,
+.filterSelect:hover {
+  border-color: #B9375D;
+  box-shadow: 0 4px 12px rgba(185, 55, 93, 0.1);
+}
+
 .addButton {
   display: flex;
   align-items: center;

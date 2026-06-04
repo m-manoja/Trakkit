@@ -42,7 +42,8 @@ export default function WarrantiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,10 +168,17 @@ export default function WarrantiesPage() {
     }
   };
 
-  const filteredWarranties = warranties.filter(w => 
-    w.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    w.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const availableCategories = Array.from(
+    new Set(warranties.map(w => w.category).filter(Boolean))
+  ).sort();
+
+  const filteredWarranties = warranties.filter(w => {
+    const matchesSearch =
+      w.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      w.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "All" || w.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const openShare = (items: ShareModalItem[]) => {
     if (!isPremium) return;
@@ -225,6 +233,17 @@ export default function WarrantiesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {availableCategories.length > 0 && (
+              <select
+                className={styles.filterSelect}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                title="Filter by category"
+              >
+                <option value="All">All Categories</option>
+                {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
             {isPremium && (
               <>
                 {bulkShareMode ? (
@@ -299,9 +318,9 @@ export default function WarrantiesPage() {
             <ShieldCheck size={64} className={styles.emptyStateIcon} />
             <h3 className={styles.emptyStateTitle}>No warranties found</h3>
             <p className={styles.emptyStateDesc}>
-              {searchQuery ? "Try adjusting your search query." : "Keep track of your product warranties. Add your first warranty to get started."}
+              {searchQuery || categoryFilter !== "All" ? "Try adjusting your search or category filter." : "Keep track of your product warranties. Add your first warranty to get started."}
             </p>
-            {!searchQuery && (
+            {!searchQuery && categoryFilter === "All" && (
               <button className={styles.addButton} onClick={() => handleOpenModal()}>
                 <Plus size={20} />
                 <span>Add Your First Warranty</span>
@@ -320,6 +339,7 @@ export default function WarrantiesPage() {
                         checked={selectedIds.has(warranty.id)}
                         onChange={() => toggleSelect(warranty.id)}
                         className={styles.bulkCheckbox}
+                        aria-label={`Select ${warranty.product_name}`}
                       />
                     )}
                     <div>

@@ -41,7 +41,8 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -155,10 +156,17 @@ export default function SubscriptionsPage() {
     }
   };
 
-  const filteredSubscriptions = subscriptions.filter(s => 
-    s.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const availableCategories = Array.from(
+    new Set(subscriptions.map(s => s.category).filter(Boolean))
+  ).sort();
+
+  const filteredSubscriptions = subscriptions.filter(s => {
+    const matchesSearch =
+      s.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "All" || s.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const openShare = (items: ShareModalItem[]) => {
     if (!isPremium) return;
@@ -209,6 +217,17 @@ export default function SubscriptionsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {availableCategories.length > 0 && (
+              <select
+                className={styles.filterSelect}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                title="Filter by category"
+              >
+                <option value="All">All Categories</option>
+                {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
             {isPremium && (
               bulkShareMode ? (
                 <>
@@ -252,9 +271,9 @@ export default function SubscriptionsPage() {
             <CreditCard size={64} className={styles.emptyStateIcon} />
             <h3 className={styles.emptyStateTitle}>No subscriptions found</h3>
             <p className={styles.emptyStateDesc}>
-              {searchQuery ? "Try adjusting your search query." : "Keep track of your recurring services. Add your first subscription to get started."}
+              {searchQuery || categoryFilter !== "All" ? "Try adjusting your search or category filter." : "Keep track of your recurring services. Add your first subscription to get started."}
             </p>
-            {!searchQuery && (
+            {!searchQuery && categoryFilter === "All" && (
               <button className={styles.addButton} onClick={() => handleOpenModal()}>
                 <Plus size={20} />
                 <span>Add Your First Subscription</span>
@@ -268,7 +287,7 @@ export default function SubscriptionsPage() {
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitleRow}>
                     {bulkShareMode && isPremium && (
-                      <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelect(sub.id)} className={styles.bulkCheckbox} />
+                      <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelect(sub.id)} className={styles.bulkCheckbox} aria-label={`Select ${sub.service_name}`} />
                     )}
                     <div>
                       <h3 className={styles.cardTitle}>{sub.service_name}</h3>

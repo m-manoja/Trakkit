@@ -136,6 +136,26 @@ export default function DashboardPage() {
   .sort((a, b) => a.days - b.days)
   .slice(0, 5);
 
+  // Subscription spend grouped by category, normalized to a monthly figure
+  const monthlyByCategory = (() => {
+    const map = new Map<string, number>();
+    subscriptions.forEach(s => {
+      const amount = Number(s.amount) || 0;
+      const cycle = (s.billing_cycle || "").toLowerCase();
+      const monthly =
+        cycle === "weekly" ? (amount * 52) / 12 :
+        cycle === "yearly" ? amount / 12 :
+        amount;
+      const category = s.category || "Other";
+      map.set(category, (map.get(category) || 0) + monthly);
+    });
+    return Array.from(map.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  })();
+  const totalMonthlySpend = monthlyByCategory.reduce((sum, c) => sum + c.amount, 0);
+  const maxCategorySpend = monthlyByCategory[0]?.amount || 0;
+
   const allSearchResults = searchQuery ? [
     ...warranties
       .filter(w => (w.product_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (w.category || "").toLowerCase().includes(searchQuery.toLowerCase()))
@@ -328,6 +348,42 @@ export default function DashboardPage() {
               </div>
             </section>
 
+            {/* Spend by Category Section */}
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Monthly Spend by Category</h2>
+                <button className={styles.viewAll} onClick={() => navigate('/subscriptions')}>View All</button>
+              </div>
+              <div className={styles.list}>
+                {monthlyByCategory.length > 0 ? (
+                  <>
+                    <div className={styles.spendTotal}>
+                      <span>Total / month</span>
+                      <strong>Rs. {totalMonthlySpend.toFixed(0)}</strong>
+                    </div>
+                    {monthlyByCategory.map((c) => (
+                      <div key={c.category} className={styles.spendRow}>
+                        <div className={styles.spendRowHeader}>
+                          <span className={styles.spendCategory}>{c.category}</span>
+                          <span className={styles.spendAmount}>
+                            Rs. {c.amount.toFixed(0)}
+                            <small> ({Math.round((c.amount / totalMonthlySpend) * 100)}%)</small>
+                          </span>
+                        </div>
+                        <progress
+                          className={styles.spendBar}
+                          max={100}
+                          value={maxCategorySpend ? (c.amount / maxCategorySpend) * 100 : 0}
+                        />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <p className={styles.emptyState}>Add subscriptions to see your spending breakdown.</p>
+                )}
+              </div>
+            </section>
+
             {/* To-Dos Section */}
             <section className={styles.section}>
               <div className={styles.sectionHeader}>
@@ -360,7 +416,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Calendar Section */}
-            <section className={styles.section}>
+            <section className={`${styles.section} ${styles.sectionCalendar}`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Calendar</h2>
               </div>

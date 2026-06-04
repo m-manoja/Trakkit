@@ -40,6 +40,7 @@ export default function WarrantyScreen() {
   const [warranties, setWarranties] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [usage, setUsage] = useState<PremiumUsage | null>(null);
@@ -385,9 +386,15 @@ export default function WarrantyScreen() {
     setPickerVisible(true);
   };
 
-  const filteredWarranties = warranties.filter((w) =>
-    w.product_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const availableCategories = Array.from(
+    new Set(warranties.map((w) => w.category).filter(Boolean))
+  ).sort();
+
+  const filteredWarranties = warranties.filter((w) => {
+    const matchesSearch = w.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'All' || w.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const WarrantyCard = ({ item }: { item: any }) => {
     const isClaimed = item.status === 'Claimed';
@@ -536,6 +543,24 @@ export default function WarrantyScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
+        {availableCategories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterRow}
+            contentContainerStyle={styles.filterRowContent}
+          >
+            {['All', ...availableCategories].map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.filterChip, categoryFilter === cat && styles.filterChipActive]}
+                onPress={() => setCategoryFilter(cat)}
+              >
+                <Text style={[styles.filterChipText, categoryFilter === cat && styles.filterChipTextActive]}>{cat}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       <FlatList
@@ -713,6 +738,12 @@ const styles = StyleSheet.create({
   screenTitle: { fontSize: 22, fontWeight: 'bold' },
   searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 10, marginTop: 15, height: 45, borderWidth: 1, borderColor: '#DDD' },
   searchInput: { flex: 1, marginLeft: 10 },
+  filterRow: { marginTop: 12 },
+  filterRowContent: { gap: 8, paddingRight: 20 },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDD' },
+  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  filterChipText: { fontSize: 13, color: '#555', fontWeight: '600' },
+  filterChipTextActive: { color: 'white' },
   card: { backgroundColor: 'white', borderRadius: 15, padding: 16, marginHorizontal: 20, marginBottom: 15, elevation: 3 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   cardTitle: { fontSize: 18, fontWeight: 'bold' },

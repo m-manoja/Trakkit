@@ -28,6 +28,7 @@ export default function SubscriptionInitial() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
 
   // --- UI STATES ---
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -208,9 +209,15 @@ export default function SubscriptionInitial() {
     return { bg: '#FADBD8', text: '#E74C3C' };
   };
 
-  const filteredSubscriptions = subscriptions.filter((s) =>
-    s.service_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const availableCategories = Array.from(
+    new Set(subscriptions.map((s) => s.category).filter(Boolean))
+  ).sort();
+
+  const filteredSubscriptions = subscriptions.filter((s) => {
+    const matchesSearch = s.service_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'All' || s.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const SubscriptionCard = ({ item }: { item: any }) => {
     const status = getStatusStyle(item.status);
@@ -333,6 +340,24 @@ export default function SubscriptionInitial() {
             onChangeText={setSearchQuery}
           />
         </View>
+        {availableCategories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterRow}
+            contentContainerStyle={styles.filterRowContent}
+          >
+            {['All', ...availableCategories].map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.filterChip, categoryFilter === cat && styles.filterChipActive]}
+                onPress={() => setCategoryFilter(cat)}
+              >
+                <Text style={[styles.filterChipText, categoryFilter === cat && styles.filterChipTextActive]}>{cat}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* Main Content Area */}
@@ -443,6 +468,12 @@ const styles = StyleSheet.create({
   screenTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 10, marginTop: 15, height: 45, borderWidth: 1, borderColor: '#DDD' },
   searchInput: { flex: 1, marginLeft: 10 },
+  filterRow: { marginTop: 12 },
+  filterRowContent: { gap: 8, paddingRight: 20 },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'white', borderWidth: 1, borderColor: '#DDD' },
+  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  filterChipText: { fontSize: 13, color: '#555', fontWeight: '600' },
+  filterChipTextActive: { color: 'white' },
   card: {
     backgroundColor: 'white', borderRadius: 15, padding: 16, marginHorizontal: 20, marginBottom: 15, elevation: 3, ...Platform.select({
       web: {
