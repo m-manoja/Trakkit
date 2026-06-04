@@ -131,6 +131,31 @@ export default function WarrantiesPage() {
     }
   };
 
+  const handleDownload = async (url: string, productName?: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch file (${response.status})`);
+      const blob = await response.blob();
+
+      // Derive a filename from the URL, falling back to the product name.
+      const urlPath = url.split('?')[0];
+      const urlName = decodeURIComponent(urlPath.substring(urlPath.lastIndexOf('/') + 1));
+      const fileName = urlName || `${productName || 'warranty'}-document`;
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download document:", err);
+      showAlert("Failed to download document");
+    }
+  };
+
   const handleClaim = async (warranty: Warranty) => {
     if (!user?.token) return;
     const isConfirmed = await showConfirm(`Are you sure you want to claim the warranty for "${warranty.product_name}"? This action cannot be undone.`);
@@ -392,9 +417,13 @@ export default function WarrantiesPage() {
                         <a href={warranty.document_url.split(',')[0]} target="_blank" rel="noopener noreferrer" className={styles.documentLink}>
                           <Eye size={16} /> View
                         </a>
-                        <a href={warranty.document_url.split(',')[0]} download className={styles.documentLink}>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(warranty.document_url!.split(',')[0], warranty.product_name)}
+                          className={styles.documentLink}
+                        >
                           <Download size={16} /> Save
-                        </a>
+                        </button>
                       </div>
                     ) : (
                       <span className={styles.infoValueEmpty}>No file</span>

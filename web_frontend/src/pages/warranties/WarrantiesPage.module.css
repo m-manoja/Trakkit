@@ -609,6 +609,9 @@
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .documentLink:hover {
