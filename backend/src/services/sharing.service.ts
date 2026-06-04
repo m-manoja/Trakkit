@@ -14,10 +14,34 @@ import {
   scheduleManualReminder,
 } from './notificationQueue.service.js';
 import { todayYmdInTz, dateToYmdInTz } from '../utils/timezone.js';
-import { sendExpoPushToUser } from './push.service.js';
 
 export type ShareItemType = 'warranty' | 'subscription' | 'reminder' | 'todo';
 export type ShareStatus = 'pending' | 'accepted' | 'declined';
+
+/**
+ * Drops a notification into the shared queue scheduled for "now" so the existing
+ * worker delivers it through the recipient's channels (push/email) AND it shows
+ * up in the in-app Inbox on web + mobile. A direct push would bypass the Inbox.
+ */
+async function queueInstantNotification(
+  userId: string,
+  title: string,
+  body: string,
+  referenceId: string,
+  fromUserId?: string
+) {
+  const { error } = await supabase.from('scheduled_notifications').insert({
+    user_id: userId,
+    reference_id: referenceId,
+    reference_type: 'share',
+    title,
+    body,
+    scheduled_for: new Date().toISOString(),
+    status: 'pending',
+    ...(fromUserId ? { shared_from_user_id: fromUserId } : {}),
+  });
+  if (error) console.error('Error queueing share notification:', error.message);
+}
 
 const REFERENCE_TYPE_MAP: Record<ShareItemType, string> = {
   warranty: 'warranty',
@@ -480,10 +504,12 @@ export async function createShares(
       createdLabels.length === 1
         ? `"${createdLabels[0]}"`
         : `${createdLabels.length} items`;
-    await sendExpoPushToUser(
+    await queueInstantNotification(
       recipientUserId,
       `${ownerName} shared something with you`,
-      `${ownerName} shared ${summary}. Open Trakkit to accept and get reminders.`
+      `${ownerName} shared ${summary}. Open Trakkit to accept and get reminders.`,
+      created[0]?.item_id ?? recipientUserId,
+      ownerUserId
     );
   }
 
@@ -552,10 +578,12 @@ export async function respondToShare(
   } catch {
     /* item may be gone; keep generic label */
   }
-  await sendExpoPushToUser(
+  await queueInstantNotification(
     share.owner_user_id,
     `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} your share`,
-    `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} ${label}.`
+    `${recipientName} ${action === 'accept' ? 'accepted' : 'declined'} ${label}.`,
+    share.item_id,
+    recipientUserId
   );
 
   return { ...share, status: action === 'accept' ? 'accepted' : 'declined' };
