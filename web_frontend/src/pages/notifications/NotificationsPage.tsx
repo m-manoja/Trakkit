@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import {
   Bell, Trash2, CheckCircle, Clock, Search, Loader2,
-  X, ArrowRight, AlarmClock, ShieldCheck, CreditCard, CheckSquare, ExternalLink,
+  X, ArrowRight, AlarmClock, ShieldCheck, CreditCard, CheckSquare, ExternalLink, Share2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -14,6 +14,12 @@ import {
   markNotificationsRead,
   type AppNotification,
 } from "../../api/notifications";
+import {
+  fetchReceivedShares,
+  respondToShare,
+  type ShareListEntry,
+  type ShareItemType,
+} from "../../api/sharing";
 import { API_BASE_URL } from "../../api/config";
 import styles from "./NotificationsPage.module.css";
 import { useAlert } from "../../context/AlertContext";
@@ -24,6 +30,14 @@ const TYPE_META: Record<string, { label: string; route: string; Icon: React.Elem
   warranty:        { label: "Warranty",     route: "/warranties",    Icon: ShieldCheck },
   todo:            { label: "To Do",        route: "/todos",         Icon: CheckSquare },
   manual_reminder: { label: "Reminder",     route: "/reminders",     Icon: AlarmClock  },
+};
+
+// Map a share's item type to the reference_type used by renderFields
+const SHARE_REF_TYPE: Record<ShareItemType, string> = {
+  warranty: "warranty",
+  subscription: "subscription",
+  reminder: "manual_reminder",
+  todo: "todo",
 };
 
 // ── Detail field rows ─────────────────────────────────────────────────────────
@@ -100,6 +114,11 @@ export default function NotificationsPage() {
   const [itemDetail, setItemDetail] = useState<any>(null);
   const [itemLoading, setItemLoading] = useState(false);
 
+  // Shared-item invites: shown as an in-place popup with accept/decline (no page redirect)
+  const [receivedShares, setReceivedShares] = useState<ShareListEntry[]>([]);
+  const [shareEntry, setShareEntry] = useState<ShareListEntry | null>(null);
+  const [respondingShare, setRespondingShare] = useState(false);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadNotifications(); }, [user]);
 
@@ -127,8 +146,12 @@ export default function NotificationsPage() {
     if (!user?.token) return;
     try {
       setLoading(true);
-      const data = await fetchNotifications(user.token);
+      const [data, shares] = await Promise.all([
+        fetchNotifications(user.token),
+        fetchReceivedShares(user.token).catch(() => [] as ShareListEntry[]),
+      ]);
       setNotifications(data || []);
+      setReceivedShares(shares || []);
       const newIds = (data || [])
         .filter(n => n.status === "notified" || n.status === "failed")
         .map(n => n.id);
@@ -137,6 +160,35 @@ export default function NotificationsPage() {
       console.error("Failed to load notifications:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // A shared item has no page on the recipient's side, so open it in a popup instead of navigating.
+  function openNotification(notif: AppNotification) {
+    if (notif.shared_from_user_id) {
+      const match = receivedShares.find(
+        s => s.itemId === notif.reference_id && s.otherUser.id === notif.shared_from_user_id
+      );
+      if (match) {
+        setShareEntry(match);
+        return;
+      }
+    }
+    setSelectedNotif(notif);
+  }
+
+  async function handleShareRespond(action: "accept" | "decline") {
+    if (!user?.token || !shareEntry) return;
+    try {
+      setRespondingShare(true);
+      await respondToShare(shareEntry.id, action, user.token);
+      const shares = await fetchReceivedShares(user.token).catch(() => [] as ShareListEntry[]);
+      setReceivedShares(shares || []);
+      setShareEntry(null);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : "Failed to respond to share");
+    } finally {
+      setRespondingShare(false);
     }
   }
 
@@ -234,10 +286,10 @@ export default function NotificationsPage() {
               >
                 <div
                   className={styles.notificationClickable}
-                  onClick={() => setSelectedNotif(notif)}
+                  onClick={() => openNotification(notif)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={e => e.key === "Enter" && setSelectedNotif(notif)}
+                  onKeyDown={e => e.key === "Enter" && openNotification(notif)}
                 >
                   <div className={styles.notificationIconContainer}>
                     {notif.reference_type === "warranty"     ? <CheckCircle size={20} className={styles.iconWarranty} />    :
@@ -346,6 +398,73 @@ export default function NotificationsPage() {
                 <ArrowRight size={18} style={{ marginRight: 8 }} />
                 Open in {meta.label}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shared item popup (accept / decline, no page redirect) ──────────── */}
+      {shareEntry && (
+        <div className={styles.modalOverlay} onClick={() => setShareEntry(null)}>
+          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalAccentBar} />
+
+            <div className={styles.modalTopRow}>
+              <div className={styles.modalIconCircle}>
+                <Share2 size={26} />
+              </div>
+              <div className={styles.flexSpacer} />
+              <button
+                className={styles.modalCloseBtn}
+                onClick={() => setShareEntry(null)}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.modalBadge}>
+              <span>Shared with you{shareEntry.status === "pending" ? " · Pending" : ""}</span>
+            </div>
+
+            <div className={styles.modalBody}>
+              <h2 className={styles.modalTitle}>{shareEntry.itemLabel}</h2>
+              <div className={styles.modalMessageBox}>
+                <p className={styles.modalMessage}>
+                  Shared by {shareEntry.otherUser.displayName}
+                </p>
+              </div>
+
+              {shareEntry.item ? (
+                <div className={styles.modalFields}>
+                  {renderFields(SHARE_REF_TYPE[shareEntry.itemType], shareEntry.item)}
+                </div>
+              ) : (
+                <p className={styles.modalTime}>Details are no longer available.</p>
+              )}
+
+              {shareEntry.status === "pending" ? (
+                <div className={styles.shareActions}>
+                  <button
+                    type="button"
+                    className={`${styles.modalNavBtn} ${styles.acceptBtn}`}
+                    disabled={respondingShare}
+                    onClick={() => handleShareRespond("accept")}
+                  >
+                    {respondingShare ? <Loader2 size={18} className={styles.spinner} /> : "Accept"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.modalNavBtn} ${styles.declineBtn}`}
+                    disabled={respondingShare}
+                    onClick={() => handleShareRespond("decline")}
+                  >
+                    Decline
+                  </button>
+                </div>
+              ) : (
+                <p className={styles.modalTime}>✓ You accepted this share.</p>
+              )}
             </div>
           </div>
         </div>

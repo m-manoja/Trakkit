@@ -53,6 +53,13 @@ const REFERENCE_TYPE_MAP: Record<ShareItemType, string> = {
   todo: 'todo',
 };
 
+const TYPE_NOUN: Record<ShareItemType, string> = {
+  warranty: 'warranty',
+  subscription: 'subscription',
+  reminder: 'reminder',
+  todo: 'to-do',
+};
+
 export type ShareItemInput = { itemType: ShareItemType; itemId: string };
 
 function sanitizePhone(phone: string): string {
@@ -464,7 +471,6 @@ export async function createShares(
 
   const created: any[] = [];
   const skipped: string[] = [];
-  const createdLabels: string[] = [];
 
   for (const { itemType, itemId } of items) {
     const ownedItem = await fetchOwnedItem(ownerUserId, itemType, itemId);
@@ -498,21 +504,15 @@ export async function createShares(
 
     if (error) throw new Error(error.message);
     created.push(row);
-    createdLabels.push(itemLabel(itemType, ownedItem));
-    // Notifications are scheduled only once the recipient accepts (see respondToShare).
-  }
 
-  if (createdLabels.length) {
-    const summary =
-      createdLabels.length === 1
-        ? `"${createdLabels[0]}"`
-        : `${createdLabels.length} items`;
+    // One invite per item so each is individually actionable from its Inbox popup.
+    // Item-reminder notifications are scheduled only once the recipient accepts (respondToShare).
     await queueInstantNotification(
       recipientUserId,
-      `${ownerName} shared something with you`,
-      `${ownerName} shared ${summary}. Open Trakkit to accept and get reminders.`,
-      REFERENCE_TYPE_MAP[created[0].item_type as ShareItemType],
-      created[0].item_id,
+      `${ownerName} shared a ${TYPE_NOUN[itemType]} with you`,
+      `${ownerName} shared "${itemLabel(itemType, ownedItem)}". Open it to accept or decline.`,
+      REFERENCE_TYPE_MAP[itemType],
+      itemId,
       ownerUserId
     );
   }

@@ -18,6 +18,60 @@ import {
   markNotificationsRead,
   AppNotification,
 } from '../../src/api/notifications';
+import {
+  fetchReceivedShares,
+  respondToShare,
+  type ShareListEntry,
+  type ShareItemType,
+} from '../../src/api/sharing';
+import { formatDate as formatLKDate } from '../../src/utils/dateFormat';
+
+// Map a share's item type to the reference_type used for icon/colour lookup
+const SHARE_REF_TYPE: Record<ShareItemType, string> = {
+  warranty: 'warranty',
+  subscription: 'subscription',
+  reminder: 'manual_reminder',
+  todo: 'todo',
+};
+
+// Compact detail rows for a shared item, shown in the accept/decline popup
+function shareDetailRows(entry: ShareListEntry): { label: string; value: string }[] {
+  const item = entry.item as Record<string, any> | null;
+  if (!item) return [];
+  const fmt = (v: unknown) => {
+    if (!v || typeof v !== 'string') return '—';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? String(v) : formatLKDate(d);
+  };
+  switch (entry.itemType) {
+    case 'warranty':
+      return [
+        { label: 'Product', value: String(item.product_name || '—') },
+        { label: 'Category', value: String(item.category || '—') },
+        { label: 'Expiry', value: fmt(item.expiry_date) },
+        { label: 'Status', value: String(item.status || '—') },
+      ];
+    case 'subscription':
+      return [
+        { label: 'Service', value: String(item.service_name || '—') },
+        { label: 'Amount', value: String(item.amount ?? '—') },
+        { label: 'Next billing', value: fmt(item.next_billing_date) },
+      ];
+    case 'reminder':
+      return [
+        { label: 'Title', value: String(item.title || '—') },
+        { label: 'Date', value: fmt(item.reminder_date) },
+        { label: 'Remind', value: String(item.remind_time || '—') },
+      ];
+    case 'todo':
+      return [
+        { label: 'Task', value: String(item.task_name || '—') },
+        { label: 'Reminder date', value: fmt(item.reminder_date) },
+      ];
+    default:
+      return [];
+  }
+}
 
 // Map reference_type to its destination tab route
 const TYPE_ROUTE: Record<string, string> = {
@@ -89,6 +143,11 @@ export default function NotificationsScreen() {
   // Manage/billing link for the selected subscription notification (best-effort).
   const [subManageUrl, setSubManageUrl] = useState<string | null>(null);
 
+  // Shared-item invites: shown as an in-place popup with accept/decline (no page redirect)
+  const [receivedShares, setReceivedShares] = useState<ShareListEntry[]>([]);
+  const [shareEntry, setShareEntry] = useState<ShareListEntry | null>(null);
+  const [respondingShare, setRespondingShare] = useState(false);
+
   // When a subscription notification is opened, load that subscription's manage link.
   useEffect(() => {
     setSubManageUrl(null);
@@ -107,9 +166,13 @@ export default function NotificationsScreen() {
   const loadNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const result = await fetchNotifications(token);
+      const [result, shares] = await Promise.all([
+        fetchNotifications(token),
+        fetchReceivedShares(token).catch(() => [] as ShareListEntry[]),
+      ]);
       setNotifications(result.notifications);
       setNewIds(result.newIds);
+      setReceivedShares(shares || []);
       // Mark newly fetched (pending/notified) as read in the background
       if (result.newIds.size > 0) {
         markNotificationsRead(Array.from(result.newIds), token).catch(() => {});
@@ -121,6 +184,35 @@ export default function NotificationsScreen() {
       setIsRefreshing(false);
     }
   }, [token]);
+
+  // A shared item has no page on the recipient's side, so open it in a popup instead of navigating.
+  const openNotification = (notif: AppNotification) => {
+    if (notif.shared_from_user_id) {
+      const match = receivedShares.find(
+        s => s.itemId === notif.reference_id && s.otherUser.id === notif.shared_from_user_id
+      );
+      if (match) {
+        setShareEntry(match);
+        return;
+      }
+    }
+    setSelectedNotif(notif);
+  };
+
+  const handleShareRespond = async (action: 'accept' | 'decline') => {
+    if (!token || !shareEntry) return;
+    try {
+      setRespondingShare(true);
+      await respondToShare(shareEntry.id, action, token);
+      const shares = await fetchReceivedShares(token).catch(() => [] as ShareListEntry[]);
+      setReceivedShares(shares || []);
+      setShareEntry(null);
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to respond to share');
+    } finally {
+      setRespondingShare(false);
+    }
+  };
 
   useEffect(() => {
     loadNotifications();
@@ -172,7 +264,7 @@ export default function NotificationsScreen() {
       <TouchableOpacity
         activeOpacity={0.82}
         style={[styles.notifCard, isNew && styles.notifCardNew]}
-        onPress={() => setSelectedNotif(item)}
+        onPress={() => openNotification(item)}
       >
         {/* Left accent */}
         <View style={[styles.typeAccent, { backgroundColor: config.color }]} />
@@ -344,6 +436,90 @@ export default function NotificationsScreen() {
                     <Ionicons name="arrow-forward-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
                     <Text style={styles.detailNavBtnText}>View {cfg.label}</Text>
                   </TouchableOpacity>
+                </>
+              );
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Shared item popup (accept / decline, no page redirect) ──────────── */}
+      <Modal
+        visible={!!shareEntry}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareEntry(null)}
+      >
+        <TouchableOpacity
+          style={styles.detailOverlay}
+          activeOpacity={1}
+          onPress={() => setShareEntry(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.detailCard}>
+            {shareEntry && (() => {
+              const cfg = TYPE_CONFIG[SHARE_REF_TYPE[shareEntry.itemType]] || TYPE_CONFIG.manual_reminder;
+              const rows = shareDetailRows(shareEntry);
+              return (
+                <>
+                  <View style={[styles.detailBar, { backgroundColor: cfg.color }]} />
+
+                  <View style={styles.detailHeader}>
+                    <View style={[styles.detailIconCircle, { backgroundColor: cfg.color + '18' }]}>
+                      <Ionicons name="share-social-outline" size={26} color={cfg.color} />
+                    </View>
+                    <TouchableOpacity onPress={() => setShareEntry(null)} style={styles.detailClose}>
+                      <Ionicons name="close" size={20} color="#888" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.detailTypeBadge, { backgroundColor: cfg.color + '18' }]}>
+                    <Text style={[styles.detailTypeBadgeText, { color: cfg.color }]}>
+                      Shared with you{shareEntry.status === 'pending' ? ' · Pending' : ''}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.detailTitle}>{shareEntry.itemLabel}</Text>
+                  <Text style={styles.detailBody}>Shared by {shareEntry.otherUser.displayName}</Text>
+
+                  <View style={styles.detailDivider} />
+
+                  {rows.length > 0 ? (
+                    <View style={styles.shareFields}>
+                      {rows.map(row => (
+                        <View key={row.label} style={styles.shareFieldRow}>
+                          <Text style={styles.shareFieldLabel}>{row.label}</Text>
+                          <Text style={styles.shareFieldValue}>{row.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.detailBody}>Details are no longer available.</Text>
+                  )}
+
+                  {shareEntry.status === 'pending' ? (
+                    <View style={styles.shareActions}>
+                      <TouchableOpacity
+                        style={[styles.shareAcceptBtn, { backgroundColor: COLORS.primary }]}
+                        disabled={respondingShare}
+                        onPress={() => handleShareRespond('accept')}
+                      >
+                        {respondingShare ? (
+                          <ActivityIndicator color="#FFF" size="small" />
+                        ) : (
+                          <Text style={styles.shareAcceptText}>Accept</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.shareDeclineBtn}
+                        disabled={respondingShare}
+                        onPress={() => handleShareRespond('decline')}
+                      >
+                        <Text style={styles.shareDeclineText}>Decline</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <Text style={styles.shareAccepted}>✓ You accepted this share.</Text>
+                  )}
                 </>
               );
             })()}
@@ -610,6 +786,73 @@ const styles = StyleSheet.create({
   detailManageBtnText: {
     fontWeight: '700',
     fontSize: 15,
+  },
+
+  // Shared item popup
+  shareFields: {
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
+  shareFieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F2',
+    gap: 12,
+  },
+  shareFieldLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  shareFieldValue: {
+    fontSize: 13,
+    color: '#333',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  shareActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 22,
+  },
+  shareAcceptBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareAcceptText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  shareDeclineBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  shareDeclineText: {
+    color: '#B91C1C',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  shareAccepted: {
+    fontSize: 13,
+    color: '#166534',
+    fontWeight: '600',
+    marginHorizontal: 20,
+    marginTop: 14,
+    marginBottom: 22,
   },
 
   // Empty state

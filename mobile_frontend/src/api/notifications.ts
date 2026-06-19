@@ -10,6 +10,7 @@ export interface AppNotification {
   scheduled_for: string;
   status: 'pending' | 'notified' | 'sent' | 'failed';  // 'notified' = worker sent SMS, not yet seen in-app
   created_at: string;
+  shared_from_user_id?: string | null;  // set when this notification relates to a share
 }
 
 export interface FetchNotificationsResult {

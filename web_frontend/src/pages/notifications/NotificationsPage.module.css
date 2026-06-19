@@ -502,3 +502,23 @@
   }
 }
 
+
+/* Shared-item popup actions */
+.shareActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.acceptBtn {
+  flex: 1;
+  justify-content: center;
+}
+
+.declineBtn {
+  flex: 1;
+  justify-content: center;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
