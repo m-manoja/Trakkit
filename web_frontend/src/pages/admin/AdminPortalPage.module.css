@@ -39,7 +39,7 @@
 }
 
 .page {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 1.5rem 1.5rem 2.5rem;
 }
@@ -107,6 +107,127 @@
   margin: 0.15rem 0 0;
   font-size: 0.8rem;
   color: #6b7280;
+}
+
+.statMeta {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.analyticsBand {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.bandHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.85rem;
+}
+
+.appGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.dataCard {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fbfbfc;
+  border: 1px solid #edf0f2;
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.dataIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef5f3;
+  color: #26735f;
+}
+
+.dataValue,
+.dataLabel,
+.dataDetail {
+  display: block;
+}
+
+.dataValue {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.dataLabel {
+  margin-top: 0.1rem;
+  color: #374151;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.dataDetail {
+  margin-top: 0.15rem;
+  color: #6b7280;
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.rateStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.rateItem {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+}
+
+.rateTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #4b5563;
+  font-size: 0.83rem;
+  margin-bottom: 0.55rem;
+}
+
+.rateTop strong {
+  color: #111827;
+}
+
+.rateTrack {
+  height: 7px;
+  background: #eef2f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rateTrack span {
+  display: block;
+  height: 100%;
+  background: #26735f;
+  border-radius: inherit;
 }
 
 /* Search */
@@ -232,6 +353,30 @@
   color: #5b6b7a;
 }
 
+.miniCounts {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.miniCounts span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.miniMuted {
+  color: #9ca3af;
+}
+
 .deleteBtn {
   display: inline-flex;
   align-items: center;
@@ -333,7 +478,7 @@
   background: #fff;
   border-radius: 16px;
   width: 100%;
-  max-width: 460px;
+  max-width: 760px;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -374,6 +519,12 @@
   margin-bottom: 1rem;
 }
 
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+}
+
 .detailRow {
   display: flex;
   justify-content: space-between;
@@ -403,10 +554,15 @@
 }
 
 .countCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
   background: #faf7f8;
   border-radius: 10px;
   padding: 0.75rem 0.4rem;
   text-align: center;
+  color: #a83b5e;
 }
 
 .countValue {
@@ -419,6 +575,68 @@
 .countLabel {
   font-size: 0.7rem;
   color: #6b7280;
+}
+
+.summarySection {
+  margin: 1rem 0;
+}
+
+.summarySection h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.summaryList {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #edf0f2;
+  border-radius: 9px;
+  background: #fbfbfc;
+}
+
+.summaryTitle,
+.summaryMeta {
+  display: block;
+}
+
+.summaryTitle {
+  color: #1f2937;
+  font-weight: 650;
+  font-size: 0.86rem;
+}
+
+.summaryMeta {
+  margin-top: 0.15rem;
+  color: #6b7280;
+  font-size: 0.76rem;
+}
+
+.summarySide {
+  flex-shrink: 0;
+  color: #26735f;
+  background: #eef5f3;
+  border-radius: 7px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.emptySummary {
+  color: #9ca3af;
+  background: #fbfbfc;
+  border: 1px dashed #d1d5db;
+  border-radius: 9px;
+  padding: 0.7rem 0.75rem;
+  font-size: 0.84rem;
 }
 
 .modalDeleteBtn {
@@ -447,6 +665,25 @@
 
 @media (max-width: 720px) {
   .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .appGrid,
+  .rateStrip,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchBar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .searchInput {
+    min-width: 180px;
+  }
+
+  .countsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -2,7 +2,8 @@ import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 import * as adminService from '../services/admin.service.js';
-import { ADMIN_SCOPE, verifyAdminCredentials } from '../utils/admin.js';
+import { verifyAdminCredentials } from '../services/adminAuth.service.js';
+import { ADMIN_SCOPE } from '../utils/admin.js';
 
 export async function adminLogin(req: Request, res: Response) {
   const { username, password } = req.body ?? {};
@@ -11,11 +12,13 @@ export async function adminLogin(req: Request, res: Response) {
     return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
-  if (!verifyAdminCredentials(username, password)) {
+  const admin = await verifyAdminCredentials(username, password);
+
+  if (!admin) {
     return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
   }
 
-  const token = jwt.sign({ scope: ADMIN_SCOPE, sub: username }, config.jwt.secret, {
+  const token = jwt.sign({ scope: ADMIN_SCOPE, sub: admin.id, username: admin.username }, config.jwt.secret, {
     expiresIn: '12h',
   });
 

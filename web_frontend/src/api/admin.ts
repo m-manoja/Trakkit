@@ -11,14 +11,53 @@ export interface AdminUser {
   profile_completed: boolean | null;
   email_verified: boolean | null;
   created_at: string | null;
+  counts?: AdminUserCounts;
+}
+
+export interface AdminUserCounts {
+  warranties: number;
+  subscriptions: number;
+  reminders: number;
+  todos: number;
 }
 
 export interface AdminUserDetail extends AdminUser {
-  counts: {
-    warranties: number;
-    subscriptions: number;
-    reminders: number;
-    todos: number;
+  counts: AdminUserCounts;
+  summaries: {
+    warranties: Array<{
+      id: string;
+      product_name: string | null;
+      purchase_place: string | null;
+      expiry_date: string | null;
+      status: string | null;
+      document_url: string | null;
+      created_at: string | null;
+    }>;
+    subscriptions: Array<{
+      id: string;
+      service_name: string | null;
+      amount: number | string | null;
+      billing_cycle: string | null;
+      next_billing_date: string | null;
+      status: string | null;
+      created_at: string | null;
+    }>;
+    reminders: Array<{
+      id: string;
+      title: string | null;
+      reminder_date: string | null;
+      repeat_cycle: string | null;
+      reminder_schedule: string | null;
+      created_at: string | null;
+    }>;
+    todos: Array<{
+      id: string;
+      task_name: string | null;
+      is_completed: boolean | null;
+      has_reminder: boolean | null;
+      reminder_date: string | null;
+      created_at: string | null;
+    }>;
   };
 }
 
@@ -37,6 +76,43 @@ export interface AdminStats {
   verifiedUsers: number;
   completedProfiles: number;
   newLast30Days: number;
+  newLast7Days: number;
+  verificationRate: number;
+  profileCompletionRate: number;
+  premiumRate: number;
+  appData: {
+    warranties: {
+      total: number;
+      active: number;
+      claimed: number;
+      withDocuments: number;
+      expiringNext30Days: number;
+    };
+    subscriptions: {
+      total: number;
+      active: number;
+      dueNext30Days: number;
+      amountTotal: number;
+    };
+    reminders: {
+      total: number;
+    };
+    todos: {
+      total: number;
+      completed: number;
+      open: number;
+    };
+    notifications: {
+      pending: number;
+      sent: number;
+    };
+    shares: {
+      total: number;
+    };
+    pushTokens: {
+      total: number;
+    };
+  };
 }
 
 export async function adminLogin(username: string, password: string): Promise<string> {
