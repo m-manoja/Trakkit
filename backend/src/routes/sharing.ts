@@ -6,6 +6,7 @@ import * as sharingController from '../controllers/sharing.controller.js';
 const router = Router();
 
 router.post('/resolve', protect, asyncHandler(sharingController.resolveRecipient));
+router.post('/invite', protect, asyncHandler(sharingController.createInvite));
 router.post('/', protect, asyncHandler(sharingController.createShare));
 router.get('/sent', protect, asyncHandler(sharingController.listSent));
 router.get('/received', protect, asyncHandler(sharingController.listReceived));

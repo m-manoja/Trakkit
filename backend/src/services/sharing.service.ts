@@ -1,5 +1,7 @@
+import { randomUUID } from 'crypto';
 import { supabase } from '../config/supabaseClient.js';
 import { getUserPlan } from './payment.service.js';
+import { sendShareInviteEmail } from './email.service.js';
 import {
   getGlobalReminderSchedule,
   calculateReminderDates,
@@ -522,6 +524,185 @@ export async function createShares(
     recipientDisplayName: displayName(recipient),
     skipped,
   };
+}
+
+function getInviteUrl(): string {
+  return (process.env.FRONTEND_URL || 'https://trakkit.site').replace(/\/$/, '');
+}
+
+/**
+ * Creates pending share invites for an email that has no Trakkit account yet,
+ * then emails them an invite. The invites are converted into real shares by
+ * claimPendingSharesByEmail once that email is linked to an account.
+ */
+export async function createInvite(
+  ownerUserId: string,
+  email: string,
+  items: ShareItemInput[]
+) {
+  await assertCanCreateShare(ownerUserId);
+
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error('Enter an email address to send an invite.');
+  }
+
+  if (!items.length) {
+    throw new Error('Select at least one item to share.');
+  }
+
+  // Guard against inviting someone who already has an account (they should be
+  // resolved + shared with directly instead).
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+  if (existingUser) {
+    throw new Error('This email already has a Trakkit account. Search for it and share directly.');
+  }
+
+  const { data: owner } = await supabase
+    .from('users')
+    .select('first_name, last_name')
+    .eq('id', ownerUserId)
+    .maybeSingle();
+  const ownerName = displayName(owner || {});
+
+  const invitedLabels: string[] = [];
+  const skipped: string[] = [];
+
+  for (const { itemType, itemId } of items) {
+    // Ownership check + label.
+    const ownedItem = await fetchOwnedItem(ownerUserId, itemType, itemId);
+    const label = itemLabel(itemType, ownedItem);
+
+    const { error } = await supabase.from('pending_shares').insert({
+      owner_user_id: ownerUserId,
+      invite_email: normalizedEmail,
+      item_type: itemType,
+      item_id: itemId,
+      token: randomUUID(),
+    });
+
+    if (error) {
+      // Unique partial index rejects a duplicate open invite for the same item.
+      if (error.code === '23505') {
+        skipped.push(label);
+        continue;
+      }
+      throw new Error(error.message);
+    }
+    invitedLabels.push(label);
+  }
+
+  if (invitedLabels.length === 0) {
+    return { email: normalizedEmail, invited: 0, skipped };
+  }
+
+  const first = invitedLabels[0] ?? 'a reminder';
+  const summaryLabel =
+    invitedLabels.length === 1 ? first : `${first} and ${invitedLabels.length - 1} more`;
+
+  try {
+    await sendShareInviteEmail(normalizedEmail, ownerName, summaryLabel, getInviteUrl());
+  } catch (err: any) {
+    console.error('Failed to send share invite email:', err?.message || err);
+    throw new Error('Invite saved, but the email could not be sent. Please try again.');
+  }
+
+  return { email: normalizedEmail, invited: invitedLabels.length, skipped };
+}
+
+/**
+ * Converts any open pending_shares for this email into real item_shares and
+ * notifies the (now registered) recipient. Called whenever an email becomes
+ * linked to a user account (backup password / email verification).
+ */
+export async function claimPendingSharesByEmail(recipientUserId: string, email?: string | null) {
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (!normalizedEmail) return;
+
+  const { data: pending, error } = await supabase
+    .from('pending_shares')
+    .select('*')
+    .eq('invite_email', normalizedEmail)
+    .is('claimed_at', null);
+
+  if (error || !pending?.length) return;
+
+  const ownerNameCache = new Map<string, string>();
+
+  for (const invite of pending) {
+    // Someone can't receive a share they own.
+    if (invite.owner_user_id === recipientUserId) {
+      await supabase
+        .from('pending_shares')
+        .update({ claimed_at: new Date().toISOString(), claimed_by: recipientUserId })
+        .eq('id', invite.id);
+      continue;
+    }
+
+    // Skip if an equivalent live share already exists.
+    const { data: existingShare } = await supabase
+      .from('item_shares')
+      .select('id')
+      .eq('owner_user_id', invite.owner_user_id)
+      .eq('recipient_user_id', recipientUserId)
+      .eq('item_type', invite.item_type)
+      .eq('item_id', invite.item_id)
+      .is('revoked_at', null)
+      .maybeSingle();
+
+    if (!existingShare) {
+      const { error: insErr } = await supabase.from('item_shares').insert({
+        owner_user_id: invite.owner_user_id,
+        recipient_user_id: recipientUserId,
+        item_type: invite.item_type,
+        item_id: invite.item_id,
+        status: 'pending',
+      });
+      if (insErr) {
+        console.error('Failed to convert pending share:', insErr.message);
+        continue;
+      }
+
+      let ownerName = ownerNameCache.get(invite.owner_user_id);
+      if (!ownerName) {
+        const { data: owner } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', invite.owner_user_id)
+          .maybeSingle();
+        ownerName = displayName(owner || {});
+        ownerNameCache.set(invite.owner_user_id, ownerName);
+      }
+
+      let label = TYPE_NOUN[invite.item_type as ShareItemType];
+      try {
+        label = itemLabel(
+          invite.item_type as ShareItemType,
+          await fetchItemForRecipient(invite.item_type as ShareItemType, invite.item_id)
+        );
+      } catch {
+        /* item may be gone; keep the generic noun */
+      }
+
+      await queueInstantNotification(
+        recipientUserId,
+        `${ownerName} shared a ${TYPE_NOUN[invite.item_type as ShareItemType]} with you`,
+        `${ownerName} shared "${label}". Open it to accept or decline.`,
+        REFERENCE_TYPE_MAP[invite.item_type as ShareItemType],
+        invite.item_id,
+        invite.owner_user_id
+      );
+    }
+
+    await supabase
+      .from('pending_shares')
+      .update({ claimed_at: new Date().toISOString(), claimed_by: recipientUserId })
+      .eq('id', invite.id);
+  }
 }
 
 export async function respondToShare(

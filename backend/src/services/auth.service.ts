@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { supabase } from "../config/supabaseClient.js";
 import { sendPasswordResetEmail, sendEmailVerificationEmail, sendOtpEmail } from "./email.service.js";
+import { claimPendingSharesByEmail } from "./sharing.service.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const TEXTLK_API_URL = "https://app.text.lk/api/http/sms/send";
@@ -187,6 +188,11 @@ export async function setBackupPassword(userId: string, email: string, password:
     .eq('id', userId);
 
   if (error) throw new AuthServiceError(error.message, 500);
+
+  // Attach any reminders that were shared to this email before they signed up.
+  await claimPendingSharesByEmail(userId, email).catch((e) =>
+    console.error('claimPendingShares (backup password) failed:', e?.message || e)
+  );
 }
 
 /**
@@ -329,6 +335,10 @@ export async function confirmEmailVerificationByLink(token: string): Promise<{ e
     throw new AuthServiceError(`Failed to verify email: ${error.message}`, 500);
   }
 
+  await claimPendingSharesByEmail(payload.userId, payload.email).catch((e) =>
+    console.error('claimPendingShares (verify link) failed:', e?.message || e)
+  );
+
   return { email: payload.email };
 }
 
@@ -364,6 +374,11 @@ export async function confirmEmailVerification(userId: string, token: string): P
   }
 
   emailOtpStore.delete(userId);
+
+  await claimPendingSharesByEmail(userId, entry.newEmail).catch((e) =>
+    console.error('claimPendingShares (verify code) failed:', e?.message || e)
+  );
+
   return { email: entry.newEmail };
 }
 

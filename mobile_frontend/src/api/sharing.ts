@@ -60,6 +60,32 @@ export async function resolveShareRecipient(
   return parseJson(res);
 }
 
+export interface InviteResult {
+  email: string;
+  invited: number;
+  skipped: string[];
+}
+
+export async function sendShareInvite(
+  email: string,
+  items: ShareItemPayload[],
+  token: string
+): Promise<InviteResult> {
+  const res = await fetch(`${API_BASE_URL}/api/sharing/invite`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, items }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || json.error || 'Failed to send invite');
+  }
+  return json.data as InviteResult;
+}
+
 export async function createShare(
   recipientUserId: string,
   items: ShareItemPayload[],

@@ -8,6 +8,7 @@ import {
   confirmEmailVerification,
   confirmEmailVerificationByLink,
 } from "../services/auth.service.js";
+import { claimPendingSharesByEmail } from "../services/sharing.service.js";
 import { supabase } from "../config/supabaseClient.js";
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
@@ -80,6 +81,15 @@ export async function verifyOtp(req: Request, res: Response) {
     if (error || !userProfile) {
       console.error('User not found or error fetching user:', error);
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // Self-healing: on every login, attach any reminders that were shared to
+    // this user's email before they joined (in case an earlier email-linking
+    // step missed the claim).
+    if (userProfile.email) {
+      await claimPendingSharesByEmail(userProfile.id, userProfile.email).catch((e) =>
+        console.error('claimPendingShares (login) failed:', e?.message || e)
+      );
     }
 
     // Check whether the user needs first-time settings setup.

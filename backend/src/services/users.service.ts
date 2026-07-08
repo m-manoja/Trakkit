@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabaseClient.js";
+import { claimPendingSharesByEmail } from "./sharing.service.js";
 
 type UpdateProfileInput = {
   userId: string;
@@ -29,6 +30,14 @@ export async function updateUserProfile(input: UpdateProfileInput) {
   if (error) {
     console.error("PostgreSQL Update Error:", error.message);
     throw new Error(error.message);
+  }
+
+  // Profile setup is the usual point a phone-signup user first gets an email,
+  // so attach any reminders that were shared to that email before they joined.
+  if (email) {
+    await claimPendingSharesByEmail(userId, email).catch((e) =>
+      console.error('claimPendingShares (profile update) failed:', e?.message || e)
+    );
   }
 
   return data;

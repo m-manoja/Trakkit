@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, Loader2, Share2 } from 'lucide-react';
+import { X, Loader2, Share2, Mail } from 'lucide-react';
 import {
   resolveShareRecipient,
   createShare,
+  sendShareInvite,
   type ShareItemPayload,
 } from '../../api/sharing';
 import styles from './ShareModal.module.css';
@@ -33,6 +34,9 @@ export default function ShareModal({
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inviteMode, setInviteMode] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -40,6 +44,7 @@ export default function ShareModal({
     setResolvedUserId(null);
     setResolvedName(null);
     setError(null);
+    setInviteMode(false);
   };
 
   const handleLookup = async () => {
@@ -61,9 +66,42 @@ export default function ShareModal({
       setResolvedName(result.displayName);
     } catch (err: unknown) {
       resetLookup();
-      setError(err instanceof Error ? err.message : 'Lookup failed');
+      const message = err instanceof Error ? err.message : 'Lookup failed';
+      // No account found → offer to invite them instead of dead-ending.
+      if (/no trakkit account/i.test(message)) {
+        setInviteMode(true);
+        setInviteEmail(trimmedEmail);
+        setError(null);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    const trimmed = inviteEmail.trim();
+    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
+      setError('Enter a valid email address to send an invite.');
+      return;
+    }
+
+    try {
+      setInviting(true);
+      setError(null);
+      const payload = items.map(({ itemType, itemId }) => ({ itemType, itemId }));
+      const result = await sendShareInvite(trimmed, payload, token);
+      const message =
+        result.invited > 0
+          ? `Invite sent to ${result.email}. They'll get the shared reminder once they join Trakkit.`
+          : 'These items were already invited to that email.';
+      onSuccess?.(message);
+      handleClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -94,6 +132,7 @@ export default function ShareModal({
   const handleClose = () => {
     setEmail('');
     setPhone('');
+    setInviteEmail('');
     resetLookup();
     onClose();
   };
@@ -166,6 +205,24 @@ export default function ShareModal({
             </div>
           )}
 
+          {inviteMode && (
+            <div className={styles.invite}>
+              <strong className={styles.inviteTitle}>No Trakkit account yet</strong>
+              <p className={styles.inviteText}>
+                Invite them by email — they'll get a link to install Trakkit, and this shared
+                reminder will be waiting once they sign up with that email.
+              </p>
+              <label className={styles.label}>Invite email</label>
+              <input
+                type="email"
+                className={styles.input}
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="name@example.com"
+              />
+            </div>
+          )}
+
           {error && <p className={styles.error}>{error}</p>}
         </div>
 
@@ -173,15 +230,27 @@ export default function ShareModal({
           <button type="button" className={styles.btnSecondary} onClick={handleClose}>
             Cancel
           </button>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            onClick={handleShare}
-            disabled={!resolvedUserId || sharing}
-          >
-            {sharing ? <Loader2 size={16} /> : <Share2 size={16} />}
-            Share
-          </button>
+          {inviteMode ? (
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleSendInvite}
+              disabled={inviting}
+            >
+              {inviting ? <Loader2 size={16} /> : <Mail size={16} />}
+              Send Invite
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleShare}
+              disabled={!resolvedUserId || sharing}
+            >
+              {sharing ? <Loader2 size={16} /> : <Share2 size={16} />}
+              Share
+            </button>
+          )}
         </div>
       </div>
     </div>

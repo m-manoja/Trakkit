@@ -12,8 +12,7 @@ import {
 import { dateToYmdInTz, todayYmdInTz } from '../utils/timezone.js';
 import { removeSharesForItem } from './sharing.service.js';
 
-// The manage/billing link is whatever the user pasted in. We only keep it if it's a
-// valid http(s) URL, otherwise null. We never guess or auto-fill it.
+
 const sanitizeManageUrl = (value: unknown): string | null => {
   if (typeof value !== 'string' || !value.trim()) return null;
   const trimmed = value.trim();

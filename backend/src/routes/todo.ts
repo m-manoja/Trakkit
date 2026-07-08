@@ -6,7 +6,7 @@ const router = Router();
 
 // Base path: /api/todos
 router.get('/', protect, getTodos);
-router.get('/user/:userId', protect, getTodos); // Keep old route for backward compatibility
+router.get('/user/:userId', protect, getTodos); 
 router.post('/add', protect, addTodo);
 router.put('/:id/toggle', protect, toggleTodoStatus);
 router.put('/:id', protect, updateTodo);

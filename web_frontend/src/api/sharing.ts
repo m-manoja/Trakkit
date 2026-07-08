@@ -45,6 +45,33 @@ export async function resolveShareRecipient(
   return apiRequest<ResolvedUser>('/api/sharing/resolve', 'POST', params, token);
 }
 
+export interface InviteResult {
+  email: string;
+  invited: number;
+  skipped: string[];
+}
+
+export async function sendShareInvite(
+  email: string,
+  items: ShareItemPayload[],
+  token: string
+): Promise<InviteResult> {
+  const response = await fetch(`${API_BASE_URL}/api/sharing/invite`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, items }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message || result?.error || 'Failed to send invite');
+  }
+  return result.data as InviteResult;
+}
+
 export async function createShare(
   recipientUserId: string,
   items: ShareItemPayload[],

@@ -19,6 +19,34 @@ export async function resolveRecipient(req: Request, res: Response) {
   }
 }
 
+export async function createInvite(req: Request, res: Response) {
+  try {
+    const ownerUserId = getUserId(req);
+    if (!ownerUserId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const { email, items } = req.body as {
+      email?: string;
+      items?: sharingService.ShareItemInput[];
+    };
+
+    if (!email || !Array.isArray(items)) {
+      return res.status(400).json({ success: false, message: 'email and items are required.' });
+    }
+
+    const result = await sharingService.createInvite(ownerUserId, email, items);
+
+    const message =
+      result.invited > 0
+        ? `Invite sent to ${result.email}. They'll get the shared reminder once they join.`
+        : 'These items were already invited to that email.';
+
+    return res.status(201).json({ success: true, data: result, message });
+  } catch (error: any) {
+    const status = error.message?.includes('Premium') ? 403 : 400;
+    return res.status(status).json({ success: false, message: error.message });
+  }
+}
+
 export async function createShare(req: Request, res: Response) {
   try {
     const ownerUserId = getUserId(req);

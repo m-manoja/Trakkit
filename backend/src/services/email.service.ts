@@ -111,6 +111,40 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
 }
 
 /**
+ * Sends an invite to someone who isn't on Trakkit yet, letting them know an
+ * item was shared with them and that it will be waiting once they sign up with
+ * this email address.
+ */
+export async function sendShareInviteEmail(
+  to: string,
+  ownerName: string,
+  itemLabel: string,
+  inviteUrl: string
+): Promise<void> {
+  const fromAddress = process.env.EMAIL_FROM || `Trakkit <${process.env.EMAIL_USER}>`;
+  const body = `
+    <h2 style="margin:0 0 12px;color:#1a1a1a;font-size:20px;font-weight:700;">${ownerName} shared a reminder with you</h2>
+    <p style="margin:0 0 20px;color:#555;font-size:15px;line-height:1.6;">
+      <strong>${ownerName}</strong> wants to share <strong>"${itemLabel}"</strong> with you on Trakkit —
+      the app that keeps track of your warranties, subscriptions, reminders and to-dos so nothing slips by.
+    </p>
+    <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+      Install Trakkit and sign up with <strong>this email address (${to})</strong>, and the shared reminder
+      will be waiting in your inbox — ready to accept.
+    </p>
+    <a href="${inviteUrl}" style="display:inline-block;background:linear-gradient(135deg,#A83B5E,#c0527a);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;">Get Trakkit</a>
+    <p style="margin:24px 0 0;color:#aaa;font-size:12px;">If you didn't expect this invite, you can safely ignore this email.</p>`;
+
+  await getTransporter().sendMail({
+    from: fromAddress,
+    to,
+    subject: `${ownerName} shared a reminder with you on Trakkit`,
+    text: `${ownerName} wants to share "${itemLabel}" with you on Trakkit.\n\nInstall Trakkit and sign up with this email (${to}), and the shared reminder will be waiting for you.\n\nGet Trakkit: ${inviteUrl}\n\n— Trakkit`,
+    html: baseTemplate('You have an invite', `${ownerName} shared a reminder with you`, body),
+  });
+}
+
+/**
  * Sends an HTML email notification for a reminder.
  */
 export async function sendEmailNotification(

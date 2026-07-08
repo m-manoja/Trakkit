@@ -10,7 +10,6 @@ function userIdFromRequest(req: Request): string | undefined {
 }
 
 // Todo controller for handling CRUD operations
-
 export const addTodo = async (req: AuthRequest, res: Response) => {
     try {
         console.log('Request body:', req.body);

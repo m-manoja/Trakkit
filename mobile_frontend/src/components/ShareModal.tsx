@@ -14,6 +14,7 @@ import { COLORS } from '../theme/colors';
 import {
   resolveShareRecipient,
   createShare,
+  sendShareInvite,
   type ShareItemPayload,
 } from '../api/sharing';
 
@@ -38,16 +39,21 @@ export default function ShareModal({ visible, onClose, items, token, title = 'Sh
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inviteMode, setInviteMode] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   const resetLookup = () => {
     setResolvedUserId(null);
     setResolvedName(null);
     setError(null);
+    setInviteMode(false);
   };
 
   const handleClose = () => {
     setEmail('');
     setPhone('');
+    setInviteEmail('');
     resetLookup();
     onClose();
   };
@@ -71,9 +77,42 @@ export default function ShareModal({ visible, onClose, items, token, title = 'Sh
       setResolvedName(result.displayName);
     } catch (err: unknown) {
       resetLookup();
-      setError(err instanceof Error ? err.message : 'Lookup failed');
+      const message = err instanceof Error ? err.message : 'Lookup failed';
+      // No account found → offer to invite them instead of dead-ending.
+      if (/no trakkit account/i.test(message)) {
+        setInviteMode(true);
+        setInviteEmail(trimmedEmail);
+        setError(null);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    const trimmed = inviteEmail.trim();
+    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
+      setError('Enter a valid email address to send an invite.');
+      return;
+    }
+
+    try {
+      setInviting(true);
+      setError(null);
+      const payload = items.map(({ itemType, itemId }) => ({ itemType, itemId }));
+      const result = await sendShareInvite(trimmed, payload, token);
+      const message =
+        result.invited > 0
+          ? `Invite sent to ${result.email}. They'll get the shared reminder once they join Trakkit.`
+          : 'These items were already invited to that email.';
+      onSuccess?.(message);
+      handleClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -178,6 +217,25 @@ export default function ShareModal({ visible, onClose, items, token, title = 'Sh
               </View>
             ) : null}
 
+            {inviteMode ? (
+              <View style={styles.invite}>
+                <Text style={styles.inviteTitle}>No Trakkit account yet</Text>
+                <Text style={styles.inviteText}>
+                  Invite them by email — they'll get a link to install Trakkit, and this shared
+                  reminder will be waiting once they sign up with that email.
+                </Text>
+                <Text style={styles.label}>Invite email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={inviteEmail}
+                  onChangeText={setInviteEmail}
+                  placeholder="name@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            ) : null}
+
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </ScrollView>
 
@@ -185,20 +243,37 @@ export default function ShareModal({ visible, onClose, items, token, title = 'Sh
             <TouchableOpacity style={styles.btnSecondary} onPress={handleClose}>
               <Text style={styles.btnSecondaryText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btnPrimary, (!resolvedUserId || sharing) && styles.btnDisabled]}
-              onPress={handleShare}
-              disabled={!resolvedUserId || sharing}
-            >
-              {sharing ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="share-social-outline" size={16} color="white" />
-                  <Text style={styles.btnPrimaryText}>Share</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {inviteMode ? (
+              <TouchableOpacity
+                style={[styles.btnPrimary, inviting && styles.btnDisabled]}
+                onPress={handleSendInvite}
+                disabled={inviting}
+              >
+                {inviting ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="mail-outline" size={16} color="white" />
+                    <Text style={styles.btnPrimaryText}>Send Invite</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.btnPrimary, (!resolvedUserId || sharing) && styles.btnDisabled]}
+                onPress={handleShare}
+                disabled={!resolvedUserId || sharing}
+              >
+                {sharing ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="share-social-outline" size={16} color="white" />
+                    <Text style={styles.btnPrimaryText}>Share</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -283,6 +358,16 @@ const styles = StyleSheet.create({
   },
   resolvedText: { fontSize: 13, color: '#065F46' },
   resolvedName: { fontWeight: '700' },
+  invite: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  inviteTitle: { fontSize: 14, fontWeight: '700', color: '#9A3412', marginBottom: 4 },
+  inviteText: { fontSize: 13, color: '#7C2D12', lineHeight: 18, marginBottom: 12 },
   error: { marginTop: 12, fontSize: 13, color: '#991B1B', fontWeight: '500' },
   footer: {
     flexDirection: 'row',

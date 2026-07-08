@@ -2,10 +2,6 @@ import { Request, Response } from 'express';
 import * as subscriptionService from '../services/subscription.service.js';
 import { triggerGoogleCalendarSync } from '../services/googleCalendar.service.js';
 
-function userIdFromRequest(req: Request): string | undefined {
-    const user = (req as any).user;
-    return user?.id || user?.userId;
-}
 
 export const getSubscription = async (req: Request, res: Response) => {
     try {
