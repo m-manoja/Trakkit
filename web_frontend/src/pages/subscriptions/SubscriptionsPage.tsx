@@ -9,8 +9,7 @@ import {
   Trash2, 
   RefreshCw,
   Loader2,
-  Share2,
-  ExternalLink
+  Share2
 } from "lucide-react";
 import Layout from "../../components/Layout";
 import styles from "./SubscriptionsPage.module.css";
@@ -316,16 +315,6 @@ export default function SubscriptionsPage() {
                     </div>
                   </div>
                   <div className={styles.cardActions}>
-                    {sub.manage_url && (
-                      <button
-                        type="button"
-                        className={styles.iconButton}
-                        title="Manage on provider's site (pay, change plan, or cancel)"
-                        onClick={() => window.open(sub.manage_url!, '_blank', 'noopener')}
-                      >
-                        <ExternalLink size={18} />
-                      </button>
-                    )}
                     {isPremium && !bulkShareMode && (
                       <button type="button" className={styles.iconButton} title="Share" onClick={() => openShare([{ itemType: 'subscription', itemId: sub.id, label: sub.service_name }])}>
                         <Share2 size={18} />
@@ -375,18 +364,6 @@ export default function SubscriptionsPage() {
                   <RefreshCw size={16} />
                   {sub.status === 'Active' ? 'Renewed' : 'Renew Now'}
                 </button>
-
-                {sub.manage_url && (
-                  <button
-                    type="button"
-                    className={styles.manageButton}
-                    title="Opens the provider's account page — pay, change plan, or cancel"
-                    onClick={() => window.open(sub.manage_url!, '_blank', 'noopener')}
-                  >
-                    <ExternalLink size={16} />
-                    Manage / Pay on provider's site
-                  </button>
-                )}
               </div>
             ))}
           </div>

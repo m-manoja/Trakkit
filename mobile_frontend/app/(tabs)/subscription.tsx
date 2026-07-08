@@ -271,11 +271,6 @@ export default function SubscriptionInitial() {
             )}
             {!sharing.bulkShareMode && (
               <>
-                {item.manage_url ? (
-                  <TouchableOpacity onPress={() => Linking.openURL(item.manage_url)} style={styles.actionIcon}>
-                    <Ionicons name="open-outline" size={22} color={COLORS.primary} />
-                  </TouchableOpacity>
-                ) : null}
                 <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionIcon}>
                   <Ionicons name="create-outline" size={22} color="#555" />
                 </TouchableOpacity>
