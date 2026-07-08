@@ -127,16 +127,37 @@ export default function SubscriptionsPage() {
   const handleRenew = async (subscription: Subscription) => {
     if (!user?.token || subscription.status === 'Active') return;
 
-    const isConfirmed = await showConfirm(`Would you like to renew ${subscription.service_name}?`);
-    if (!isConfirmed) return;
+    const doRenew = async () => {
+      try {
+        await renewSubscription(subscription.id, user.token);
+        loadSubscriptions();
+      } catch (err) {
+        console.error("Failed to renew:", err);
+        showAlert("Failed to renew subscription");
+      }
+    };
 
-    try {
-      await renewSubscription(subscription.id, user.token);
-      loadSubscriptions();
-    } catch (err) {
-      console.error("Failed to renew:", err);
-      showAlert("Failed to renew subscription");
+    // With a payment link: ask whether to open it. Either choice renews.
+    if (subscription.manage_url) {
+      const goToPage = await showConfirm(
+        `Do you want to go to the payment page for ${subscription.service_name}? It will be renewed in Trakkit either way.`,
+        {
+          confirmLabel: 'Yes, go to page',
+          extraLabel: 'No, just renew',
+          onExtra: () => { void doRenew(); },
+          hideCancel: true,
+        }
+      );
+      if (goToPage) {
+        await doRenew();
+        window.open(subscription.manage_url, '_blank', 'noopener');
+      }
+      return;
     }
+
+    // No payment link: plain renew confirmation.
+    const isConfirmed = await showConfirm(`Would you like to renew ${subscription.service_name}?`);
+    if (isConfirmed) await doRenew();
   };
 
   const handleSaveSubscription = async (formData: Record<string, unknown>, editId: string | null) => {

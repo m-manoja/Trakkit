@@ -107,25 +107,46 @@ export default function SubscriptionInitial() {
   };
 
   // --- API: RENEW ---
-  const handleRenew = (id: string, name: string) => {
+  const handleRenew = (id: string, name: string, manageUrl?: string) => {
+    const doRenew = async () => {
+      try {
+        await axios.put(`${API_BASE_URL}/api/subscriptions/${id}/renew`, {}, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        fetchSubscriptions();
+      } catch (error) {
+        Alert.alert("Error", "Failed to renew.");
+      }
+    };
+
+    // With a payment link: ask whether to open it. Either choice renews.
+    if (manageUrl) {
+      Alert.alert(
+        "Renew Subscription",
+        `Do you want to go to the payment page for ${name}? It will be renewed in Trakkit either way.`,
+        [
+          { text: "No, just renew", onPress: () => doRenew() },
+          {
+            text: "Yes, go to page",
+            onPress: async () => {
+              await doRenew();
+              Linking.openURL(manageUrl).catch(() =>
+                Alert.alert("Error", "Couldn't open the payment link.")
+              );
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // No payment link: plain renew confirmation.
     Alert.alert(
       "Renew Subscription",
       `Would you like to renew ${name}? This will mark it as paid and advance the date to the next cycle.`,
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Renew",
-          onPress: async () => {
-            try {
-              await axios.put(`${API_BASE_URL}/api/subscriptions/${id}/renew`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-              fetchSubscriptions();
-            } catch (error) {
-              Alert.alert("Error", "Failed to renew.");
-            }
-          }
-        }
+        { text: "Renew", onPress: () => doRenew() },
       ]
     );
   };
@@ -280,7 +301,7 @@ export default function SubscriptionInitial() {
 
         <TouchableOpacity
           style={[styles.renewBtn, item.status !== 'Active' && styles.renewBtnOverdue]}
-          onPress={() => handleRenew(item.id, item.service_name)}
+          onPress={() => handleRenew(item.id, item.service_name, item.manage_url)}
           disabled={item.status === 'Active'}
         >
           <Text style={[styles.renewText, item.status !== 'Active' && { color: 'white' }]}>
